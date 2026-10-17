@@ -1,0 +1,158 @@
+# Nazbeen Academy Binary Ai Asisstance
+
+An AI-powered **analysis and research** assistant for binary-option chart study.
+Upload an IQ Option candlestick screenshot, and the system cross-checks it against a
+MetaTrader 5 reference feed, applies the Nazbeen Academy price-action knowledge base,
+and produces an evidence-based, honestly-caveated analysis.
+
+> **This application is an analysis and research tool. It never places trades and does
+> not guarantee outcomes. It will not report UP/DOWN probabilities until a statistical
+> model has been calibrated on sufficient, chronologically separated data.**
+
+---
+
+## Status
+
+Phases are delivered incrementally and only after their checks pass.
+
+| Phase | Name | Status |
+| ----- | ---- | ------ |
+| 1 | Foundation | ✅ Complete |
+| 2 | MT5 integration | ✅ Complete (live terminal verification pending) |
+| 3 | Screenshot vision | ✅ Complete (live provider verification pending) |
+| 4 | Data synchronization | ✅ Complete (screenshot/MT5 verification) |
+| 5 | Price-action knowledge engine | ✅ Complete |
+| 6 | Strategy evaluation | ✅ Complete |
+| 7 | Backtesting & probability calibration | ✅ Complete |
+| 8 | AI assistant | ✅ Complete |
+| 9 | Dashboard & analytics | ✅ Complete |
+| 10 | Security, integration testing & deployment | ⏳ Planned |
+
+See [`docs/PHASE-1-REPORT.md`](docs/PHASE-1-REPORT.md),
+[`docs/PHASE-2-REPORT.md`](docs/PHASE-2-REPORT.md),
+[`docs/PHASE-3-REPORT.md`](docs/PHASE-3-REPORT.md),
+[`docs/PHASE-4-REPORT.md`](docs/PHASE-4-REPORT.md),
+[`docs/PHASE-5-REPORT.md`](docs/PHASE-5-REPORT.md),
+[`docs/PHASE-6-REPORT.md`](docs/PHASE-6-REPORT.md),
+[`docs/PHASE-7-REPORT.md`](docs/PHASE-7-REPORT.md),
+[`docs/PHASE-8-REPORT.md`](docs/PHASE-8-REPORT.md) and
+[`docs/PHASE-9-REPORT.md`](docs/PHASE-9-REPORT.md) for completion reports.
+Phase 2 live-connection wiring is complete and unit-tested with a mocked MT5
+gateway; it has **not** yet been exercised against a real terminal/broker account.
+Phase 3 screenshot vision is complete and tested with a mocked vision provider; a
+real hosted-model round trip has **not** yet been exercised.
+Phase 5 implements the price-action knowledge engine as deterministic detectors +
+`PriceActionEngine` (in-memory, no live data); see
+[`docs/PRICE-ACTION-KNOWLEDGE-BASE.md`](docs/PRICE-ACTION-KNOWLEDGE-BASE.md).
+See [`docs/MT5-INTEGRATION.md`](docs/MT5-INTEGRATION.md),
+[`docs/CHART-VISION.md`](docs/CHART-VISION.md) and
+[`docs/MARKET-SYNC.md`](docs/MARKET-SYNC.md) for setup and usage.
+
+---
+
+## Technology
+
+- **Backend:** Python 3.12+, Django 5.2, Django REST Framework, Celery, Django Channels
+- **Data:** PostgreSQL (production) / SQLite (development, tests), Redis (broker/cache)
+- **Frontend:** Django Templates, HTMX, Tailwind CSS (light & dark themes)
+- **Quality:** pytest / pytest-django, Ruff, type hints, structured logging
+
+## Architecture at a glance
+
+```
+apps/
+  core/        shared infrastructure: base models, logging, middleware, health
+  accounts/    custom user model, authentication, user preferences
+  dashboard/   authenticated HTMX/Tailwind UI, analytics & reporting services
+  api/         Django REST Framework surface
+  market_data/ MT5 connection, symbols, candles/ticks, worker, health (Phase 2)
+  chart_vision/ screenshot upload, vision extraction, structured observations (Phase 3)
+  market_sync/  screenshot-vs-MT5 synchronization, feed compatibility, statuses (Phase 4)
+  price_action/ deterministic price-action knowledge engine + evidence/conflicts (Phase 5)
+  strategy_engine/ strategy evaluation & persistence (Phase 6)
+  research/     backtesting & probability calibration (Phase 7)
+  ai_assistant/ conversational analysis assistant (Phase 8)
+  trading_journal/ manual journal + provenance-segmented performance (Phase 9)
+config/
+  settings/    base / dev / test / prod (12-factor, env-driven)
+  urls.py, asgi.py, wsgi.py, celery.py
+templates/     base + app templates
+static/        CSS / JS
+tests/         pytest suite
+docs/          architecture, checklists, reports
+```
+
+Full details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+---
+
+## Quickstart (development)
+
+Requires **Python 3.12+**. PostgreSQL/Redis are optional for local development
+(SQLite and in-memory fallbacks are used when unset).
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements/dev.txt
+
+Copy-Item .env.example .env          # then edit as needed
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
+
+Open http://127.0.0.1:8000/ and create an account.
+
+### Run the checks
+
+```powershell
+python -m pytest
+python -m ruff check .
+python -m ruff format --check .
+python manage.py check
+```
+
+Or run everything at once:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/check.ps1
+```
+
+### Environment notes
+
+- The project targets **Python 3.12+**. This repository was developed and verified on
+  **Python 3.13** because 3.12 was not available on the development machine.
+- Development and tests run on **SQLite** with in-memory Celery/Channels fallbacks.
+  **Production requires PostgreSQL (`DATABASE_URL`) and Redis (`REDIS_URL`)** and refuses
+  to start without them.
+- A fully-resolved dependency snapshot is available in
+  [`requirements/lock.txt`](requirements/lock.txt). Dependencies were installed with
+  `uv` due to unstable PyPI connectivity during development.
+
+---
+
+## Configuration
+
+All configuration is environment-driven (see [`.env.example`](.env.example)).
+Production (`config.settings.prod`) refuses to start without a secret key,
+explicit allowed hosts, a PostgreSQL `DATABASE_URL`, and a `REDIS_URL`.
+
+---
+
+## Data-integrity principles
+
+- IQ Option and MT5 data are never assumed identical.
+- Screenshot/MT5 comparisons explicitly detect mismatched symbols, timeframes,
+  timestamps, price levels and unsupported OTC instruments.
+- When verification is impossible the system reports **UNVERIFIED DATA** or
+  **DATA MISMATCH** instead of a confident prediction.
+- A successful screenshot/MT5 match validates data consistency, **not** future
+  price direction.
+
+---
+
+## License
+
+Proprietary. © Nazbeen Academy.
+"# binaryOptionAiAsistance" 
