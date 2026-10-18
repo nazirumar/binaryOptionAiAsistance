@@ -54,6 +54,13 @@ VISION_SCREENSHOT_ROOT = BASE_DIR / "private_media" / "test-tmp"
 VISION_LLM_PROVIDER = "mock"
 VISION_LLM_API_KEY = ""
 
+# Tests are hermetic: never call a real reasoning provider either. CP4 added
+# a real HTTP path, so without this override a local .env configured with a
+# live provider/key would leak real requests into the unit suite.
+REASONING_LLM_PROVIDER = "mock"
+REASONING_LLM_API_KEY = ""
+REASONING_LLM_MODEL = "mock-reasoning-1"
+
 # Static files: skip the manifest (and collectstatic) during tests.
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

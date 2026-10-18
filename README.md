@@ -27,6 +27,7 @@ Phases are delivered incrementally and only after their checks pass.
 | 8 | AI assistant | ✅ Complete |
 | 9 | Dashboard & analytics | ✅ Complete |
 | 10 | Security, integration testing & deployment | ✅ Complete — **READY FOR CONTROLLED PAPER TESTING** (not production) |
+| 11 | Critical integration remediation & live validation | ✅ Complete — pipeline end-to-end, real APIs, durable jobs, reasoning LLM live-verified |
 
 See [`docs/PHASE-1-REPORT.md`](docs/PHASE-1-REPORT.md),
 [`docs/PHASE-2-REPORT.md`](docs/PHASE-2-REPORT.md),
@@ -36,19 +37,24 @@ See [`docs/PHASE-1-REPORT.md`](docs/PHASE-1-REPORT.md),
 [`docs/PHASE-6-REPORT.md`](docs/PHASE-6-REPORT.md),
 [`docs/PHASE-7-REPORT.md`](docs/PHASE-7-REPORT.md),
 [`docs/PHASE-8-REPORT.md`](docs/PHASE-8-REPORT.md),
-[`docs/PHASE-9-REPORT.md`](docs/PHASE-9-REPORT.md) and
-[`docs/PHASE-10-RELEASE-READINESS.md`](docs/PHASE-10-RELEASE-READINESS.md) for
+[`docs/PHASE-9-REPORT.md`](docs/PHASE-9-REPORT.md),
+[`docs/PHASE-10-RELEASE-READINESS.md`](docs/PHASE-10-RELEASE-READINESS.md) and
+[`docs/PHASE-11-COMPLETION-REPORT.md`](docs/PHASE-11-COMPLETION-REPORT.md) for
 completion reports. Phase 10 evidence:
 [`docs/PHASE-10-AUDIT.md`](docs/PHASE-10-AUDIT.md) (repository audit),
 [`docs/PHASE-10-UAT.md`](docs/PHASE-10-UAT.md) (13/13 UAT scenarios) and
 [`docs/PHASE-10-PERFORMANCE.md`](docs/PHASE-10-PERFORMANCE.md) (latency/query
-measurements). Open launch-blocking items are listed in §5 of the readiness
-report — notably the unverified live MT5/LLM integrations. (The PostgreSQL
-restore drill was executed and passed on 2026-10-18.)
+measurements). Phase 11 evidence:
+[`docs/PHASE-11-LIVE-VALIDATION.md`](docs/PHASE-11-LIVE-VALIDATION.md) (live /
+mocked / not-executed status buckets). Open launch-blocking items are listed in
+§5 of the readiness report — notably the unverified live MT5 integration. (The
+PostgreSQL restore drill was executed and passed on 2026-10-18.)
 Phase 2 live-connection wiring is complete and unit-tested with a mocked MT5
 gateway; it has **not** yet been exercised against a real terminal/broker account.
 Phase 3 screenshot vision is complete and tested with a mocked vision provider; a
 real hosted-model round trip has **not** yet been exercised.
+The **reasoning LLM** integration was exercised live against Google Gemini and
+passed on 2026-10-18 (Phase 11 CP4).
 Phase 5 implements the price-action knowledge engine as deterministic detectors +
 `PriceActionEngine` (in-memory, no live data); see
 [`docs/PRICE-ACTION-KNOWLEDGE-BASE.md`](docs/PRICE-ACTION-KNOWLEDGE-BASE.md).

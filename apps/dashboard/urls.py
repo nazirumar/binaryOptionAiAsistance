@@ -23,6 +23,13 @@ urlpatterns = [
     path("overview/", page_views.overview, name="overview"),
     path("analyses/", page_views.analyses, name="analyses"),
     path("analytics/", page_views.analytics, name="analytics"),
+    path("assistant/", page_views.assistant, name="assistant"),
+    path("assistant/<int:pk>/", page_views.assistant_detail, name="conversation-detail"),
+    path(
+        "assistant/<int:pk>/follow-up/",
+        page_views.assistant_follow_up,
+        name="conversation-follow-up",
+    ),
     path("probability/", page_views.probability, name="probability"),
     path("market-health/", page_views.market_health, name="market-health"),
     path("backtests/", page_views.backtests, name="backtests"),

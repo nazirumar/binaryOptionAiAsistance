@@ -3,13 +3,23 @@
 
 from __future__ import annotations
 
+import re
+
 from rest_framework import serializers
 
 from apps.strategy_engine.models import StrategyEvaluation
 
+_OFFSET_SUFFIX_RE = re.compile(r"(Z|[+-]\d{2}:?\d{2})$", re.IGNORECASE)
+
 
 class StrategyEvaluateRequestSerializer(serializers.Serializer):
-    """Request serializer for strategy evaluation."""
+    """Request serializer for strategy evaluation.
+
+    Trusted verdict fields (``sync_status``, ``feed_compatibility``,
+    ``market_type``, ``timing_validity``, calibration flags, …) are
+    deliberately **absent**: clients reference evidence by id, and the server
+    derives every verdict itself (Phase 11 CP2). Unknown keys are dropped.
+    """
 
     screenshot_analysis_id = serializers.IntegerField(required=False, allow_null=True)
     sync_session_id = serializers.IntegerField(required=False, allow_null=True)
@@ -29,6 +39,18 @@ class StrategyEvaluateRequestSerializer(serializers.Serializer):
             "price_action_result",
             "now",
         )
+
+    def validate_now(self, value):
+        """Reject timezone-less clocks: an ambiguous 'now' must never be
+        silently localised (Phase 11 CP5)."""
+        if value is None:
+            return value
+        raw = (self.initial_data or {}).get("now")
+        if isinstance(raw, str) and raw.strip() and not _OFFSET_SUFFIX_RE.search(raw.strip()):
+            raise serializers.ValidationError(
+                "now must include a timezone offset (e.g. 2026-03-01T10:01:02Z or +01:00)."
+            )
+        return value
 
 
 class StrategyEvaluationSerializer(serializers.ModelSerializer):

@@ -791,26 +791,37 @@ class TestUncalibratedProbabilityWithheld:
 # 16. Expired next-candle timing window -> signal refused
 # ---------------------------------------------------------------------------
 class TestExpiredNextCandleWindow:
+    # Phase 11 CP5: candle timestamps are offset-aware (``Z``); the timing
+    # validator rejects naive/ambiguous timestamps instead of stripping them.
     _SIGNAL_CANDLES = [
         {
-            "open_time": "2026-01-05T12:00:00",
-            "close_time": "2026-01-05T12:01:00",
+            "open_time": "2026-01-05T12:00:00Z",
+            "close_time": "2026-01-05T12:01:00Z",
             "complete": True,
         }
     ]
 
     def test_timing_validator_expires_missed_next_candle(self):
+        # Phase 11 CP5 fixed an off-by-one: the target ("next") candle opens
+        # at the signal candle's CLOSE (12:01), not one full candle later.
         validity, info = TimingValidator().validate_timing(
-            self._SIGNAL_CANDLES, "M1", datetime(2026, 1, 5, 12, 3, 0)
+            self._SIGNAL_CANDLES, "M1", datetime(2026, 1, 5, 12, 3, tzinfo=UTC)
         )
         assert validity == TimingValidity.EXPIRED
-        assert info["target_candle_open_time"] == datetime(2026, 1, 5, 12, 2, 0)
+        assert info["target_candle_open_time"] == datetime(2026, 1, 5, 12, 1, tzinfo=UTC)
 
     def test_timing_validator_allows_small_entry_tolerance(self):
         validity, _info = TimingValidator().validate_timing(
-            self._SIGNAL_CANDLES, "M1", datetime(2026, 1, 5, 12, 2, 3)
+            self._SIGNAL_CANDLES, "M1", datetime(2026, 1, 5, 12, 1, 3, tzinfo=UTC)
         )
         assert validity == TimingValidity.VALID
+
+    def test_timing_validator_rejects_naive_evaluation_clock(self):
+        validity, info = TimingValidator().validate_timing(
+            self._SIGNAL_CANDLES, "M1", datetime(2026, 1, 5, 12, 2, 3)
+        )
+        assert validity == TimingValidity.UNCERTAIN
+        assert info["reason"] == "ambiguous_evaluation_timestamp"
 
     def test_orchestrator_expired_window_is_no_trade(self):
         result = AnalysisOrchestrator().run(
@@ -822,8 +833,8 @@ class TestExpiredNextCandleWindow:
         assert result["probability_value"] is None
 
     def test_evaluation_expired_entry_forces_no_trade(self):
-        # The timing validator works on naive datetimes (it strips timezone
-        # suffixes), so both the candle timestamps and ``now`` stay naive here.
+        # Phase 11 CP5: timestamps are timezone-aware; naive values are
+        # rejected rather than silently shifted.
         candles = [
             {
                 "open": 1.1,
@@ -831,12 +842,12 @@ class TestExpiredNextCandleWindow:
                 "low": 1.095,
                 "close": 1.102,
                 "complete": True,
-                "open_time": datetime(2026, 1, 5, 12, 0),
-                "close_time": datetime(2026, 1, 5, 12, 1),
+                "open_time": datetime(2026, 1, 5, 12, 0, tzinfo=UTC),
+                "close_time": datetime(2026, 1, 5, 12, 1, tzinfo=UTC),
             }
         ]
         result = EvaluationService().evaluate(
-            _eval_input(candles=candles), now=datetime(2026, 1, 5, 12, 3)
+            _eval_input(candles=candles), now=datetime(2026, 1, 5, 12, 3, tzinfo=UTC)
         )
         assert result["direction"] == EvaluationDirection.NO_TRADE
         assert InvalidationReasonCode.EXPIRED_ENTRY in result["reason_codes"]

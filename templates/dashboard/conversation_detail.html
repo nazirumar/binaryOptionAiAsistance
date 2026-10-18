@@ -1,0 +1,131 @@
+{% extends "dashboard/layout.html" %}
+{% block title %}{{ conversation.title|default:"Conversation" }} · {{ app_name }}{% endblock %}
+{% block page_content %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold">{{ conversation.title|default:"Conversation" }}</h1>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      Created {{ conversation.created_at|date:"Y-m-d H:i" }}
+      {% if conversation.is_educational %} · <span class="font-medium">Educational mode — analysis only, no prediction</span>{% endif %}
+    </p>
+  </div>
+  <a href="{% url 'dashboard:assistant' %}"
+     class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">← Back to conversations</a>
+</div>
+
+<div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+  Analysis only — this page never instructs a trade. Probabilities appear only when a calibrated, approved model exists.
+</div>
+
+<!-- Persisted assessment -->
+{% if summary.direction %}
+<section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 class="font-semibold">Assessment</h2>
+    <span class="rounded-full {% if summary.direction == 'NO TRADE' %}bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300{% else %}bg-indigo-50 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300{% endif %} px-3 py-1 text-xs font-medium">
+      {{ summary.direction }}{% if summary.educational %} · educational{% endif %}
+    </span>
+  </div>
+
+  <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+    <div><dt class="text-xs text-slate-500">Instrument</dt><dd class="mt-1 font-medium">{{ summary.instrument|default:"UNKNOWN" }} {{ summary.timeframe|default:"" }}</dd></div>
+    <div><dt class="text-xs text-slate-500">Market type</dt><dd class="mt-1 font-medium">{{ summary.market_type|default:"—" }}</dd></div>
+    <div><dt class="text-xs text-slate-500">Timing</dt><dd class="mt-1 font-medium">{{ summary.timing_validity|default:"—" }}</dd></div>
+    <div><dt class="text-xs text-slate-500">Strategy</dt><dd class="mt-1 font-medium">{{ summary.strategy_family|default:"—" }}</dd></div>
+    <div><dt class="text-xs text-slate-500">MT5 verification</dt><dd class="mt-1 font-medium">{{ summary.mt5_verification_status|default:"unavailable" }}</dd></div>
+    <div><dt class="text-xs text-slate-500">Calibration</dt><dd class="mt-1 font-medium">{{ summary.calibration_status|default:"—" }}</dd></div>
+  </dl>
+
+  {% if summary.explanation %}
+    <p class="mt-4 text-sm text-slate-700 dark:text-slate-300">{{ summary.explanation }}</p>
+  {% endif %}
+
+  <!-- Decision reasons (esp. NO TRADE) -->
+  {% if summary.primary_reason_code or summary.reason_codes or summary.warnings %}
+    <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/50">
+      <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Decision reasons</h3>
+      {% if summary.primary_reason_code %}
+        <p class="mt-2 text-sm font-medium">Primary: {{ summary.primary_reason_code }}</p>
+      {% endif %}
+      {% if summary.reason_codes %}
+        <ul class="mt-1 list-disc space-y-0.5 pl-5 text-sm text-slate-600 dark:text-slate-300">
+          {% for code in summary.reason_codes %}<li>{{ code }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      {% if summary.warnings %}
+        <ul class="mt-2 list-disc space-y-0.5 pl-5 text-sm text-amber-700 dark:text-amber-300">
+          {% for warning in summary.warnings %}<li>{{ warning }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Probability (only real, calibrated values) -->
+  <div class="mt-4 grid gap-4 lg:grid-cols-2">
+    <div class="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+      <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Probability</h3>
+      {% if summary.probability_value is not None %}
+        <p class="mt-2 text-lg font-semibold">{{ summary.probability_value }}</p>
+        <p class="text-xs text-slate-500">target: {{ summary.probability_type|default:"—" }} · {{ summary.calibration_status|default:"" }}</p>
+      {% else %}
+        <p class="mt-2 text-sm text-slate-500">Probability unavailable — model not calibrated.</p>
+      {% endif %}
+    </div>
+    <div class="rounded-lg border border-slate-200 p-3 dark:border-slate-800">
+      <h3 class="text-xs font-semibold uppercase tracking-wide text-slate-500">Evidence</h3>
+      {% if summary.sync_evidence %}
+        <dl class="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
+          <div class="flex justify-between gap-2"><dt>Sync status</dt><dd class="font-medium">{{ summary.sync_evidence.sync_status|default:"—" }}</dd></div>
+          <div class="flex justify-between gap-2"><dt>Verified alignment</dt><dd class="font-medium">{% if summary.sync_evidence.verified %}Yes{% else %}No{% endif %}</dd></div>
+          <div class="flex justify-between gap-2"><dt>Feed compatibility</dt><dd class="font-medium">{{ summary.sync_evidence.feed_compatibility|default:"—" }}</dd></div>
+          <div class="flex justify-between gap-2"><dt>Freshness</dt><dd class="font-medium">{{ summary.sync_evidence.freshness_status|default:"—" }}</dd></div>
+          <div class="flex justify-between gap-2"><dt>Candles</dt><dd class="font-medium">{{ summary.sync_evidence.candle_provenance|default:"—" }}</dd></div>
+        </dl>
+      {% else %}
+        <p class="mt-2 text-xs text-slate-500">No server-verified evidence recorded.</p>
+      {% endif %}
+    </div>
+  </div>
+{% elif session %}
+  <section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">
+    No persisted assessment summary is available for this conversation yet.
+  </section>
+{% else %}
+  <section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">
+    This conversation has no analysis attached yet.
+  </section>
+{% endif %}
+
+<!-- Message thread -->
+<section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+  <h2 class="font-semibold">Conversation</h2>
+  {% if messages %}
+    <ul class="mt-4 space-y-3">
+      {% for message in messages %}
+        <li class="rounded-lg {% if message.role == 'user' %}bg-slate-50 dark:bg-slate-800/50{% else %}bg-indigo-50 dark:bg-indigo-950/40{% endif %} p-3">
+          <p class="text-xs font-semibold uppercase tracking-wide {% if message.role == 'user' %}text-slate-500{% else %}text-indigo-600 dark:text-indigo-300{% endif %}">
+            {{ message.get_role_display }} · {{ message.created_at|date:"Y-m-d H:i" }}
+          </p>
+          <p class="mt-1 whitespace-pre-line text-sm text-slate-700 dark:text-slate-300">{{ message.content }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="mt-3 text-sm text-slate-500">No messages yet.</p>
+  {% endif %}
+
+  <!-- Follow-up -->
+  <form method="post" action="{% url 'dashboard:conversation-follow-up' conversation.pk %}" class="mt-5">
+    {% csrf_token %}
+    <label for="follow-up-message" class="block text-xs text-slate-500">Ask a follow-up about this analysis</label>
+    <textarea id="follow-up-message" name="message" rows="2" required
+              placeholder="e.g. Why did you return that decision?"
+              class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"></textarea>
+    <button type="submit"
+            class="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">
+      Send follow-up
+    </button>
+    <p class="mt-2 text-xs text-slate-500">Follow-ups are answered from stored evidence for this analysis — never from conversational memory.</p>
+  </form>
+</section>
+{% endblock %}

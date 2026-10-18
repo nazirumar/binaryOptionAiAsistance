@@ -24,6 +24,7 @@ import logging
 import subprocess
 import sys
 import types
+import unittest.mock
 from pathlib import Path
 
 import pytest
@@ -202,12 +203,21 @@ class TestReasoningFallbackFlag:
         assert "Deterministic engine" not in response.content
 
     def test_disabled_on_unreachable_provider_never_invents_text(self) -> None:
-        # Key present but this provider performs no network I/O (documented in
-        # PHASE-10-AUDIT): the failure path must still be the honest notice.
-        with self._provider(REASONING_FALLBACK_ON_FAILURE=False, REASONING_LLM_API_KEY="k"):
+        # Phase 11 CP4: the provider now performs real network I/O, so the
+        # "unreachable" case is a connection failure. The failure path must
+        # still be the honest notice — never invented text.
+        import urllib.error
+
+        def _unreachable(request, timeout=None):
+            raise urllib.error.URLError(ConnectionRefusedError())
+
+        with (
+            self._provider(REASONING_FALLBACK_ON_FAILURE=False, REASONING_LLM_API_KEY="k"),
+            unittest.mock.patch("urllib.request.urlopen", _unreachable),
+        ):
             response = ReasoningProvider().complete(_request())
         assert response.success is False
-        assert response.error == "provider_unavailable"
+        assert response.error == "provider_connection_error"
         assert response.content == "Explanation unavailable from reasoning provider."
 
     def test_flag_does_not_affect_the_mock_provider(self) -> None:

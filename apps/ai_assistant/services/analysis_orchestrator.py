@@ -15,7 +15,10 @@ from typing import Any
 from apps.ai_assistant.models import AIAnalysisSession
 from apps.ai_assistant.services.evidence_retriever import EvidenceRetriever
 from apps.ai_assistant.services.explanation_generator import ExplanationGenerator
-from apps.ai_assistant.services.probability_presenter import ProbabilityPresenter
+from apps.ai_assistant.services.probability_presenter import (
+    PROBABILITY_UNAVAILABLE_MESSAGE,
+    ProbabilityPresenter,
+)
 from apps.ai_assistant.services.response_validator import ResponseValidator
 from apps.ai_assistant.services.safety_validator import SafetyValidator
 from apps.strategy_engine.services.evaluation_service import EvaluationService
@@ -56,13 +59,18 @@ class AnalysisOrchestrator:
         # Step 6/15: OTC / feed compatibility guard.
         market_type = str((evaluation_input or {}).get("market_type", "")).upper()
         sync_status = str((evaluation_input or {}).get("sync_status", ""))
-        if market_type == "OTC" and sync_status != "VERIFIED_ALIGNMENT":
+        # Case-insensitive on purpose: the builder persists the server token
+        # ``verified_alignment`` while legacy inputs used the display casing.
+        # Only a genuine VERIFIED_ALIGNMENT (whatever the casing) opens this
+        # gate; the engine re-checks it independently below (double gate).
+        if market_type == "OTC" and sync_status.strip().upper() != "VERIFIED_ALIGNMENT":
             warnings.append("otc_feed_incompatible")
             return self._no_trade_response(
                 conversation,
                 evaluation_input or {},
                 warnings=warnings,
                 primary_reason="otc_feed_incompatible",
+                educational=educational,
             )
 
         # Step 14: timing validation / expired opportunity.
@@ -74,6 +82,7 @@ class AnalysisOrchestrator:
                 evaluation_input or {},
                 warnings=warnings,
                 primary_reason="opportunity_expired",
+                educational=educational,
             )
 
         # Steps 7-10: deterministic engines.
@@ -96,8 +105,19 @@ class AnalysisOrchestrator:
         engine_direction = str(evaluation.get("direction", "NO TRADE"))
         explanation = self.explainer.generate(evaluation)
 
-        # Step 16: probability only from an approved, validated model.
-        probability = self.probability.present(approved_model)
+        # Step 16: probability only from an approved, validated model that is
+        # compatible with this instrument/timeframe (CP6 strictness).
+        probability = self.probability.present(
+            approved_model,
+            context={
+                "instrument": str(
+                    evaluation.get("instrument") or (evaluation_input or {}).get("instrument", "")
+                ),
+                "timeframe": str(
+                    evaluation.get("timeframe") or (evaluation_input or {}).get("timeframe", "")
+                ),
+            },
+        )
         if educational:
             warnings.append("educational_mode_no_actionable_prediction")
 
@@ -127,6 +147,8 @@ class AnalysisOrchestrator:
                 "calibrated" if probability.get("available") else "uncalibrated"
             ),
             "explanation": explanation["explanation"],
+            "primary_reason_code": evaluation.get("primary_reason_code", ""),
+            "reason_codes": list(evaluation.get("reason_codes", [])),
             "warnings": warnings + list(explanation.get("warnings", [])),
             "follow_up_suggestions": [
                 "Why did you return this direction?",
@@ -134,12 +156,84 @@ class AnalysisOrchestrator:
                 "Is the probability calibrated?",
             ],
         }
+        # CP9-J: when no approved compatible model exists, the reader always
+        # sees the exact calibration notice (never a number, never silence).
+        if not probability.get("available") and PROBABILITY_UNAVAILABLE_MESSAGE not in str(
+            response.get("explanation", "")
+        ):
+            response["explanation"] = (
+                f"{str(response.get('explanation', '')).rstrip()} {PROBABILITY_UNAVAILABLE_MESSAGE}"
+            ).strip()
+
         validation = self.validator.validate(response, engine_direction=engine_direction)
         response["validation_errors"] = validation["errors"]
+
+        # CP7: educational mode never presents a trade assessment. Overrides
+        # are applied AFTER validation so the validator still checks the raw
+        # engine output, and the persisted schema records the educational
+        # form of the response.
+        if educational:
+            response["direction"] = "EDUCATIONAL"
+            response["explanation"] = self._educational_explanation(evaluation, explanation)
+            response["probability_value"] = None
+            response["probability_type"] = None
+            response["calibration_status"] = "not_applicable_educational"
+            response["follow_up_suggestions"] = [
+                "Explain the detected patterns in more detail.",
+                "What is support/resistance in this chart?",
+                "Explain buyer/seller failure here.",
+            ]
+
         response["analysis_id"] = self._persist_session(
             conversation, screenshot, response, warnings, status="completed"
         )
         return response
+
+    @staticmethod
+    def _educational_explanation(evaluation: dict[str, Any], explanation: dict[str, Any]) -> str:
+        """Observations and course concepts — no prediction, ever.
+
+        The text is built only from engine observations (market structure,
+        detected evidence, contradictory evidence, invalidation conditions).
+        It never states a next-candle direction and never carries a
+        probability.
+        """
+
+        def _ev_text(item: Any) -> str:
+            if isinstance(item, dict):
+                return str(
+                    item.get("description") or item.get("summary") or item.get("rule_id") or item
+                )[:160]
+            return str(item)[:160]
+
+        parts = [
+            "Educational analysis: observations and course concepts only — "
+            "this is not a trade assessment and contains no prediction."
+        ]
+        context = str(evaluation.get("market_context") or "")
+        if context:
+            parts.append(f"Market structure observed: {context}.")
+        supporting = list(explanation.get("supporting_evidence") or [])
+        if supporting:
+            listed = "; ".join(_ev_text(item) for item in supporting[:5])
+            parts.append(f"Detected observations ({len(supporting)}): {listed}.")
+        contradictory = list(explanation.get("contradictory_evidence") or [])
+        if contradictory:
+            listed = "; ".join(_ev_text(item) for item in contradictory[:5])
+            parts.append(f"Contradictory evidence to weigh ({len(contradictory)}): {listed}.")
+        invalidation = list(explanation.get("invalidation_conditions") or [])
+        if invalidation:
+            parts.append(
+                "Concept: setups are invalidated by unfinished candles, stale "
+                "data or an expired entry window — watch for those conditions."
+            )
+        parts.append(
+            "Course concept: support turns to resistance after a decisive break "
+            "(RBS), and resistance turns to support (SBR); liquidity sweeps "
+            "often precede reversals. Hypothetical example only — not a "
+            "forecast of this market."
+        )
+        return " ".join(parts)
 
     def _persist_session(
         self,
@@ -172,6 +266,7 @@ class AnalysisOrchestrator:
         evaluation_input: dict[str, Any],
         warnings: list[str],
         primary_reason: str,
+        educational: bool = False,
     ) -> dict[str, Any]:
         self.probability.present(None)
         response = {
@@ -193,12 +288,30 @@ class AnalysisOrchestrator:
             "probability_value": None,
             "probability_type": None,
             "calibration_status": "uncalibrated",
-            "explanation": f"NO TRADE: {primary_reason}.",
+            "explanation": (f"NO TRADE: {primary_reason}. {PROBABILITY_UNAVAILABLE_MESSAGE}"),
             "warnings": warnings,
             "follow_up_suggestions": ["What evidence is missing?"],
             "primary_reason_code": primary_reason,
             "validation_errors": [],
         }
+        if educational:
+            # CP7: educational mode never presents a trade assessment, even on
+            # an early-exit path (OTC guard, expired window).
+            warnings.append("educational_mode_no_actionable_prediction")
+            response["direction"] = "EDUCATIONAL"
+            response["calibration_status"] = "not_applicable_educational"
+            response["explanation"] = (
+                "Educational analysis: observations and course concepts only — "
+                "this is not a trade assessment and contains no prediction. "
+                f"No verifiable setup was available ({primary_reason}); in a "
+                "course setting this is where learners identify what evidence "
+                "would be required before any assessment could be made."
+            )
+            response["follow_up_suggestions"] = [
+                "Explain why verification failed here.",
+                "What is a dual-source verification policy?",
+                "What evidence would a real assessment require?",
+            ]
         response["analysis_id"] = self._persist_session(
             conversation, None, response, warnings, status="no_trade"
         )

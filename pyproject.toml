@@ -69,6 +69,7 @@ addopts = ["-ra", "--strict-markers", "--strict-config"]
 markers = [
     "integration: tests that require external services (MT5, Redis, DB).",
     "slow: tests that are noticeably slow.",
+    "live: opt-in tests against real external services; never run implicitly (each test documents the exact env configuration it requires).",
 ]
 
 [tool.coverage.run]

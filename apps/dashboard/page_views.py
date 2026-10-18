@@ -359,6 +359,99 @@ def journal_performance(request: HttpRequest) -> HttpResponse:
 
 
 # ---------------------------------------------------------------------------
+# AI assistant conversations (Phase 11 CP12)
+# ---------------------------------------------------------------------------
+def _latest_result_summary(conversation) -> dict:
+    """Most recent persisted assessment for a conversation's UI.
+
+    Prefers the completed job's ``result_summary`` (the pipeline's own
+    summarised verdict); falls back to the analysis session's full
+    ``response_schema``. Never fabricates a summary: an empty dict means "no
+    assessment yet" and the templates render that state explicitly.
+    """
+    from apps.ai_assistant.models import AIAnalysisJob, AIAnalysisSession
+
+    job = (
+        AIAnalysisJob.objects.filter(
+            conversation=conversation, status=AIAnalysisJob.Status.COMPLETED
+        )
+        .order_by("-finished_at", "-pk")
+        .first()
+    )
+    if job and isinstance(job.result_summary, dict) and job.result_summary.get("direction"):
+        return job.result_summary
+    session = (
+        AIAnalysisSession.objects.filter(conversation=conversation).order_by("-created_at").first()
+    )
+    if session and isinstance(session.response_schema, dict):
+        return session.response_schema
+    return {}
+
+
+@login_required
+@require_GET
+def assistant(request: HttpRequest) -> HttpResponse:
+    """List the signed-in user's assistant conversations with latest verdict."""
+    from apps.ai_assistant.models import AIConversation
+
+    conversations = AIConversation.objects.filter(owner=request.user).select_related(
+        "screenshot_analysis", "sync_session"
+    )
+    rows = [{"conversation": c, "summary": _latest_result_summary(c)} for c in conversations]
+    return render(request, "dashboard/assistant.html", {"rows": rows})
+
+
+@login_required
+@require_GET
+def assistant_detail(request: HttpRequest, pk: int) -> HttpResponse:
+    """One conversation: persisted assessment, evidence and message thread."""
+    from apps.ai_assistant.models import AIAnalysisSession, AIConversation
+
+    conversation = (
+        AIConversation.objects.filter(owner=request.user, pk=pk)
+        .select_related("screenshot_analysis", "sync_session")
+        .first()
+    )
+    if conversation is None:
+        raise Http404("Conversation not found.")
+    session = (
+        AIAnalysisSession.objects.filter(conversation=conversation)
+        .select_related("strategy_evaluation", "sync_session")
+        .order_by("-created_at")
+        .first()
+    )
+    context = {
+        "conversation": conversation,
+        "session": session,
+        "summary": _latest_result_summary(conversation),
+        "messages": conversation.messages.order_by("created_at"),
+    }
+    return render(request, "dashboard/conversation_detail.html", context)
+
+
+@login_required
+@require_POST
+def assistant_follow_up(request: HttpRequest, pk: int) -> HttpResponse:
+    """Answer a follow-up question from stored evidence (POST, then redirect)."""
+    from apps.ai_assistant.models import AIConversation
+    from apps.ai_assistant.services.assistant_service import AssistantService
+
+    conversation = AIConversation.objects.filter(owner=request.user, pk=pk).first()
+    if conversation is None:
+        raise Http404("Conversation not found.")
+    text = (request.POST.get("message") or "").strip()
+    if not text:
+        messages.error(request, "Please enter a question.")
+        return redirect("dashboard:conversation-detail", pk=conversation.pk)
+    outcome = AssistantService().handle_follow_up(request.user, conversation.pk, text)
+    if "error" in outcome:
+        messages.error(request, "That follow-up could not be answered from stored evidence.")
+    else:
+        messages.success(request, "Follow-up answered from stored evidence.")
+    return redirect("dashboard:conversation-detail", pk=conversation.pk)
+
+
+# ---------------------------------------------------------------------------
 # Reports / Exports (Step 14) - session-authenticated, owner-scoped
 # ---------------------------------------------------------------------------
 @login_required

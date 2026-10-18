@@ -20,5 +20,11 @@ urlpatterns = [
         name="conversation-messages",
     ),
     path("analyze/", views.AnalyzeView.as_view(), name="analyze"),
+    path("jobs/<int:pk>/", views.AnalysisJobDetailView.as_view(), name="job-detail"),
+    path(
+        "jobs/<int:pk>/cancel/",
+        views.AnalysisJobCancelView.as_view(),
+        name="job-cancel",
+    ),
     path("analyses/<int:pk>/", views.AnalysisDetailView.as_view(), name="analysis-detail"),
 ]

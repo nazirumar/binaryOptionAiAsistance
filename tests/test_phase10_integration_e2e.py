@@ -177,7 +177,12 @@ def test_full_analysis_workflow_end_to_end(api, user):
     assert evaluation.sync_status == "VERIFIED_ALIGNMENT"
 
     # Step 10: timing rules were applied.
-    assert evaluation.timing_validity == "valid"
+    # Phase 11 CP5 hardening: `_candle_dicts` carries no open/close timestamps,
+    # so the validator can no longer fabricate a "valid" verdict without time
+    # evidence — it honestly reports UNCERTAIN (the pre-CP5 behaviour of
+    # returning "valid" for timestamp-less candles was defect D-class and was
+    # deliberately removed).
+    assert evaluation.timing_validity == "uncertain"
 
     # Step 11: no calibrated model exists, so no probability may be quoted.
     assert response.get("probability_value") is None

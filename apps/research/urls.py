@@ -8,6 +8,12 @@ from apps.research import views
 app_name = "research"
 
 urlpatterns = [
+    path("datasets/", views.DatasetListView.as_view(), name="dataset-list"),
+    path(
+        "datasets/<int:pk>/",
+        views.DatasetDetailView.as_view(),
+        name="dataset-detail",
+    ),
     path("backtests/", views.BacktestListView.as_view(), name="backtest-list"),
     path("backtests/<int:pk>/", views.BacktestDetailView.as_view(), name="backtest-detail"),
     path("performance/", views.PerformanceView.as_view(), name="performance"),

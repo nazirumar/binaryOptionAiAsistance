@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 from rest_framework.authtoken.models import Token
@@ -142,9 +143,15 @@ class ProbabilityPresenterTest(TestCase):
 
     def test_calibrated_model_presented_with_type(self):
         presenter = ProbabilityPresenter()
+        # Phase 11 CP6: a model must carry complete calibration evidence —
+        # approval, version, target, brier score, calibration metadata and a
+        # documented held-out sample size — before a probability is shown.
         model = {
             "is_approved": True,
             "brier_score": 0.21,
+            "calibration_error": 0.08,
+            "calibration_method": "isotonic",
+            "evaluation_metrics": {"sample_count": 120},
             "version": "m1",
             "probability": 0.63,
             "prediction_target": "next_candle_directional",
@@ -153,6 +160,22 @@ class ProbabilityPresenterTest(TestCase):
         result = presenter.present(model)
         self.assertTrue(result["available"])
         self.assertEqual(result["prediction_target"], "next_candle_directional")
+
+    def test_missing_calibration_metadata_is_rejected(self):
+        presenter = ProbabilityPresenter()
+        model = {
+            "is_approved": True,
+            "brier_score": 0.21,
+            "calibration_error": 0.08,
+            # calibration_method intentionally missing
+            "version": "m1",
+            "probability": 0.63,
+            "prediction_target": "next_candle_directional",
+        }
+        result = presenter.present(model)
+        self.assertFalse(result["available"])
+        self.assertEqual(result["reason"], "missing_calibration_method")
+        self.assertIn("not calibrated", result["message"])
 
 
 class ReasoningProviderTest(TestCase):
@@ -198,6 +221,9 @@ class AnalysisOrchestratorTest(TestCase):
         model = {
             "is_approved": True,
             "brier_score": 0.2,
+            "calibration_error": 0.07,
+            "calibration_method": "platt",
+            "evaluation_metrics": {"sample_count": 200},
             "version": "m1",
             "probability": 0.6,
             "prediction_target": "next_candle_directional",
@@ -219,34 +245,133 @@ class AnalysisOrchestratorTest(TestCase):
 
 
 class BackgroundJobTest(TestCase):
-    def test_duplicate_job_suppressed(self):
+    """Phase 11 CP8: durable, cross-worker job coordination (database-backed)."""
+
+    def _job(self, key_suffix: str = "a"):
+        from apps.ai_assistant.models import AIAnalysisJob
+        from tests.factories import UserFactory
+        from tests.vision_fakes import make_screenshot
+
+        user = UserFactory(username=f"cp8-{key_suffix}")
+        screenshot = make_screenshot(user)
+        return AIAnalysisJob.objects.create(
+            owner=user,
+            screenshot=screenshot,
+            idempotency_key=f"analyze:{user.pk}:{screenshot.pk}:phase11-v1:std",
+        )
+
+    def test_claim_is_atomic_only_one_worker_wins(self):
+        job = self._job("atomic")
+        worker_a = type(job).objects.get(pk=job.pk)
+        worker_b = type(job).objects.get(pk=job.pk)
+
+        self.assertTrue(worker_a.claim())
+        self.assertFalse(worker_b.claim())
+        worker_a.refresh_from_db()
+        self.assertEqual(worker_a.status, "running")
+        self.assertEqual(worker_a.attempts, 1)
+
+    def test_idempotency_key_is_unique(self):
+        from django.db import IntegrityError, transaction
+
+        job = self._job("unique")
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                type(job).objects.create(
+                    owner=job.owner,
+                    screenshot=job.screenshot,
+                    idempotency_key=job.idempotency_key,
+                )
+
+    def test_terminal_job_is_never_overwritten(self):
+        job = self._job("terminal")
+        job.mark_completed(summary={"direction": "NO TRADE"})
+        job.claim()  # a late claim must not resurrect a finished job
+        job.refresh_from_db()
+        self.assertEqual(job.status, "completed")
+        job.mark_failed("late_error", "must not apply")
+        job.refresh_from_db()
+        self.assertEqual(job.status, "completed")
+        self.assertEqual(job.error_code, "")
+
+    def test_stale_running_job_is_reclaimed_with_bounded_attempts(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from apps.ai_assistant.models import AIAnalysisJob
+
+        job = self._job("stale")
+        self.assertTrue(job.claim())
+        AIAnalysisJob.objects.filter(pk=job.pk).update(
+            heartbeat_at=timezone.now()
+            - timedelta(seconds=AIAnalysisJob.STALE_RUNNING_SECONDS + 60)
+        )
+        reclaimed = AIAnalysisJob.objects.get(pk=job.pk)
+        self.assertTrue(reclaimed.claim())  # worker-crash recovery
+        reclaimed.refresh_from_db()
+        self.assertEqual(reclaimed.attempts, 2)
+
+        # Attempt budget exhausted -> terminal failure, no further claims.
+        AIAnalysisJob.objects.filter(pk=job.pk).update(
+            attempts=AIAnalysisJob.MAX_ATTEMPTS,
+            heartbeat_at=timezone.now()
+            - timedelta(seconds=AIAnalysisJob.STALE_RUNNING_SECONDS + 60),
+        )
+        stuck = AIAnalysisJob.objects.get(pk=job.pk)
+        self.assertFalse(stuck.claim())
+        stuck.refresh_from_db()
+        self.assertEqual(stuck.status, "failed")
+        self.assertEqual(stuck.error_code, "attempts_exhausted")
+
+    def test_cancel_only_before_start(self):
+        job = self._job("cancel")
+        self.assertTrue(job.cancel())
+        self.assertEqual(job.status, "cancelled")
+
+        running = self._job("cancel2")
+        self.assertTrue(running.claim())
+        self.assertFalse(running.cancel())
+
+    def test_task_runs_pipeline_once_and_redelivery_is_noop(self):
+        from unittest import mock
+
+        from apps.ai_assistant.services import screenshot_pipeline as sp
+
         calls = []
 
-        def run():
-            calls.append(1)
-            return {"ok": True}
+        def fake_run_job(j):
+            calls.append(j.pk)
+            return {"summary": {"direction": "NO TRADE"}}
 
-        first = tasks.run_analysis_job(1, 1, run)
-        self.assertEqual(first["status"], "completed")
-        self.assertEqual(len(calls), 1)
-
-    def test_duplicate_in_flight_suppressed(self):
-        key = (9, 9)
-        self.assertTrue(tasks.begin_job(*key))
-        self.assertFalse(tasks.begin_job(*key))
-        result = tasks.run_analysis_job(9, 9, lambda: {"ok": True})
-        self.assertEqual(result["status"], "duplicate_suppressed")
-        tasks.end_job(*key)
-        self.assertTrue(tasks.begin_job(*key))
-        tasks.end_job(*key)
+        job = self._job("task")
+        with mock.patch.object(sp, "run_job", fake_run_job):
+            first = tasks.run_screenshot_analysis_task.apply(args=(job.pk,))
+            second = tasks.run_screenshot_analysis_task.apply(args=(job.pk,))
+        self.assertEqual(first.result["status"], "completed")
+        self.assertEqual(second.result["status"], "already_terminal")
+        self.assertEqual(calls, [job.pk])
 
     def test_background_failure_recorded(self):
-        def boom():
+        from unittest import mock
+
+        from apps.ai_assistant.services import screenshot_pipeline as sp
+
+        def boom(j):
             raise RuntimeError("x")
 
-        result = tasks.run_analysis_job(2, 2, boom)
-        self.assertEqual(result["status"], "failed")
-        self.assertEqual(result["error"], "RuntimeError")
+        job = self._job("boom")
+        with mock.patch.object(sp, "run_job", boom):
+            result = tasks.run_screenshot_analysis_task.apply(args=(job.pk,))
+        self.assertEqual(result.result["status"], "failed")
+        self.assertEqual(result.result["error"], "RuntimeError")
+        job.refresh_from_db()
+        self.assertEqual(job.status, "failed")
+        self.assertEqual(job.error_code, "RuntimeError")
+
+    def test_missing_job_is_reported(self):
+        result = tasks.run_screenshot_analysis_task.apply(args=(999999,))
+        self.assertEqual(result.result["status"], "missing")
 
 
 class AssistantServiceTest(TestCase):
@@ -280,6 +405,7 @@ class AssistantServiceTest(TestCase):
 
 class AssistantAPITest(TestCase):
     def setUp(self):
+        cache.clear()  # keep DRF's locmem throttle cache from leaking across tests
         self.client = APIClient()
         self.user = User.objects.create_user(username="api", password="pw")
         token = Token.objects.create(user=self.user)
@@ -308,11 +434,26 @@ class AssistantAPITest(TestCase):
         url = reverse("ai_assistant:conversation-list")
         self.assertIn(anon.get(url).status_code, (401, 403))
 
-    def test_analyze_endpoint(self):
+    def test_analyze_endpoint_requires_a_screenshot(self):
         url = reverse("ai_assistant:analyze")
+        # Phase 11 CP1: analysis starts from a real screenshot; a body without
+        # one is a client error, never a fabricated analysis.
         resp = self.client.post(url, {"educational": True}, format="json")
-        self.assertEqual(resp.status_code, 201)
-        self.assertEqual(resp.data["response"]["direction"], "NO TRADE")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_analyze_endpoint(self):
+        from tests.vision_fakes import uploaded_file
+
+        url = reverse("ai_assistant:analyze")
+        resp = self.client.post(
+            url, {"screenshot": uploaded_file(), "educational": True}, format="multipart"
+        )
+        self.assertEqual(resp.status_code, 201, resp.content)
+        # Eager Celery: the durable job already ran the full pipeline.
+        self.assertEqual(resp.data["status"], "completed")
+        # CP7: educational submissions never receive a trade assessment.
+        self.assertEqual(resp.data["result_summary"]["direction"], "EDUCATIONAL")
+        self.assertIsNone(resp.data["result_summary"]["probability_value"])
 
     def test_message_endpoint_flags_injection(self):
         convo = ConversationManager().create_conversation(self.user)

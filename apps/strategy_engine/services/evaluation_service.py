@@ -186,16 +186,20 @@ class EvaluationService:
         return evaluation, result
 
     def _parse_dt(self, val):
+        """Parse a stored engine timestamp, keeping it UTC-aware.
+
+        Phase 11 CP5: naive/ambiguous values are rejected (``None``) instead
+        of being stripped of their offset and persisted as naive datetimes.
+        """
+        from apps.core.timeutils import parse_iso_datetime
+
         if not val:
             return None
         if isinstance(val, datetime):
-            return val
-        if isinstance(val, str):
-            try:
-                return datetime.fromisoformat(val.replace("Z", ""))
-            except Exception:
-                return None
-        return None
+            from apps.core.timeutils import ensure_utc
+
+            return ensure_utc(val)
+        return parse_iso_datetime(val)
 
 
 __all__ = ["EvaluationService"]

@@ -53,9 +53,7 @@ class APIAuthTest(TestCase):
 
         client = APIClient()
         resp = client.post("/api/strategies/evaluate/", {"candles": []})
-        self.assertIn(
-            resp.status_code, [401, 403, 501]
-        )  # 501 if auth passes but not implemented? Let us check
+        self.assertIn(resp.status_code, [401, 403])  # authentication required
 
     def test_evaluate_with_auth(self):
         from django.contrib.auth import get_user_model
@@ -65,10 +63,12 @@ class APIAuthTest(TestCase):
         client = APIClient()
         user = User.objects.create_user("u@test.com", "p")
         client.force_authenticate(user)
+        # Phase 11 CP2: the endpoint is implemented. With no stored MT5
+        # candles and no client candles there is nothing to evaluate -> 400
+        # with an explicit machine-readable code (never a 501 stub).
         resp = client.post("/api/strategies/evaluate/", {"candles": [], "instrument": "EURUSD"})
-        self.assertEqual(
-            resp.status_code, 501
-        )  # Implementation not complete yet - returns 501 as written
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.json()["code"], "no_reference_candles")
 
 
 class NO_TRADEReasonCodesTest(TestCase):

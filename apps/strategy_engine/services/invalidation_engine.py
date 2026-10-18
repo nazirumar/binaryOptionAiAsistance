@@ -3,8 +3,19 @@
 
 from __future__ import annotations
 
-from apps.market_sync.constants import SyncStatus
+from apps.market_sync.constants import FreshnessStatus, SyncStatus
 from apps.strategy_engine.constants import InvalidationReasonCode
+
+#: Freshness verdicts that make reference data unusable. Includes the bare
+#: legacy token ``"stale"``; Phase 11 CP2 fixed the mismatch that let the
+#: real ``stale_screenshot`` / ``stale_mt5`` verdicts slip past this gate.
+STALE_FRESHNESS_VALUES = frozenset(
+    {
+        FreshnessStatus.STALE_SCREENSHOT,
+        FreshnessStatus.STALE_MT5,
+        "stale",
+    }
+)
 
 
 class InvalidationEngine:
@@ -34,7 +45,7 @@ class InvalidationEngine:
             reason_codes.append(InvalidationReasonCode.UNFINISHED_CANDLE)
 
         # 4. Stale data
-        if is_stale or strategy_input.data_freshness == "stale":
+        if is_stale or strategy_input.data_freshness in STALE_FRESHNESS_VALUES:
             reason_codes.append(InvalidationReasonCode.STALE_DATA)
 
         # 5. Expired entry window
