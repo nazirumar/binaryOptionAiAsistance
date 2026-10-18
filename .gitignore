@@ -47,3 +47,6 @@ Thumbs.db
 # Celery
 celerybeat-schedule
 celerybeat.pid
+
+# Generated validation artifacts (regenerable via manage.py commands)
+docs/artifacts/

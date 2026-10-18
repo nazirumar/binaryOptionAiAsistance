@@ -263,6 +263,87 @@ def strategy_detail(request: HttpRequest, strategy_id: str) -> HttpResponse:
 
 
 # ---------------------------------------------------------------------------
+# Book strategies (Phase 13, Step 8)
+# ---------------------------------------------------------------------------
+@login_required
+@require_GET
+def book_strategies(request: HttpRequest) -> HttpResponse:
+    """Binary Options Trading Bible catalog with explicit review states.
+
+    Every entry is visible for education (including contradictory or
+    unimplemented ones) and clearly labelled. The enable/disable control only
+    flips ``recognition_enabled`` (staff only, POST); no page or toggle here
+    can approve a strategy for live decisions.
+    """
+    from apps.book_strategies.models import BookStrategy
+
+    search = (request.GET.get("q") or "").strip()
+    qs = BookStrategy.objects.select_related("version")
+    if search:
+        qs = qs.filter(name__icontains=search) | qs.filter(key__icontains=search)
+
+    grouped: dict[str, list[BookStrategy]] = {}
+    for row in qs:
+        grouped.setdefault(f"Chapter {row.chapter}", []).append(row)
+
+    context = {
+        "grouped": grouped,
+        "search": search,
+        "total": qs.count(),
+        "implemented_total": sum(1 for r in qs if r.detector_key),
+        "approved_total": sum(1 for r in qs if r.decision_use_approved),
+        "is_staff_user": request.user.is_staff,
+    }
+    return render(request, "dashboard/book_strategies.html", context)
+
+
+@login_required
+@require_GET
+def book_strategy_detail(request: HttpRequest, key: str) -> HttpResponse:
+    from apps.book_strategies.models import BookStrategy
+
+    strategy = BookStrategy.objects.select_related("version").filter(key=key).first()
+    if strategy is None:
+        raise Http404("book strategy not found")
+
+    detections = list(strategy.detections.order_by("-created_at")[:20])
+    state_counts: dict[str, int] = {}
+    for detection in strategy.detections.all():
+        state_counts[detection.state] = state_counts.get(detection.state, 0) + 1
+
+    context = {
+        "strategy": strategy,
+        "detections": detections,
+        "state_counts": state_counts,
+        "is_staff_user": request.user.is_staff,
+    }
+    return render(request, "dashboard/book_strategy_detail.html", context)
+
+
+@login_required
+@require_POST
+def book_strategy_toggle(request: HttpRequest, key: str) -> HttpResponse:
+    """Staff-only recognition switch. NEVER touches ``decision_use_approved``."""
+    from apps.book_strategies.models import BookStrategy
+
+    if not request.user.is_staff:
+        messages.error(request, "Only administrators can toggle book strategies.")
+        return redirect("dashboard:book-strategies")
+    strategy = BookStrategy.objects.filter(key=key).first()
+    if strategy is None:
+        raise Http404("book strategy not found")
+    strategy.recognition_enabled = not strategy.recognition_enabled
+    strategy.save(update_fields=["recognition_enabled", "updated_at"])
+    state = "enabled" if strategy.recognition_enabled else "disabled"
+    messages.success(
+        request,
+        f"{strategy.key} recognition {state}. This does not approve the "
+        "strategy for live decisions.",
+    )
+    return redirect(request.META.get("HTTP_REFERER") or "dashboard:book-strategies")
+
+
+# ---------------------------------------------------------------------------
 # Settings (Step 13)
 # ---------------------------------------------------------------------------
 @login_required

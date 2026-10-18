@@ -41,6 +41,21 @@ urlpatterns = [
         page_views.strategy_detail,
         name="strategy-detail",
     ),
+    path(
+        "book-strategies/",
+        page_views.book_strategies,
+        name="book-strategies",
+    ),
+    path(
+        "book-strategies/<str:key>/",
+        page_views.book_strategy_detail,
+        name="book-strategy-detail",
+    ),
+    path(
+        "book-strategies/<str:key>/toggle/",
+        page_views.book_strategy_toggle,
+        name="book-strategy-toggle",
+    ),
     path("settings/", page_views.settings_page, name="settings"),
     path("settings/profile/", page_views.settings_profile, name="settings-profile"),
     path(

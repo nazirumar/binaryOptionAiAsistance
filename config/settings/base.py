@@ -203,6 +203,7 @@ LOCAL_APPS = [
     "apps.market_sync",
     "apps.price_action",
     "apps.strategy_knowledge",
+    "apps.book_strategies",
     "apps.strategy_engine",
     "apps.research",
     "apps.ai_assistant",

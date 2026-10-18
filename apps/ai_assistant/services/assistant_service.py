@@ -21,6 +21,19 @@ from apps.strategy_knowledge.services.retrieval import KnowledgeRetrievalService
 #: provider's total context budget (MAX_CONTEXT_CHARS) is never threatened.
 MAX_KNOWLEDGE_CONTEXT_CHARS = 1400
 
+#: Cap on the book-strategy context block (Phase 13) for the same reason.
+MAX_BOOK_CONTEXT_CHARS = 1400
+
+#: Message cues that select the book-strategy knowledge block. Matching is
+#: substring-based and deliberately narrow; an unmatched message gets nothing.
+BOOK_CONTEXT_KEYWORDS = (
+    "ss1", "ss2", "ss3", "ss4", "ss5", "ss6", "ss7", "ss8", "ss9",
+    "ss10", "ss11", "ss12", "ss13", "ss14", "ss15", "ss16", "ss17",
+    "ss18", "ss19", "ss20", "ss21", "ss22", "ss23", "ss24", "ss25",
+    "ss26", "ss27", "ss28", "ss29", "ss30",
+    "sure shot", "magic v", "the book", "book pattern", "trading bible",
+)
+
 FOLLOW_UP_KEYWORDS = {
     "why_up": ("why did you predict up", "why up"),
     "why_down": ("why did you reject down", "why down"),
@@ -83,6 +96,9 @@ class AssistantService:
         knowledge_context = self._knowledge_context(message, answer)
         if knowledge_context:
             answer = {**answer, "strategy_knowledge": knowledge_context}
+        book_context = self._book_context(message)
+        if book_context:
+            answer = {**answer, "book_strategies": book_context}
         reply = self.provider.complete(
             ReasoningRequest(messages=(({"role": "user", "content": message}),), context=answer)
         )
@@ -116,6 +132,59 @@ class AssistantService:
             "(educational reference, not an analysis result): " + " || ".join(lines)
         )
         return block[:MAX_KNOWLEDGE_CONTEXT_CHARS]
+
+    def _book_context(self, message: str) -> str:
+        """Phase 13: compact, catalog-grounded book-strategy block.
+
+        Returns ``""`` when the message does not reference the book catalog.
+        The block quotes ONLY the stored catalog fields (requirements,
+        invalidation rules, recorded contradictions) and always states the
+        deterministic decision: NO TRADE with an uncalibrated probability.
+        It contains no accuracy or win-rate numbers, because the catalog
+        stores none — the language model cannot receive a fabricated stat
+        from here to repeat.
+        """
+        lowered = (message or "").lower()
+        if not any(keyword in lowered for keyword in BOOK_CONTEXT_KEYWORDS):
+            return ""
+        try:
+            from apps.book_strategies.models import BookStrategy
+
+            rows = list(BookStrategy.objects.all())
+        except Exception:
+            return ""
+        lines: list[str] = []
+        for row in rows:
+            key = row.key.lower()
+            if key not in lowered and key.replace("_", " ") not in lowered:
+                # also match explicit SS-number mentions like "SS21" (case-insensitive)
+                if not any(
+                    mention in lowered for mention in (f"ss{row.number}", f"ss {row.number}")
+                ):
+                    continue
+            requirements = "; ".join(row.requirements[:3]) or "n/a"
+            contradictions = (
+                " | recorded contradictions: " + "; ".join(row.contradictions[:2])
+                if row.contradictions
+                else ""
+            )
+            lines.append(
+                f"{row.key} ({row.name}) chapter {row.chapter}, PDF pp. {row.pdf_pages}: "
+                f"required: {requirements}; invalidation: "
+                f"{'; '.join(row.invalidation_rules[:2]) or 'n/a'}"
+                f"{contradictions}. Decision: NO TRADE; probability unavailable "
+                "(uncalibrated)."
+            )
+            if len(lines) >= 3:
+                break
+        if not lines:
+            return ""
+        block = (
+            "Retrieved from the Binary Options Trading Bible catalog "
+            "(educational reference, not an analysis result; patterns are "
+            "observations, never predictions): " + " || ".join(lines)
+        )
+        return block[:MAX_BOOK_CONTEXT_CHARS]
 
     def _classify_follow_up(self, message: str) -> str:
         lowered = (message or "").lower()
