@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpRequest, HttpResponse
@@ -19,7 +20,12 @@ PHASES = [
     {"number": 7, "name": "Backtesting & probability calibration", "status": "complete"},
     {"number": 8, "name": "AI assistant", "status": "complete"},
     {"number": 9, "name": "Dashboard & analytics", "status": "complete"},
-    {"number": 10, "name": "Security, integration testing & deployment", "status": "planned"},
+    {"number": 10, "name": "Security, integration testing & deployment", "status": "complete"},
+    {
+        "number": 11,
+        "name": "Critical integration remediation & live validation",
+        "status": "complete",
+    },
 ]
 
 
@@ -36,6 +42,31 @@ def index(request: HttpRequest) -> HttpResponse:
     )
 
 
+def _vision_model_state() -> dict[str, object]:
+    """Honest status of the configured vision provider for the status card.
+
+    Reports only the provider name, model and which minimum settings are
+    missing — never the API key itself.
+    """
+    provider = str(getattr(settings, "VISION_LLM_PROVIDER", "") or "").strip()
+    if not provider or provider.lower() == "mock":
+        return {"label": "Offline mock — no live model configured", "ready": False}
+    missing = [
+        name
+        for name, value in (
+            ("API key", getattr(settings, "VISION_LLM_API_KEY", "")),
+            ("model", getattr(settings, "VISION_LLM_MODEL", "")),
+        )
+        if not str(value or "").strip()
+    ]
+    if missing:
+        return {
+            "label": f"{provider} — not configured (missing {', '.join(missing)})",
+            "ready": False,
+        }
+    return {"label": f"{provider} · {settings.VISION_LLM_MODEL}", "ready": True}
+
+
 @login_required
 @require_GET
 def status_fragment(request: HttpRequest) -> HttpResponse:
@@ -45,7 +76,7 @@ def status_fragment(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "dashboard/partials/status.html",
-        {"mt5_state": derived_connection_state()},
+        {"mt5_state": derived_connection_state(), "vision": _vision_model_state()},
     )
 
 

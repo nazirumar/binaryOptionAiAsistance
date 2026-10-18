@@ -26,6 +26,10 @@
   </div>
   <div class="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
     <dt class="text-xs text-slate-500">Vision model</dt>
-    <dd class="mt-1 font-medium text-slate-400">Not configured (Phase 3)</dd>
+    {% if vision.ready %}
+      <dd class="mt-1 font-medium text-emerald-600 dark:text-emerald-400">{{ vision.label }}</dd>
+    {% else %}
+      <dd class="mt-1 font-medium text-slate-400">{{ vision.label }}</dd>
+    {% endif %}
   </div>
 </dl>
