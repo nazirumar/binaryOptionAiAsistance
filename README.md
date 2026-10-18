@@ -18,8 +18,8 @@ Phases are delivered incrementally and only after their checks pass.
 | Phase | Name | Status |
 | ----- | ---- | ------ |
 | 1 | Foundation | ✅ Complete |
-| 2 | MT5 integration | ✅ Complete (live terminal verification pending) |
-| 3 | Screenshot vision | ✅ Complete (live provider verification pending) |
+| 2 | MT5 integration | ✅ Complete — live terminal verified 2026-10-18 (MetaQuotes-Demo, read-only) |
+| 3 | Screenshot vision | ✅ Complete — live provider verified 2026-10-18 (daily free-tier quota limited) |
 | 4 | Data synchronization | ✅ Complete (screenshot/MT5 verification) |
 | 5 | Price-action knowledge engine | ✅ Complete |
 | 6 | Strategy evaluation | ✅ Complete |
@@ -47,12 +47,16 @@ completion reports. Phase 10 evidence:
 measurements). Phase 11 evidence:
 [`docs/PHASE-11-LIVE-VALIDATION.md`](docs/PHASE-11-LIVE-VALIDATION.md) (live /
 mocked / not-executed status buckets). Open launch-blocking items are listed in
-§5 of the readiness report — notably the unverified live MT5 integration. (The
-PostgreSQL restore drill was executed and passed on 2026-10-18.)
-Phase 2 live-connection wiring is complete and unit-tested with a mocked MT5
-gateway; it has **not** yet been exercised against a real terminal/broker account.
-Phase 3 screenshot vision is complete and tested with a mocked vision provider; a
-real hosted-model round trip has **not** yet been exercised.
+§5 of the readiness report. (The PostgreSQL restore drill was executed and
+passed on 2026-10-18.)
+The **MT5 integration** was exercised live against a real MetaTrader 5
+terminal (MetaQuotes-Demo, strictly read-only) on 2026-10-18: connection, 14
+symbol mappings seeded, and a worker cycle persisting 600 real EURUSD candles
+plus an online heartbeat — see §4a of the live-validation report.
+**Screenshot vision** completed real hosted-model round trips (Gemini
+`gemini-3.8-flash` via its OpenAI-compatible endpoint) on 2026-10-18; the final
+schema-validated persisted run is gated only by the free-tier daily request
+quota (20 requests/day, resets nightly).
 The **reasoning LLM** integration was exercised live against Google Gemini and
 passed on 2026-10-18 (Phase 11 CP4).
 Phase 5 implements the price-action knowledge engine as deterministic detectors +

@@ -85,14 +85,67 @@ diagnosed, corrected, and re-executed to a pass.
 
 | Item | Reason | Carried from |
 |---|---|---|
-| MT5 terminal live tests (real broker connection, real candle streaming) | No MetaTrader 5 terminal is available in this environment | Phase 10 C5 |
 | Production deployment / migration on a live server | Explicitly forbidden until the user authorizes it | Phase 10 non-negotiable |
 | Any real-money trading action | No automatic trading exists by design; out of scope for all phases | Phase 10 non-negotiable |
 
 Nothing in this bucket was executed with a mock and reported as live. The
-MT5-dependent code paths are covered only by MOCKED AND PASSED suites using
-seeded `MarketCandle` rows (§2), and that limitation is carried forward
-unchanged.
+MT5-dependent code paths remain covered in CI by MOCKED AND PASSED suites
+using seeded `MarketCandle` rows (§2); the real-terminal verification that
+previously blocked this bucket was executed on 2026-10-18 and is recorded in
+§4a.
+
+---
+
+## 4a. ADDENDUM (2026-10-18, user-authorized live run): MT5 + vision
+
+The user explicitly requested live connection testing. Executed with the
+credentials already present in the local (gitignored) `.env`. No secrets were
+printed or committed.
+
+### MT5 terminal — LIVE VERIFIED
+
+| Step | Result |
+|---|---|
+| `manage.py mt5_integration_check` | Connected to `MetaQuotes-Demo`, account `********89`, terminal build 6271, `connected=True` (attempt 1 hit terminal warm-up: IPC pipe timeout; automatic retry connected) |
+| `manage.py seed_market_symbols` | 14 global symbol mappings created |
+| Re-run integration check | `EURUSD M1`/`M5`: 10 completed candles each, last close `1.12393`, clean disconnect |
+| `manage.py mt5_worker --once` (direct mode) | 300 M1 + 300 M5 candles + 1 tick persisted to PostgreSQL, `WorkerHeartbeat` **online**, `EURUSD` mapping status **valid** |
+
+The run landed on a Sunday: MT5 correctly returned the last *completed*
+session's candles (Friday 2026-10-16 close) and no live forming candle —
+honest historical data, not synthetic.
+
+**Config defect found & fixed (`.env`, gitignored):** `MT5_PATH` was written
+as a quoted Windows path with backslashes; the env loader stripped the
+backslashes, producing the invalid path `C:Program FilesMetaTrader 5\terminal64.exe`.
+Rewritten with loader-proof forward slashes
+(`C:/Program Files/MetaTrader 5/terminal64.exe`) and verified to resolve to
+the real `terminal64.exe`.
+
+### Vision provider (Gemini via OpenAI-compatible endpoint) — CONNECTION LIVE VERIFIED
+
+| Check | Result |
+|---|---|
+| Authenticated request to `generativelanguage.googleapis.com/v1beta/openai` with `VISION_LLM_MODEL=gemini-3.8-flash` | **Two successful round trips** (real image upload, real model responses) on 2026-10-18 |
+| Full pipeline attempt (provider → JSON parse → schema validation → persist) | Attempt 1 exposed a config defect; later attempts blocked by quota (below). Fail-closed behaviour confirmed: every failure persisted as `failed` with machine-readable codes (`schema_invalid`, `provider_rate_limited`) — never a fabricated analysis |
+
+**Config defect found & fixed (`.env`, gitignored):** `VISION_LLM_MAX_TOKENS`
+was `2048`, truncating the structured chart-analysis JSON mid-object
+(`finish_reason: length`). Raised to `16384`.
+
+**Remaining limitation:** the free-tier quota `generate_content_free_tier_requests`
+allows **20 requests/day per model**; it was exhausted during validation
+(resets nightly). One clean end-to-end persisted run remains to be captured
+after quota reset or on a paid tier. No further API calls were made once the
+quota message was identified.
+
+Reproduction (after quota reset):
+
+```powershell
+$env:DJANGO_SETTINGS_MODULE = "config.settings.dev"
+.\.venv\Scripts\python.exe manage.py mt5_integration_check
+.\.venv\Scripts\python.exe manage.py mt5_worker --once
+```
 
 ---
 
