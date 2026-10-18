@@ -139,6 +139,29 @@ allows **20 requests/day per model**; it was exhausted during validation
 after quota reset or on a paid tier. No further API calls were made once the
 quota message was identified.
 
+### Reasoning LLM — LIVE VERIFIED on Groq (2026-10-18, user-supplied key)
+
+The user supplied a Groq API key (stored only in the gitignored `.env`) to
+replace Gemini for reasoning. The opt-in live smoke
+(`test_phase11_reasoning.py::test_live_reasoning_smoke`, `REASONING_LLM_LIVE_TEST=1`)
+**passed** against `https://api.groq.com/openai/v1` with `qwen/qwen3.8-27b`
+(12.7s).
+
+**Defect found & fixed:** Groq's Cloudflare layer rejected urllib's default
+`Python-urllib/...` User-Agent with error 1010 (HTTP 403). The OpenAI-compatible
+request path (`reasoning_provider._build_openai_request`) now sends a
+descriptive `nazbeen-academy/0.1` User-Agent; verified end-to-end live.
+`openai/gpt-oss-120b`/`-20b` were rejected as unusable for this integration:
+their hidden reasoning tokens consume the whole `REASONING_LLM_MAX_TOKENS`
+budget and the visible answer comes back empty. `qwen/qwen3.8-27b` responds
+cleanly. Full suite after the change: 876 passed, 3 skipped.
+
+**Key scope note:** the supplied Groq key exposes **no vision-capable models**
+(only `gpt-oss`, `qwen3.8-27b`, `allam-2-7b`, `whisper`, `prompt-guard` and
+TTS), so screenshot vision remains on Gemini (free tier, 20 requests/day,
+quota resets nightly). Moving vision to Groq requires a key that exposes a
+vision model (e.g. llama-4 multimodal).
+
 Reproduction (after quota reset):
 
 ```powershell

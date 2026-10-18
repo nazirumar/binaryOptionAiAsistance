@@ -309,6 +309,10 @@ class ReasoningProvider:
         headers = {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
+            # Some OpenAI-compatible hosts (e.g. Groq) sit behind Cloudflare,
+            # which rejects urllib's default "Python-urllib/..." signature with
+            # error 1010. A descriptive UA identifies the client honestly.
+            "User-Agent": "nazbeen-academy/0.1",
         }
         messages = [{"role": "system", "content": REASONING_SYSTEM_PROMPT}]
         messages.append(

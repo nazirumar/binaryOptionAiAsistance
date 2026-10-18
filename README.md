@@ -58,7 +58,8 @@ plus an online heartbeat — see §4a of the live-validation report.
 schema-validated persisted run is gated only by the free-tier daily request
 quota (20 requests/day, resets nightly).
 The **reasoning LLM** integration was exercised live against Google Gemini and
-passed on 2026-10-18 (Phase 11 CP4).
+passed on 2026-10-18 (Phase 11 CP4); it was re-verified live against **Groq**
+(`qwen/qwen3.8-27b`, user-supplied key) the same day.
 Phase 5 implements the price-action knowledge engine as deterministic detectors +
 `PriceActionEngine` (in-memory, no live data); see
 [`docs/PRICE-ACTION-KNOWLEDGE-BASE.md`](docs/PRICE-ACTION-KNOWLEDGE-BASE.md).
