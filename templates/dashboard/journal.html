@@ -1,0 +1,73 @@
+{% extends "dashboard/layout.html" %}
+{% block title %}Trading journal · {{ app_name }}{% endblock %}
+{% block page_content %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold">Trading journal</h1>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      Manually recorded trades. Real, demo, backtested and hypothetical entries are kept separate.
+    </p>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="{% url 'dashboard:export-journal-csv' %}" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Export CSV</a>
+    <a href="{% url 'dashboard:journal-create' %}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">New trade</a>
+  </div>
+</div>
+
+<!-- Provenance summary -->
+<section class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  {% for trade_type, summary in performance.items %}
+    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-xs font-medium text-slate-500">{{ trade_type|capfirst }}</p>
+      <p class="mt-1 text-2xl font-bold">{{ summary.total_recorded }}</p>
+      <p class="mt-1 text-xs text-slate-500">Net P/L {{ summary.net_profit_loss }}</p>
+      <p class="text-xs text-slate-500">Win rate {{ summary.win_rate_display }}</p>
+    </div>
+  {% endfor %}
+</section>
+
+<section class="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+  {% if trades %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+        <thead class="bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">ID</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Type</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Instrument</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Direction</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Result</th>
+            <th class="px-4 py-2 text-right text-xs font-medium text-slate-500">P/L</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Entry</th>
+            <th class="px-4 py-2 text-right text-xs font-medium text-slate-500">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for t in trades %}
+            <tr>
+              <td class="px-4 py-2">#{{ t.pk }}</td>
+              <td class="px-4 py-2">{{ t.get_trade_type_display }}</td>
+              <td class="px-4 py-2">{{ t.instrument }}</td>
+              <td class="px-4 py-2">{{ t.get_direction_display }}</td>
+              <td class="px-4 py-2">{{ t.get_result_display }}</td>
+              <td class="px-4 py-2 text-right">{{ t.profit_loss|default:"—" }}</td>
+              <td class="px-4 py-2 whitespace-nowrap">{{ t.entry_timestamp|date:"Y-m-d H:i" }}</td>
+              <td class="px-4 py-2 text-right whitespace-nowrap">
+                <a href="{% url 'dashboard:journal-edit' t.pk %}" class="text-indigo-600 hover:underline dark:text-indigo-400">Edit</a>
+                <form method="post" action="{% url 'dashboard:journal-delete' t.pk %}" class="ml-2 inline"
+                      onsubmit="return confirm('Delete this journal entry?');">
+                  {% csrf_token %}
+                  <button type="submit" class="text-red-600 hover:underline dark:text-red-400">Delete</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% include "dashboard/partials/pagination.html" %}
+  {% else %}
+    <div class="p-8 text-center text-sm text-slate-500">No journal entries yet.</div>
+  {% endif %}
+</section>
+{% endblock %}

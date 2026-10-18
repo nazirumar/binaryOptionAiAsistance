@@ -1,0 +1,15 @@
+{% if page_obj.has_other_pages %}
+<nav class="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm dark:border-slate-800" aria-label="Pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}" class="rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Previous</a>
+  {% else %}
+    <span></span>
+  {% endif %}
+  <span class="text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}" class="rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Next</a>
+  {% else %}
+    <span></span>
+  {% endif %}
+</nav>
+{% endif %}

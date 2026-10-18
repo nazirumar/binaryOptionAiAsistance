@@ -1,0 +1,118 @@
+# ---------------------------------------------------------------------------
+# PRODUCTION DEPLOYMENT — manual and approval-gated.
+#
+# This workflow NEVER runs automatically: it is triggered only by a human via
+# "Run workflow", and it targets the `production` GitHub Environment, which
+# must be configured with **Required reviewers** so a second person approves.
+#
+# Required repository/environment secrets (set them in GitHub, never in code):
+#   IMAGE_TAG              built image reference (e.g. ghcr.io/org/app:1.4.0)
+#   DEPLOY_HOST            SSH host of the VPS
+#   DEPLOY_USER            SSH user (non-root)
+#   DEPLOY_SSH_KEY         private key for that user
+#   DEPLOY_KNOWN_HOSTS     output of `ssh-keyscan <DEPLOY_HOST>`
+# Secrets used at runtime live on the server in /etc/nazbeen-academy/.env and
+# are never transferred by this workflow.
+#
+# Rollback: re-run this workflow with the previous IMAGE_TAG (see
+# docs/operations.md -> Rollback).
+# ---------------------------------------------------------------------------
+name: Deploy to production
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (e.g. v1.4.0 or sha-abc1234)"
+        required: true
+        type: string
+      skip_backup:
+        description: "Skip the pre-deploy backup (only for emergencies)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  # Never let two deploys run at once, but do allow cancelling a stuck one.
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy (requires approval)
+    runs-on: ubuntu-latest
+    # << Required reviewers on this environment provide the human approval
+    #    gate. Without them the job cannot start.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required secrets are present
+        env:
+          IMAGE_TAG: ${{ secrets.IMAGE_TAG }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          missing=0
+          for name in IMAGE_TAG DEPLOY_HOST DEPLOY_USER DEPLOY_SSH_KEY DEPLOY_KNOWN_HOSTS; do
+            eval "val=\${$name}"
+            if [ -z "$val" ]; then echo "::error::missing secret $name"; missing=1; fi
+          done
+          exit $missing
+
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Pre-deploy backup
+        if: ${{ inputs.skip_backup == false }}
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            'cd /opt/nazbeen-academy && docker compose -f compose.prod.yaml run --rm backup'
+
+      - name: Deploy image
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          REQUESTED_TAG: ${{ inputs.image_tag }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "cd /opt/nazbeen-academy && \
+             printf 'IMAGE_TAG=%s\n' '${REQUESTED_TAG}' > .deploy.env && \
+             set -a && . ./.deploy.env && set +a && \
+             docker compose -f compose.prod.yaml pull web worker-market worker-vision worker-backtest worker-assistant beat && \
+             docker compose -f compose.prod.yaml run --rm preflight && \
+             docker compose -f compose.prod.yaml up -d --remove-orphans"
+
+      - name: Post-deploy health verification
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o BatchMode=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            'cd /opt/nazbeen-academy && \
+             for i in $(seq 1 30); do \
+               if docker compose -f compose.prod.yaml ps web | grep -q healthy; then \
+                 echo "web healthy"; exit 0; \
+               fi; sleep 5; \
+             done; \
+             echo "::error::web did not become healthy"; \
+             docker compose -f compose.prod.yaml logs --tail=100 web; exit 1'

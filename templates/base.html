@@ -1,0 +1,75 @@
+{% load static %}<!doctype html>
+<html lang="en" class="{% if theme == 'dark' %}dark{% endif %}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="AI-powered binary-option chart analysis and research assistant. Analysis only — never places trades." />
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+
+  <!-- Tailwind (CDN build for the foundation phase; replaced by a compiled
+       pipeline in a later phase). Dark mode is class-based. -->
+  <script>
+    tailwind = { config: { darkMode: "class" } };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}" />
+
+  <!-- HTMX for progressive enhancement -->
+  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+</head>
+<body
+  class="min-h-screen bg-slate-50 text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100"
+  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+>
+  <div class="flex min-h-screen flex-col">
+    <header class="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+      <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+        <a href="{% url 'home' %}" class="flex items-center gap-2 font-semibold">
+          <span class="grid h-8 w-8 place-items-center rounded-lg bg-indigo-600 text-sm font-bold text-white">NA</span>
+          <span class="hidden sm:inline">Nazbeen Academy <span class="text-indigo-500">AI</span></span>
+        </a>
+        <div class="flex items-center gap-2">
+          {% if user.is_authenticated %}
+            <a href="{% url 'dashboard:index' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Dashboard</a>
+            <a href="{% url 'dashboard:vision' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Screenshots</a>
+            <a href="{% url 'dashboard:sync' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Sync</a>
+            <a href="{% url 'dashboard:journal' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Journal</a>
+            <a href="{% url 'dashboard:reports' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Reports</a>
+            <a href="{% url 'dashboard:settings' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Settings</a>
+            <form method="post" action="{% url 'accounts:logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Sign out</button>
+            </form>
+          {% else %}
+            <a href="{% url 'accounts:login' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Sign in</a>
+            <a href="{% url 'accounts:signup' %}" class="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">Create account</a>
+          {% endif %}
+          {% include "partials/theme_toggle.html" %}
+        </div>
+      </nav>
+    </header>
+
+    {% if messages %}
+      <div class="mx-auto mt-4 w-full max-w-6xl px-4">
+        {% for message in messages %}
+          <div class="mb-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      {% block content %}{% endblock %}
+    </main>
+
+    <footer class="border-t border-slate-200 py-6 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-500">
+      <p>{{ app_name }} · v{{ app_version }}</p>
+      <p class="mt-1">Analysis and research tool only. It does not place trades and does not guarantee outcomes.</p>
+    </footer>
+  </div>
+
+  <script src="{% static 'js/theme.js' %}" defer></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

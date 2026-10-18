@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Chart vision · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold">Screenshot analysis</h1>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      Upload an IQ Option candlestick-chart screenshot and analyse its visible
+      price-action characteristics with a configurable vision model.
+    </p>
+  </div>
+  <a href="{% url 'dashboard:index' %}"
+     class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">
+    Back to dashboard
+  </a>
+</div>
+
+<div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+  {{ disclaimer }}
+</div>
+
+<!-- Upload -->
+<section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+  <h2 class="font-semibold">Upload a screenshot</h2>
+  <p class="mt-1 text-xs text-slate-500">
+    PNG, JPEG or WebP. Images are stored privately and only visible to you.
+  </p>
+  <form method="post" action="{% url 'dashboard:vision-upload' %}" enctype="multipart/form-data"
+        class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+    {% csrf_token %}
+    <input type="file" name="image" required accept="image/png,image/jpeg,image/webp"
+           class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-white dark:border-slate-700 dark:bg-slate-800 dark:file:bg-slate-100 dark:file:text-slate-900" />
+    <button type="submit"
+            class="whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">
+      Upload &amp; analyse
+    </button>
+  </form>
+</section>
+
+<!-- History -->
+<section>
+  <h2 class="mb-3 text-lg font-semibold">Previous analyses</h2>
+  {% if has_history %}
+    <div class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+      <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+        <thead class="bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Screenshot</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Status</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Model</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Candles</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Created</th>
+            <th class="px-4 py-2"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for analysis in history %}
+            <tr>
+              <td class="px-4 py-2">#{{ analysis.screenshot_id }}</td>
+              <td class="px-4 py-2">{{ analysis.get_status_display }}</td>
+              <td class="px-4 py-2">{{ analysis.model_name|default:"—" }}</td>
+              <td class="px-4 py-2">{{ analysis.candle_count }}</td>
+              <td class="px-4 py-2 whitespace-nowrap">{{ analysis.created_at|date:"Y-m-d H:i" }}</td>
+              <td class="px-4 py-2 text-right">
+                <a href="{% url 'dashboard:vision-detail' analysis.screenshot_id %}"
+                   class="text-indigo-600 hover:underline dark:text-indigo-400">View</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+      No analyses yet. Upload a screenshot to get started.
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

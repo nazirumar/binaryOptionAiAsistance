@@ -1,0 +1,39 @@
+/* Project-level style overrides on top of Tailwind. */
+
+html {
+  color-scheme: light dark;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+/* Smooth theme transitions without animating layout. */
+body {
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+/* Subtle scrollbars that respect the active theme. */
+* {
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184 / 0.5);
+  border-radius: 9999px;
+}
+
+/* HTMX request indicator hook (opt-in). */
+.htmx-request .htmx-indicator {
+  opacity: 1;
+}
+
+.htmx-indicator {
+  opacity: 0;
+  transition: opacity 150ms ease;
+}

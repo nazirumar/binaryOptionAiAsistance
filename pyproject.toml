@@ -1,0 +1,85 @@
+[project]
+name = "nazbeen-academy-binary-ai"
+version = "0.1.0"
+description = "AI-powered binary-option chart analysis and research assistant (Nazbeen Academy)."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+dependencies = [
+    "celery==5.6.3",
+    "channels==4.3.2",
+    "channels-redis==4.3.0",
+    "django==5.2.18",
+    "django-cors-headers==4.9.0",
+    "django-environ==0.14.0",
+    "djangorestframework==3.18.3",
+    "drf-spectacular>=0.30.0",
+    "factory-boy>=3.3.3",
+    "freezegun>=1.5.5",
+    "pillow==12.3.0",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "pytest-django>=4.14.0",
+    "redis==8.1.0",
+    "structlog==26.1.0",
+    "whitenoise==6.12.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [
+    ".venv",
+    "venv",
+    "migrations",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "DJ",  # flake8-django
+    "LOG", # flake8-logging
+    "PTH", # flake8-use-pathlib
+    "RUF", # ruff-specific
+]
+ignore = [
+    "E501",  # line length handled by formatter
+    "B008",  # function calls in defaults (Django idiom)
+    "RUF012",  # mutable class attrs (Django Meta idiom)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"config/settings/*.py" = ["F405", "F403"]
+"tests/*.py" = ["S101"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "*_tests.py"]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+markers = [
+    "integration: tests that require external services (MT5, Redis, DB).",
+    "slow: tests that are noticeably slow.",
+]
+
+[tool.coverage.run]
+source = ["apps", "config"]
+omit = ["*/migrations/*", "*/tests/*", "*/__init__.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

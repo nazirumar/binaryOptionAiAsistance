@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Sync #{{ session.pk }} · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold">Synchronization #{{ session.pk }}</h1>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">{{ status_message }}</p>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="{% url 'dashboard:sync' %}"
+       class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">
+      Back to sync
+    </a>
+  </div>
+</div>
+
+{# Never present an unverified result as successful. #}
+{% if show_verified_badge %}
+  <div class="mb-6 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200">
+    Verified alignment — screenshot and MT5 agree strongly.
+  </div>
+{% else %}
+  <div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+    <span class="font-semibold">Not verified.</span>
+    This result must not be presented as successful dual-source verification.
+  </div>
+{% endif %}
+
+<div class="mb-6 grid gap-4 lg:grid-cols-3">
+  <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="font-semibold">Screenshot</h2>
+    {% if screenshot %}
+      <img src="{% url 'chart_vision:screenshot-image' screenshot.pk %}" alt="Chart screenshot"
+           class="mt-3 w-full rounded-lg border border-slate-200 dark:border-slate-800" />
+      <dl class="mt-3 space-y-1 text-xs text-slate-600 dark:text-slate-400">
+        <div class="flex justify-between gap-2"><dt>Instrument</dt><dd class="font-medium">{{ session.screenshot_instrument|default:"—" }}</dd></div>
+        <div class="flex justify-between gap-2"><dt>Timeframe</dt><dd class="font-medium">{{ session.screenshot_timeframe|default:"—" }}</dd></div>
+        <div class="flex justify-between gap-2"><dt>Chart timestamp</dt><dd class="font-medium">{{ chart_metadata.screenshot_timestamp|default:"—" }}</dd></div>
+      </dl>
+    {% else %}
+      <p class="mt-2 text-sm text-slate-500">Screenshot unavailable.</p>
+    {% endif %}
+  </div>
+
+  <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="font-semibold">MT5 reference</h2>
+    <dl class="mt-3 space-y-1 text-xs text-slate-600 dark:text-slate-400">
+      <div class="flex justify-between gap-2"><dt>Broker symbol</dt><dd class="font-medium">{{ session.mt5_broker_symbol|default:"—" }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Canonical</dt><dd class="font-medium">{{ session.canonical_instrument|default:"—" }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Broker</dt><dd class="font-medium">{{ session.broker|default:"—" }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Market type</dt><dd class="font-medium">{{ session.market_type|default:"—" }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Mapping source</dt><dd class="font-medium">{{ session.mapping_source|default:"—" }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Mapping verified</dt><dd class="font-medium">{{ session.mapping_verified|yesno:"yes,no" }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>MT5 timeframe</dt><dd class="font-medium">{{ session.mt5_timeframe|default:"—" }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Candles loaded</dt><dd class="font-medium">{{ mt5_snapshot.candle_count|default:"0" }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Latest candle open</dt><dd class="font-medium">{{ mt5_snapshot.latest_open_time|default:"—" }}</dd></div>
+    </dl>
+  </div>
+
+  <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="font-semibold">Assessment</h2>
+    <dl class="mt-3 space-y-1 text-xs text-slate-600 dark:text-slate-400">
+      <div class="flex justify-between gap-2"><dt>Outcome</dt><dd class="font-medium">{{ session.get_outcome_display }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Feed compatibility</dt><dd class="font-medium">{{ session.get_feed_compatibility_display }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Structure agreement</dt><dd class="font-medium">{{ session.get_structure_agreement_display }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Freshness</dt><dd class="font-medium">{{ session.get_freshness_status_display }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Alignment source</dt><dd class="font-medium">{{ session.get_alignment_source_display }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Alignment uncertain</dt><dd class="font-medium">{{ session.alignment_uncertain|yesno:"yes,no" }}</dd></div>
+      <div class="flex justify-between gap-2"><dt>Config version</dt><dd class="font-medium">{{ session.config_version|default:"—" }}</dd></div>
+    </dl>
+  </div>
+</div>
+
+<!-- Candle comparison -->
+<section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+  <h2 class="font-semibold">Candle comparison</h2>
+  <div class="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+    <div><div class="text-xs text-slate-500">Aligned</div><div class="font-semibold">{{ session.aligned_candle_count }}</div></div>
+    <div><div class="text-xs text-slate-500">Matched</div><div class="font-semibold">{{ session.matched_candle_count }}</div></div>
+    <div><div class="text-xs text-slate-500">Mismatched</div><div class="font-semibold">{{ session.mismatched_candle_count }}</div></div>
+    <div><div class="text-xs text-slate-500">Direction agreement</div><div class="font-semibold">{{ session.direction_agreement|default:"—" }}</div></div>
+  </div>
+
+  {% if alignments %}
+    <div class="mt-4 overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-xs dark:divide-slate-800">
+        <thead class="bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th class="px-3 py-2 text-left font-medium text-slate-500">Idx</th>
+            <th class="px-3 py-2 text-left font-medium text-slate-500">Screenshot</th>
+            <th class="px-3 py-2 text-left font-medium text-slate-500">MT5 time</th>
+            <th class="px-3 py-2 text-left font-medium text-slate-500">MT5 dir</th>
+            <th class="px-3 py-2 text-left font-medium text-slate-500">Result</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for row in alignments %}
+            <tr>
+              <td class="px-3 py-1.5">{{ row.screenshot_index }}</td>
+              <td class="px-3 py-1.5">{{ row.screenshot_classification|default:"—" }}</td>
+              <td class="px-3 py-1.5 whitespace-nowrap">{{ row.mt5_open_time|date:"Y-m-d H:i"|default:"—" }}</td>
+              <td class="px-3 py-1.5">{{ row.mt5_direction|default:"—" }}</td>
+              <td class="px-3 py-1.5">{{ row.get_match_result_display|default:row.match_result }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="mt-3 text-sm text-slate-500">No per-candle comparison was possible.</p>
+  {% endif %}
+</section>
+
+<!-- Reasons and issues -->
+<div class="grid gap-4 lg:grid-cols-2">
+  <section class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="font-semibold">Mismatch reasons</h2>
+    {% if reasons %}
+      <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-slate-600 dark:text-slate-400">
+        {% for reason in reasons %}<li>{{ reason }}</li>{% endfor %}
+      </ul>
+    {% else %}
+      <p class="mt-3 text-sm text-slate-500">No mismatch reasons recorded.</p>
+    {% endif %}
+  </section>
+
+  <section class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="font-semibold">Issues</h2>
+    {% if issues %}
+      <ul class="mt-3 space-y-2 text-sm">
+        {% for issue in issues %}
+          <li class="flex items-start gap-2">
+            <span class="mt-0.5 rounded px-1.5 py-0.5 text-xs font-medium
+              {% if issue.severity == 'critical' %}bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200
+              {% elif issue.severity == 'error' %}bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-200
+              {% elif issue.severity == 'warning' %}bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200
+              {% else %}bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300{% endif %}">
+              {{ issue.get_severity_display }}
+            </span>
+            <span class="text-slate-700 dark:text-slate-300">{{ issue.message }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="mt-3 text-sm text-slate-500">No issues recorded.</p>
+    {% endif %}
+  </section>
+</div>
+
+<div class="mt-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+  {{ disclaimer }}
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+# MetaTrader 5 worker dependencies (Windows only).
+#
+# The MetaTrader5 package ships Windows-only wheels and must be installed on the
+# Windows worker host that runs the MetaTrader 5 terminal. It is intentionally
+# NOT part of requirements/base.txt so the Linux web/deployment image stays
+# portable. The application imports MetaTrader5 lazily and degrades gracefully
+# when it is absent.
+#
+#   python -m pip install -r requirements/mt5-windows.txt
+#
+MetaTrader5>=5.0.45
+numpy>=2.0

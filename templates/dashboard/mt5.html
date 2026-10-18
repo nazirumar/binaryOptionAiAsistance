@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}MT5 market data · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold">MT5 market data</h1>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      Live and historical MetaTrader 5 data collected by the Windows worker.
+    </p>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="{% url 'dashboard:index' %}"
+       class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">
+      Back to dashboard
+    </a>
+    <a href="{% url 'dashboard:mt5' %}"
+       class="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white">
+      Refresh
+    </a>
+  </div>
+</div>
+
+<!-- Connection status -->
+<div class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+  <div class="flex items-center justify-between">
+    <h2 class="font-semibold">Connection</h2>
+    {% if connection_state == 'connected' %}
+      <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+        <span class="h-2 w-2 rounded-full bg-emerald-500"></span> Connected
+      </span>
+    {% elif connection_state == 'error' %}
+      <span class="inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-700 dark:bg-red-950 dark:text-red-300">
+        <span class="h-2 w-2 rounded-full bg-red-500"></span> Error
+      </span>
+    {% elif connection_state == 'disconnected' %}
+      <span class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+        <span class="h-2 w-2 rounded-full bg-amber-500"></span> Disconnected
+      </span>
+    {% else %}
+      <span class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+        <span class="h-2 w-2 rounded-full bg-slate-400"></span> Not verified
+      </span>
+    {% endif %}
+  </div>
+  <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+    <div class="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+      <dt class="text-xs text-slate-500">Broker / server</dt>
+      <dd class="mt-1 font-medium">{{ broker }} · {{ server }}</dd>
+    </div>
+    <div class="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+      <dt class="text-xs text-slate-500">Account (masked)</dt>
+      <dd class="mt-1 font-medium">{{ masked_login }}</dd>
+    </div>
+    <div class="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
+      <dt class="text-xs text-slate-500">Selected symbol</dt>
+      <dd class="mt-1 font-medium">
+        {% if symbol %}{{ symbol.canonical }} <span class="text-slate-400">({{ symbol.broker_symbol }}{% if symbol.is_otc %}, OTC{% endif %})</span>{% else %}—{% endif %}
+      </dd>
+    </div>
+  </dl>
+  <p class="mt-3 text-xs text-slate-500 dark:text-slate-500">
+    Live connectivity can only be verified on the Windows host running the terminal and worker.
+  </p>
+</div>
+
+<!-- Quote / candle -->
+<div class="mb-6 grid gap-4 lg:grid-cols-2">
+  <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="font-semibold">Latest quote</h2>
+    {% if latest_tick %}
+      <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <div><dt class="text-xs text-slate-500">Time (UTC)</dt><dd class="mt-1 font-medium">{{ latest_tick.time|date:"Y-m-d H:i:s" }}</dd></div>
+        <div><dt class="text-xs text-slate-500">Bid</dt><dd class="mt-1 font-medium">{{ latest_tick.bid|default:"—" }}</dd></div>
+        <div><dt class="text-xs text-slate-500">Ask</dt><dd class="mt-1 font-medium">{{ latest_tick.ask|default:"—" }}</dd></div>
+        <div><dt class="text-xs text-slate-500">Spread</dt><dd class="mt-1 font-medium">{{ spread|default:"—" }}</dd></div>
+      </dl>
+      <p class="mt-3 text-xs {% if tick_stale %}text-amber-600 dark:text-amber-400{% else %}text-slate-500{% endif %}">
+        Age: {{ tick_age_seconds }}s{% if tick_stale %} · STALE{% endif %}
+      </p>
+    {% else %}
+      <p class="mt-4 text-sm text-slate-500">No ticks stored yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="font-semibold">Last completed candle</h2>
+    {% if last_candle %}
+      <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <div><dt class="text-xs text-slate-500">Timeframe</dt><dd class="mt-1 font-medium">{{ last_candle.timeframe }}</dd></div>
+        <div><dt class="text-xs text-slate-500">Open time (UTC)</dt><dd class="mt-1 font-medium">{{ last_candle.open_time|date:"Y-m-d H:i:s" }}</dd></div>
+        <div><dt class="text-xs text-slate-500">O / H</dt><dd class="mt-1 font-medium">{{ last_candle.open }} / {{ last_candle.high }}</dd></div>
+        <div><dt class="text-xs text-slate-500">L / C</dt><dd class="mt-1 font-medium">{{ last_candle.low }} / {{ last_candle.close }}</dd></div>
+      </dl>
+    {% else %}
+      <p class="mt-4 text-sm text-slate-500">No completed candles stored yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Sync + workers -->
+<div class="mb-6 grid gap-4 lg:grid-cols-2">
+  <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="font-semibold">Last synchronization</h2>
+    {% if last_sync %}
+      <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <div><dt class="text-xs text-slate-500">Kind</dt><dd class="mt-1 font-medium">{{ last_sync.get_kind_display }}</dd></div>
+        <div><dt class="text-xs text-slate-500">Status</dt><dd class="mt-1 font-medium">{{ last_sync.get_status_display }}</dd></div>
+        <div><dt class="text-xs text-slate-500">Started</dt><dd class="mt-1 font-medium">{{ last_sync.started_at|date:"Y-m-d H:i:s" }}</dd></div>
+        <div><dt class="text-xs text-slate-500">Rows in/up/skip</dt><dd class="mt-1 font-medium">{{ last_sync.rows_inserted }}/{{ last_sync.rows_updated }}/{{ last_sync.rows_skipped }}</dd></div>
+      </dl>
+      {% if last_sync.error_message %}<p class="mt-3 text-xs text-red-600 dark:text-red-400">{{ last_sync.error_message }}</p>{% endif %}
+    {% else %}
+      <p class="mt-4 text-sm text-slate-500">No sync has run yet.</p>
+    {% endif %}
+  </div>
+
+  <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+    <h2 class="font-semibold">Workers</h2>
+    {% if heartbeats %}
+      <ul class="mt-4 space-y-2 text-sm">
+        {% for hb in heartbeats %}
+          <li class="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/50">
+            <span class="font-medium">{{ hb.worker_id }}</span>
+            <span class="text-xs {% if hb.stale %}text-amber-600 dark:text-amber-400{% else %}text-slate-500{% endif %}">
+              {{ hb.status }} · {{ hb.age_seconds }}s ago{% if hb.stale %} (stale){% endif %}
+            </span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="mt-4 text-sm text-slate-500">No worker heartbeats recorded.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Recent errors -->
+<section>
+  <h2 class="mb-3 text-lg font-semibold">Recent events</h2>
+  {% if recent_events %}
+    <div class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+      <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+        <thead class="bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">When (UTC)</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Kind</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Severity</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Message</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for event in recent_events %}
+            <tr>
+              <td class="px-4 py-2 whitespace-nowrap">{{ event.occurred_at|date:"Y-m-d H:i:s" }}</td>
+              <td class="px-4 py-2">{{ event.get_kind_display }}</td>
+              <td class="px-4 py-2">{{ event.get_severity_display }}</td>
+              <td class="px-4 py-2">{{ event.message }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+      No market-data events recorded yet.
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

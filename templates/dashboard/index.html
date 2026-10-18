@@ -1,0 +1,120 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Dashboard · {{ app_name }}{% endblock %}
+
+{% block page_content %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold">Dashboard</h1>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      Welcome back, {{ user.name }}.
+    </p>
+  </div>
+  <div class="text-right text-xs text-slate-500 dark:text-slate-500">
+    <div>Build v{{ app_version }}</div>
+    <div>Environment: {{ debug|yesno:"development,production" }}</div>
+  </div>
+</div>
+
+<!-- System status (HTMX polling) -->
+<div
+  id="status-card"
+  hx-get="{% url 'dashboard:status' %}"
+  hx-trigger="load, every 30s"
+  hx-swap="innerHTML"
+  class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
+>
+  <div class="animate-pulse text-sm text-slate-500">Loading status…</div>
+</div>
+
+<!-- Real database-backed metrics -->
+<section class="mb-6">
+  <h2 class="mb-3 text-lg font-semibold">Your activity</h2>
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-xs text-slate-500">Screenshot analyses</p>
+      <p class="mt-1 text-2xl font-bold">{{ overview.counts.screenshot_analyses }}</p>
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-xs text-slate-500">Strategy evaluations</p>
+      <p class="mt-1 text-2xl font-bold">{{ overview.counts.strategy_evaluations }}</p>
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-xs text-slate-500">Journal trades</p>
+      <p class="mt-1 text-2xl font-bold">{{ overview.counts.journal_trades }}</p>
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-xs text-slate-500">UP / DOWN / NO TRADE</p>
+      <p class="mt-1 text-2xl font-bold">
+        {{ overview.decisions.up }} / {{ overview.decisions.down }} / {{ overview.decisions.no_trade }}
+      </p>
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-xs text-slate-500">MT5 connection</p>
+      <p class="mt-1 text-lg font-medium">{{ overview.market.mt5_state|capfirst }}</p>
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-xs text-slate-500">Validated real performance</p>
+      {% if overview.performance.has_valid_outcomes %}
+        <p class="mt-1 text-lg font-medium">Net {{ overview.performance.net_profit_loss }}</p>
+      {% else %}
+        <p class="mt-1 text-sm text-slate-500">{{ overview.performance.message }}</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<!-- Quick links to workspaces -->
+<section class="mb-6 grid gap-3 sm:grid-cols-2">
+  <a href="{% url 'dashboard:mt5' %}"
+     class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 transition hover:border-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-600">
+    <div>
+      <h2 class="font-semibold">MT5 market data</h2>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Connection status, latest quote, spread, last completed candle and sync health.
+      </p>
+    </div>
+    <span class="text-sm font-medium text-slate-500">Open →</span>
+  </a>
+  <a href="{% url 'dashboard:vision' %}"
+     class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 transition hover:border-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-600">
+    <div>
+      <h2 class="font-semibold">Screenshot vision</h2>
+      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        Upload an IQ Option chart screenshot and analyse its visible candles, structure and patterns.
+      </p>
+    </div>
+    <span class="text-sm font-medium text-slate-500">Open →</span>
+  </a>
+</section>
+
+<!-- Roadmap -->
+<section>
+  <h2 class="mb-3 text-lg font-semibold">Project roadmap</h2>
+  <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {% for phase in phases %}
+      <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-500">Phase {{ phase.number }}</span>
+          {% if phase.status == 'complete' %}
+            <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">Complete</span>
+          {% elif phase.status == 'in_progress' %}
+            <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">In progress</span>
+          {% else %}
+            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">Planned</span>
+          {% endif %}
+        </div>
+        <p class="mt-2 font-medium">{{ phase.name }}</p>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.body.addEventListener("htmx:responseError", function (event) {
+    console.error("HTMX request failed", event.detail);
+  });
+</script>
+{% endblock %}

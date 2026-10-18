@@ -1,0 +1,12 @@
+"""API application: the Django REST Framework surface."""
+
+from __future__ import annotations
+
+from django.apps import AppConfig
+
+
+class ApiConfig(AppConfig):
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "apps.api"
+    label = "api"
+    verbose_name = "API"

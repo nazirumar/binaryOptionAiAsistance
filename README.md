@@ -26,7 +26,7 @@ Phases are delivered incrementally and only after their checks pass.
 | 7 | Backtesting & probability calibration | ✅ Complete |
 | 8 | AI assistant | ✅ Complete |
 | 9 | Dashboard & analytics | ✅ Complete |
-| 10 | Security, integration testing & deployment | ⏳ Planned |
+| 10 | Security, integration testing & deployment | ✅ Complete — **READY FOR CONTROLLED PAPER TESTING** (not production) |
 
 See [`docs/PHASE-1-REPORT.md`](docs/PHASE-1-REPORT.md),
 [`docs/PHASE-2-REPORT.md`](docs/PHASE-2-REPORT.md),
@@ -35,8 +35,16 @@ See [`docs/PHASE-1-REPORT.md`](docs/PHASE-1-REPORT.md),
 [`docs/PHASE-5-REPORT.md`](docs/PHASE-5-REPORT.md),
 [`docs/PHASE-6-REPORT.md`](docs/PHASE-6-REPORT.md),
 [`docs/PHASE-7-REPORT.md`](docs/PHASE-7-REPORT.md),
-[`docs/PHASE-8-REPORT.md`](docs/PHASE-8-REPORT.md) and
-[`docs/PHASE-9-REPORT.md`](docs/PHASE-9-REPORT.md) for completion reports.
+[`docs/PHASE-8-REPORT.md`](docs/PHASE-8-REPORT.md),
+[`docs/PHASE-9-REPORT.md`](docs/PHASE-9-REPORT.md) and
+[`docs/PHASE-10-RELEASE-READINESS.md`](docs/PHASE-10-RELEASE-READINESS.md) for
+completion reports. Phase 10 evidence:
+[`docs/PHASE-10-AUDIT.md`](docs/PHASE-10-AUDIT.md) (repository audit),
+[`docs/PHASE-10-UAT.md`](docs/PHASE-10-UAT.md) (13/13 UAT scenarios) and
+[`docs/PHASE-10-PERFORMANCE.md`](docs/PHASE-10-PERFORMANCE.md) (latency/query
+measurements). Open launch-blocking items are listed in §5 of the readiness
+report — notably the unverified live MT5/LLM integrations. (The PostgreSQL
+restore drill was executed and passed on 2026-10-18.)
 Phase 2 live-connection wiring is complete and unit-tested with a mocked MT5
 gateway; it has **not** yet been exercised against a real terminal/broker account.
 Phase 3 screenshot vision is complete and tested with a mocked vision provider; a
@@ -56,6 +64,8 @@ See [`docs/MT5-INTEGRATION.md`](docs/MT5-INTEGRATION.md),
 - **Data:** PostgreSQL (production) / SQLite (development, tests), Redis (broker/cache)
 - **Frontend:** Django Templates, HTMX, Tailwind CSS (light & dark themes)
 - **Quality:** pytest / pytest-django, Ruff, type hints, structured logging
+- **Deployment:** Docker (non-root, healthcheck), docker compose (dev & prod),
+  GitHub Actions CI + manually-triggered gated deploy, scheduled backups
 
 ## Architecture at a glance
 
@@ -111,6 +121,8 @@ python -m pytest
 python -m ruff check .
 python -m ruff format --check .
 python manage.py check
+python scripts/scan_secrets.py .          # secret scan
+python scripts/check_env_coverage.py      # .env <-> code <-> .env.example wiring
 ```
 
 Or run everything at once:

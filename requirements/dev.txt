@@ -1,0 +1,13 @@
+-r base.txt
+
+# Testing
+pytest>=8.3
+pytest-django>=4.9
+pytest-cov>=6.0
+
+# Linting / formatting
+ruff>=0.7
+
+# Test data & time control
+factory-boy>=3.3
+freezegun>=1.5

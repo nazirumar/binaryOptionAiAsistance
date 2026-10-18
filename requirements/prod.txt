@@ -1,0 +1,10 @@
+-r base.txt
+
+# WSGI server (not available on Windows; use a Linux container for production)
+gunicorn>=23.0; sys_platform != "win32"
+
+# ASGI server (Channels/WebSockets)
+uvicorn[standard]>=0.30
+
+# Sentry (optional error reporting)
+sentry-sdk>=2.0

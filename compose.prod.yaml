@@ -1,0 +1,243 @@
+# ---------------------------------------------------------------------------
+# Nazbeen Academy Binary Ai Asisstance — PRODUCTION deployment example
+#
+# This file is a REFERENCE. It is not enabled by default and contains no
+# credentials. Before use:
+#
+#   1. cp .env.example .env   and fill in every secret (see docs/security.md)
+#   2. Set DJANGO_SETTINGS_MODULE=config.settings.prod
+#   3. Put a real TLS-terminating reverse proxy in front (Nginx + Certbot);
+#      see docs/deployment.md. The web service below publishes NO host port —
+#      the proxy reaches it on the internal network.
+#   4. Restore or initialise the database (docs/backup_restore.md).
+#   5. docker compose -f compose.prod.yaml up -d --build
+#
+# Differences from compose.yaml:
+#   * DEBUG=False enforced by config.settings.prod (refuses insecure config)
+#   * no loopback port publishing; traffic enters only through the proxy
+#   * PostgreSQL/Redis are internal-only (never published)
+#   * migration and collectstatic are explicit, single-run services
+#   * resource limits so one noisy job cannot starve the host
+#
+# NEVER run the MT5 terminal in this stack: MetaTrader 5 is Windows-only and
+# runs on a separate machine. See docs/mt5_worker.md.
+# ---------------------------------------------------------------------------
+name: nazbeen-academy-prod
+
+x-app-environment: &app-environment
+  DJANGO_SETTINGS_MODULE: config.settings.prod
+  DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?required}
+  DJANGO_DEBUG: "False"
+  DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?required}
+  DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:?required}
+  DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-True}
+  DJANGO_SECURE_HSTS_SECONDS: ${DJANGO_SECURE_HSTS_SECONDS:-86400}
+  DATABASE_URL: ${DATABASE_URL:?required (postgres://user:pass@db:5432/name)}
+  REDIS_URL: ${REDIS_URL:?required (redis://:pass@redis:6379/0)}
+  API_DOCS_ENABLED: "False"
+  DJANGO_LOG_FORMATTER: json
+  DJANGO_LOG_LEVEL: ${DJANGO_LOG_LEVEL:-INFO}
+  # Providers default to mock: set these explicitly to enable real models.
+  VISION_LLM_PROVIDER: ${VISION_LLM_PROVIDER:-mock}
+  VISION_LLM_API_KEY: ${VISION_LLM_API_KEY:-}
+  VISION_LLM_BASE_URL: ${VISION_LLM_BASE_URL:-}
+  VISION_LLM_MODEL: ${VISION_LLM_MODEL:-}
+  REASONING_LLM_PROVIDER: ${REASONING_LLM_PROVIDER:-mock}
+  REASONING_LLM_API_KEY: ${REASONING_LLM_API_KEY:-}
+  REASONING_LLM_BASE_URL: ${REASONING_LLM_BASE_URL:-}
+  REASONING_LLM_MODEL: ${REASONING_LLM_MODEL:-}
+  MT5_WORKER_TOKEN: ${MT5_WORKER_TOKEN:-}
+
+x-app-base: &app-base
+  image: ${IMAGE_TAG:-nazbeen-academy:latest}
+  restart: unless-stopped
+  environment: *app-environment
+  networks:
+    - internal
+  # Bound resources: a runaway backtest or vision job must not take the host.
+  deploy:
+    resources:
+      limits:
+        cpus: "2.0"
+        memory: 1g
+
+# The image's HEALTHCHECK probes the web port, which only `web` ever listens
+# on — inherited verbatim, a worker/beat container could never pass it and
+# would show permanently unhealthy. These overrides check that PID 1 really is
+# the celery process (the entrypoint execs it as PID 1; if it dies, the
+# container exits and compose restarts it anyway).
+x-celery-worker-healthcheck: &celery-worker-healthcheck
+  test: ["CMD-SHELL", "grep -q worker /proc/1/cmdline"]
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 30s
+
+x-celery-beat-healthcheck: &celery-beat-healthcheck
+  test: ["CMD-SHELL", "grep -q beat /proc/1/cmdline"]
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 30s
+
+services:
+  migrate:
+    <<: *app-base
+    restart: "no"
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    # Exits within seconds; the inherited web-port probe is meaningless here.
+    healthcheck:
+      disable: true
+    depends_on:
+      db:
+        condition: service_healthy
+
+  collectstatic:
+    <<: *app-base
+    restart: "no"
+    command: ["python", "manage.py", "collectstatic", "--noinput"]
+    healthcheck:
+      disable: true
+    depends_on:
+      - migrate
+
+  # Fails the deploy early if the production config is insecure.
+  preflight:
+    <<: *app-base
+    restart: "no"
+    command: ["python", "manage.py", "check", "--deploy"]
+    healthcheck:
+      disable: true
+    depends_on:
+      - collectstatic
+
+  web:
+    <<: *app-base
+    # No host ports: reach only through the reverse proxy network.
+    depends_on:
+      preflight:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/healthz/"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  worker-market:
+    <<: *app-base
+    command: ["celery", "-A", "config", "worker", "-Q", "market,default", "-c", "2", "--max-tasks-per-child", "50"]
+    healthcheck: *celery-worker-healthcheck
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-vision:
+    <<: *app-base
+    command: ["celery", "-A", "config", "worker", "-Q", "vision", "-c", "1", "--max-tasks-per-child", "20"]
+    healthcheck: *celery-worker-healthcheck
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-backtest:
+    <<: *app-base
+    command: ["celery", "-A", "config", "worker", "-Q", "backtest", "-c", "1", "--max-tasks-per-child", "5"]
+    healthcheck: *celery-worker-healthcheck
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker-assistant:
+    <<: *app-base
+    command: ["celery", "-A", "config", "worker", "-Q", "assistant", "-c", "2", "--max-tasks-per-child", "50"]
+    healthcheck: *celery-worker-healthcheck
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  beat:
+    <<: *app-base
+    command: ["celery", "-A", "config", "beat", "--schedule", "/tmp/celerybeat-schedule"]
+    healthcheck: *celery-beat-healthcheck
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # -- Internal-only data stores (NOT published to the host) -----------------
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nazbeen_academy}
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+    # No `ports:` — internal network only. Backup runs via `docker compose
+    # exec` or the `backup` profile, not over a public port.
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD:?required}
+      - --maxmemory
+      - 512mb
+      - --maxmemory-policy
+      - allkeys-lru
+      - --appendonly
+      - "yes"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - internal
+
+  backup:
+    <<: *app-base
+    profiles: ["tools"]
+    restart: "no"
+    entrypoint: ["/bin/sh", "/app/docker/backup.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backups:/app/backups
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  internal:
+    driver: bridge
+    internal: false  # proxy joins this network; hosts publish nothing directly

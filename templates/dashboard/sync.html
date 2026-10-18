@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Market sync · {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold">Market synchronization</h1>
+    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+      Compare an AI screenshot analysis with stored MT5 candles. Only a
+      <span class="font-medium">verified alignment</span> counts as successful
+      dual-source verification.
+    </p>
+  </div>
+  <a href="{% url 'dashboard:index' %}"
+     class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">
+    Back to dashboard
+  </a>
+</div>
+
+<div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+  {{ disclaimer }}
+</div>
+
+<!-- Verify an existing analysis -->
+<section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+  <h2 class="font-semibold">Verify an analysis</h2>
+  {% if analyses %}
+    <p class="mt-1 text-xs text-slate-500">
+      Choose a completed screenshot analysis to compare against stored MT5 data.
+    </p>
+    <form method="post" action="{% url 'dashboard:sync-verify' %}"
+          class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+      {% csrf_token %}
+      <label class="flex-1 text-sm">
+        <span class="mb-1 block text-xs font-medium text-slate-500">Analysis</span>
+        <select name="analysis_id" required
+                class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+          <option value="">Select an analysis…</option>
+          {% for analysis in analyses %}
+            <option value="{{ analysis.pk }}">
+              #{{ analysis.pk }} · {{ analysis.chart_metadata.instrument|default:"?" }}
+              {{ analysis.chart_metadata.timeframe|default:"" }} ·
+              {{ analysis.created_at|date:"Y-m-d H:i" }}
+            </option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit"
+              class="whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">
+        Run synchronization
+      </button>
+    </form>
+  {% else %}
+    <p class="mt-2 text-sm text-slate-500">
+      No completed screenshot analyses yet.
+      <a href="{% url 'dashboard:vision' %}" class="text-indigo-600 hover:underline dark:text-indigo-400">Upload one first</a>.
+    </p>
+  {% endif %}
+</section>
+
+<!-- History -->
+<section>
+  <h2 class="mb-3 text-lg font-semibold">Synchronization history</h2>
+  {% if sessions %}
+    <div class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
+      <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
+        <thead class="bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">#</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Instrument</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">MT5 symbol</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">TF</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Outcome</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Created</th>
+            <th class="px-4 py-2"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          {% for session in sessions %}
+            <tr>
+              <td class="px-4 py-2">{{ session.pk }}</td>
+              <td class="px-4 py-2">{{ session.screenshot_instrument|default:"—" }}</td>
+              <td class="px-4 py-2">{{ session.mt5_broker_symbol|default:"—" }}</td>
+              <td class="px-4 py-2">{{ session.mt5_timeframe|default:"—" }}</td>
+              <td class="px-4 py-2">
+                {% if session.outcome == "verified_alignment" %}
+                  <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">Verified</span>
+                {% else %}
+                  <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ session.get_outcome_display|default:"Unknown" }}</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-2 whitespace-nowrap">{{ session.created_at|date:"Y-m-d H:i" }}</td>
+              <td class="px-4 py-2 text-right">
+                <a href="{% url 'dashboard:sync-detail' session.pk %}"
+                   class="text-indigo-600 hover:underline dark:text-indigo-400">View</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900">
+      No synchronization runs yet.
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

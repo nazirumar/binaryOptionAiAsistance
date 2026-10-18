@@ -1,0 +1,163 @@
+# ---------------------------------------------------------------------------
+# Continuous integration for Nazbeen Academy Binary Ai Asisstance.
+#
+# Runs on every push and pull request. There is deliberately NO deploy job:
+# production deployment requires a separate, manually approved workflow
+# (see docs/deployment.md). Repository secrets are referenced only by that
+# workflow, never by this one.
+# ---------------------------------------------------------------------------
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Cancel superseded runs on the same ref to save CI minutes.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DJANGO_SETTINGS_MODULE: config.settings.test
+
+jobs:
+  # -- Static analysis --------------------------------------------------------
+  lint:
+    name: Lint & format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements/dev.txt
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Secret scan
+        # Fails the build if anything resembling a live credential is committed.
+        run: python scripts/scan_secrets.py .
+
+  # -- Tests & Django checks ---------------------------------------------------
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements/dev.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements/dev.txt
+
+      - name: Django system checks
+        run: python manage.py check
+
+      - name: Validate production deploy checks
+        # Uses throwaway values: verifies prod settings are structurally sound
+        # (DEBUG=False, HSTS, secure cookies) without needing real secrets.
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          DJANGO_SECRET_KEY: ci-only-dummy-key-not-a-real-secret-0123456789abcdef
+          DJANGO_ALLOWED_HOSTS: ci.example.invalid
+          DATABASE_URL: postgres://ci:ci@localhost:5432/ci
+          REDIS_URL: redis://localhost:6379/0
+          API_DOCS_ENABLED: "False"
+        run: python manage.py check --deploy
+
+      - name: Migration validation
+        # Fails if a model change has no matching migration.
+        run: |
+          python manage.py makemigrations --check --dry-run
+          python manage.py migrate --noinput
+
+      - name: Run test suite
+        run: pytest --cov=apps --cov=config --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 14
+
+  # -- Dependency vulnerabilities ------------------------------------------------
+  dependencies:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install audit tooling
+        run: pip install pip-audit
+
+      - name: Audit runtime dependencies
+        # `continue-on-error` is NOT set: a known-vulnerable runtime dependency
+        # should block the merge. Pin updates in requirements/*.txt.
+        run: pip-audit -r requirements/base.txt --strict
+
+      - name: Audit development dependencies
+        # Advisory only: dev tooling is not present in the production image.
+        continue-on-error: true
+        run: pip-audit -r requirements/dev.txt
+
+  # -- Container build verification ------------------------------------------------
+  container:
+    name: Container build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push, no secrets)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: nazbeen-academy:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Verify the image ships no secrets
+        # Defence in depth: the build context must not contain a real .env.
+        run: |
+          if docker run --rm --entrypoint sh nazbeen-academy:ci -c 'test -f /app/.env'; then
+            echo "::error::.env was copied into the image"
+            exit 1
+          fi
+          echo "No .env present in image."
+
+      - name: Verify the image runs as a non-root user
+        run: |
+          UID="$(docker run --rm --entrypoint sh nazbeen-academy:ci -c 'id -u')"
+          echo "container uid=$UID"
+          if [ "$UID" = "0" ]; then
+            echo "::error::container runs as root"
+            exit 1
+          fi

@@ -1,0 +1,46 @@
+# --- VCS / editor -----------------------------------------------------------
+.git
+.gitignore
+.idea
+.vscode
+*.swp
+.DS_Store
+Thumbs.db
+.editorconfig
+
+# --- Python artefacts -------------------------------------------------------
+.venv
+venv
+env
+__pycache__
+**/__pycache__
+*.py[cod]
+*$py.class
+.mypy_cache
+.ruff_cache
+.pytest_cache
+
+# --- Secrets (NEVER into an image) ------------------------------------------
+.env
+.env.*
+!.env.example
+
+# --- Local databases / runtime state ---------------------------------------
+db.sqlite3
+db.sqlite3-journal
+*.log
+media
+staticfiles
+private_media
+htmlcov
+.coverage
+.coverage.*
+coverage.xml
+celerybeat-schedule
+celerybeat.pid
+
+# --- Docs & tests are not needed inside the runtime image -------------------
+# (Kept in the repository; excluded to keep the image small and the attack
+# surface minimal. Re-add if you want to run the suite inside the container.)
+tests
+docs
