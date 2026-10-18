@@ -17,7 +17,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from apps.price_action.constants import Direction
-from apps.price_action.services.candle_math import is_bearish, is_bullish
+from apps.price_action.services.candle_math import (
+    body_range_ratio,
+    is_bearish,
+    is_bullish,
+)
 from apps.price_action.services.config import PriceActionConfig
 
 
@@ -284,16 +288,193 @@ def psych_sequences(
     return out
 
 
+# ---------------------------------------------------------------------------
+# Phase 12 (CP6): candle psychology observables
+# ---------------------------------------------------------------------------
+
+
+def candle_progress(candles: list[dict[str, Any]], i: int = -1) -> dict[str, Any] | None:
+    """Where the *latest completed* candle closed inside its own range.
+
+    ``progress`` = (close - low) / range: 1.0 = closed on the high, 0.0 = on
+    the low. The raw number is reported alongside a coarse label; the label is
+    an interpretation, the number is the measurement.
+    """
+    if not candles:
+        return None
+    c = candles[i]
+    rng = _f(c, "high") - _f(c, "low")
+    if rng <= 0:
+        return {
+            "index": len(candles) - 1 if i == -1 else i,
+            "progress": None,
+            "label": "flat",
+            "note": "zero-range candle; close position is undefined",
+        }
+    progress = (_f(c, "close") - _f(c, "low")) / rng
+    if progress >= 0.8:
+        label = "closed_near_high"
+    elif progress >= 0.6:
+        label = "closed_upper"
+    elif progress <= 0.2:
+        label = "closed_near_low"
+    elif progress <= 0.4:
+        label = "closed_lower"
+    else:
+        label = "closed_mid"
+    return {
+        "index": len(candles) - 1 if i == -1 else i,
+        "progress": progress,
+        "label": label,
+        "note": "close position within the candle's range; not a prediction",
+    }
+
+
+def run_count(
+    candles: list[dict[str, Any]], *, config: PriceActionConfig | None = None
+) -> dict[str, Any]:
+    """Length, price travel and extension status of the current directional run."""
+    config = config or PriceActionConfig.from_settings()
+    runs = directional_runs(candles)
+    if not runs:
+        return {
+            "length": 0,
+            "direction": "flat",
+            "price_delta": 0.0,
+            "extended": False,
+            "extended_threshold": config.extended_run_length,
+        }
+    current = runs[-1]
+    return {
+        "length": current.length,
+        "direction": current.direction,
+        "price_delta": current.price_delta,
+        "extended": current.length >= config.extended_run_length,
+        "extended_threshold": config.extended_run_length,
+    }
+
+
+def strong_close(
+    candles: list[dict[str, Any]], *, config: PriceActionConfig | None = None
+) -> dict[str, Any] | None:
+    """The latest candle is a *strong close* (large body, close at the extreme).
+
+    Requires both a high body/range ratio and a close in the top/bottom fifth
+    of the range. Reports the thresholds used.
+    """
+    config = config or PriceActionConfig.from_settings()
+    if not candles:
+        return None
+    c = candles[-1]
+    rng = _f(c, "high") - _f(c, "low")
+    body_ratio = body_range_ratio(c)
+    if rng <= 0 or body_ratio is None or body_ratio < config.strong_body_ratio_min:
+        return None
+    progress = (_f(c, "close") - _f(c, "low")) / rng
+    close_at_extreme = progress >= 0.8 or progress <= 0.2
+    if not close_at_extreme:
+        return None
+    direction = "bullish" if _f(c, "close") > _f(c, "open") else "bearish"
+    return {
+        "type": "strong_close",
+        "direction": direction,
+        "index": len(candles) - 1,
+        "body_ratio": body_ratio,
+        "close_progress": progress,
+        "thresholds": {
+            "strong_body_ratio_min": config.strong_body_ratio_min,
+            "close_progress_extreme": 0.8,
+        },
+        "note": "observable candle quality; not a directional signal on its own",
+    }
+
+
+def weak_close(
+    candles: list[dict[str, Any]], *, config: PriceActionConfig | None = None
+) -> dict[str, Any] | None:
+    """The latest candle closed *off* its extreme against its own direction.
+
+    A bullish candle that failed to hold its high (or a bearish candle that
+    failed to hold its low) is a weak close — progress and body ratio are both
+    reported so the caller can apply its own thresholds.
+    """
+    config = config or PriceActionConfig.from_settings()
+    del config
+    if not candles:
+        return None
+    c = candles[-1]
+    rng = _f(c, "high") - _f(c, "low")
+    if rng <= 0:
+        return None
+    progress = (_f(c, "close") - _f(c, "low")) / rng
+    if is_bullish(c) and progress <= 0.5:
+        weak_of = "bullish"
+    elif is_bearish(c) and progress >= 0.5:
+        weak_of = "bearish"
+    else:
+        return None
+    return {
+        "type": "weak_close",
+        "direction": weak_of,
+        "index": len(candles) - 1,
+        "close_progress": progress,
+        "note": "closed against the candle's own direction; observation only",
+    }
+
+
+def failed_continuation(
+    candles: list[dict[str, Any]], *, config: PriceActionConfig | None = None
+) -> dict[str, Any] | None:
+    """A directional run ended because the *next* candle closed against it.
+
+    Reported when a run of at least two candles is followed by a candle whose
+    close is beyond the run's last close in the *opposite* direction. The run
+    direction and reversal index are both reported; this is not a reversal
+    claim, only a failed-continuation observation.
+    """
+    config = config or PriceActionConfig.from_settings()
+    del config
+    if len(candles) < 3:
+        return None
+    runs = directional_runs(candles[:-1])
+    if not runs:
+        return None
+    run = runs[-1]
+    if run.length < 2 or run.end != len(candles) - 2:
+        return None
+    last_run_close = _f(candles[run.end], "close")
+    final = candles[-1]
+    final_close = _f(final, "close")
+    against = (run.direction == Direction.BULLISH and final_close < last_run_close) or (
+        run.direction == Direction.BEARISH and final_close > last_run_close
+    )
+    if not against or sign(final) == 0:
+        return None
+    return {
+        "type": "failed_continuation",
+        "run_direction": run.direction,
+        "run_length": run.length,
+        "run_end_index": run.end,
+        "reversal_index": len(candles) - 1,
+        "note": "the run's continuation candle closed against the run; not a reversal claim",
+    }
+
+
 __all__ = [
     "PSYCH_TEMPLATES",
     "Run",
     "analyze_reference_sequences",
+    "candle_progress",
     "consecutive_bearish",
     "consecutive_bullish",
     "directional_runs",
+    "failed_continuation",
     "level_reaction",
     "lonely_candles",
     "psych_sequences",
+    "run_count",
     "sign",
     "similar_sequences",
+    "strong_close",
+    "weak_close",
 ]

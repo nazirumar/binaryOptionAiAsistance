@@ -184,6 +184,85 @@ def knowledge(request: HttpRequest) -> HttpResponse:
 
 
 # ---------------------------------------------------------------------------
+# Strategy library (Phase 12, CP12)
+# ---------------------------------------------------------------------------
+@login_required
+@require_GET
+def strategy_library(request: HttpRequest) -> HttpResponse:
+    """Versioned strategy definitions with explicit validation status.
+
+    Experimental/draft definitions are listed (never hidden) but visually
+    labelled, so an unvalidated strategy can never pass as approved knowledge.
+    """
+    from apps.strategy_knowledge.models import StrategyDefinition
+    from apps.strategy_knowledge.services.metrics import DISCLAIMER as METRICS_DISCLAIMER
+
+    search = (request.GET.get("q") or "").strip()
+    category_slug = (request.GET.get("category") or "").strip()
+    qs = StrategyDefinition.objects.select_related("category", "version")
+    if search:
+        qs = qs.filter(
+            Q(name__icontains=search)
+            | Q(strategy_id__icontains=search)
+            | Q(description__icontains=search)
+        )
+    if category_slug:
+        qs = qs.filter(category__slug=category_slug)
+
+    grouped: dict[str, list[StrategyDefinition]] = {}
+    for definition in qs:
+        grouped.setdefault(
+            definition.category.name if definition.category_id else "Uncategorised", []
+        ).append(definition)
+
+    from apps.strategy_knowledge.models import StrategyCategory
+
+    context = {
+        "grouped": grouped,
+        "categories": StrategyCategory.objects.all(),
+        "search": search,
+        "active_category": category_slug,
+        "total": qs.count(),
+        "metrics_disclaimer": METRICS_DISCLAIMER,
+    }
+    return render(request, "dashboard/strategy_library.html", context)
+
+
+@login_required
+@require_GET
+def strategy_detail(request: HttpRequest, strategy_id: str) -> HttpResponse:
+    """One definition: structured conditions, examples, recent detections."""
+    from apps.strategy_knowledge.models import StrategyDefinition
+
+    definition = (
+        StrategyDefinition.objects.filter(strategy_id=strategy_id)
+        .select_related("category", "version")
+        .first()
+    )
+    if definition is None:
+        raise Http404("strategy not found")
+
+    conditions = list(definition.conditions.all())
+    detections = list(definition.detections.select_related("analysis").order_by("-created_at")[:20])
+    examples = list(definition.examples.all())
+    status_counts: dict[str, int] = {}
+    for detection in definition.detections.all():
+        status_counts[detection.status] = status_counts.get(detection.status, 0) + 1
+
+    context = {
+        "definition": definition,
+        "required": [c for c in conditions if c.kind == "required"],
+        "optional": [c for c in conditions if c.kind == "optional"],
+        "contradictory": [c for c in conditions if c.kind == "contradictory"],
+        "invalidation": [c for c in conditions if c.kind == "invalidation"],
+        "detections": detections,
+        "examples": examples,
+        "status_counts": status_counts,
+    }
+    return render(request, "dashboard/strategy_detail.html", context)
+
+
+# ---------------------------------------------------------------------------
 # Settings (Step 13)
 # ---------------------------------------------------------------------------
 @login_required

@@ -35,6 +35,12 @@ urlpatterns = [
     path("backtests/", page_views.backtests, name="backtests"),
     path("backtests/run/", page_views.backtest_run, name="backtest-run"),
     path("knowledge/", page_views.knowledge, name="knowledge"),
+    path("strategies/", page_views.strategy_library, name="strategy-library"),
+    path(
+        "strategies/<str:strategy_id>/",
+        page_views.strategy_detail,
+        name="strategy-detail",
+    ),
     path("settings/", page_views.settings_page, name="settings"),
     path("settings/profile/", page_views.settings_profile, name="settings-profile"),
     path(

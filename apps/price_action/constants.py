@@ -199,6 +199,41 @@ class CyclePhase(models.TextChoices):
     UNCLEAR = "unclear", "Unclear"
 
 
+class SBRStage(models.TextChoices):
+    """Stages of a support/resistance flip (SBR/RBS) or breakout-retest.
+
+    A flip is only *reported* at the stage actually observed; nothing jumps to
+    ``completed`` without the earlier stages having happened.
+    """
+
+    FORMATION = "formation", "Formation (validated level)"
+    VALID_BREAK = "valid_break", "Valid break (completed close beyond)"
+    RETEST = "retest", "Retest from the opposite side"
+    REJECTION = "rejection", "Retest rejected (flip failed)"
+    ACCEPTANCE = "acceptance", "Retest accepted (new role holding)"
+    COMPLETED = "completed", "Completed flip"
+    INVALIDATED = "invalidated", "Invalidated (price back through the zone)"
+
+
+class StructureBreakType(models.TextChoices):
+    """Named structure events; CHOCH/MSS are never merged with plain BOS."""
+
+    BOS_BULLISH = "bullish_bos", "Bullish break of structure"
+    BOS_BEARISH = "bearish_bos", "Bearish break of structure"
+    CHOCH_BULLISH = "bullish_choch", "Bullish change of character"
+    CHOCH_BEARISH = "bearish_choch", "Bearish change of character"
+    MSS_BULLISH = "bullish_mss", "Bullish market structure shift"
+    MSS_BEARISH = "bearish_mss", "Bearish market structure shift"
+
+
+class PriceZone(models.TextChoices):
+    """Premium/discount classification of a price inside a dealing range."""
+
+    PREMIUM = "premium", "Premium (upper half of the range)"
+    DISCOUNT = "discount", "Discount (lower half of the range)"
+    EQUILIBRIUM = "equilibrium", "Equilibrium (range midpoint)"
+
+
 class ConflictType(models.TextChoices):
     BULLISH_AFTER_BUYER_FAILURE = (
         "bullish_after_buyer_failure",
@@ -260,8 +295,11 @@ __all__ = [
     "OBDefinition",
     "OBType",
     "PatternDirection",
+    "PriceZone",
     "RejectionKind",
+    "SBRStage",
     "Severity",
+    "StructureBreakType",
     "StructureState",
     "SweepOutcome",
     "SweepType",

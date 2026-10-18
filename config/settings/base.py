@@ -202,6 +202,7 @@ LOCAL_APPS = [
     "apps.chart_vision",
     "apps.market_sync",
     "apps.price_action",
+    "apps.strategy_knowledge",
     "apps.strategy_engine",
     "apps.research",
     "apps.ai_assistant",

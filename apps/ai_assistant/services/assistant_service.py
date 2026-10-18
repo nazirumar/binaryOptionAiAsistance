@@ -15,6 +15,11 @@ from apps.ai_assistant.services.reasoning_provider import (
     ReasoningProvider,
     ReasoningRequest,
 )
+from apps.strategy_knowledge.services.retrieval import KnowledgeRetrievalService
+
+#: Cap on the retrieved-knowledge string added to a reasoning context, so the
+#: provider's total context budget (MAX_CONTEXT_CHARS) is never threatened.
+MAX_KNOWLEDGE_CONTEXT_CHARS = 1400
 
 FOLLOW_UP_KEYWORDS = {
     "why_up": ("why did you predict up", "why up"),
@@ -34,6 +39,7 @@ class AssistantService:
         self.orchestrator = AnalysisOrchestrator()
         self.evidence = EvidenceRetriever()
         self.provider = ReasoningProvider()
+        self.knowledge = KnowledgeRetrievalService()
 
     def analyze_screenshot(
         self,
@@ -74,11 +80,42 @@ class AssistantService:
         evidence = self.evidence.retrieve(evaluation)
         intent = self._classify_follow_up(message)
         answer = self._answer(intent, evidence)
+        knowledge_context = self._knowledge_context(message, answer)
+        if knowledge_context:
+            answer = {**answer, "strategy_knowledge": knowledge_context}
         reply = self.provider.complete(
             ReasoningRequest(messages=(({"role": "user", "content": message}),), context=answer)
         )
         saved = self.conversations.add_assistant_message(conversation, reply.content)
         return {"message": saved, "evidence": evidence, "intent": intent}
+
+    def _knowledge_context(self, message: str, answer: dict[str, Any]) -> str:
+        """CP11: compact, stored-knowledge block for a strategy question.
+
+        Returns ``""`` when nothing relevant is stored. The block only carries
+        reviewed/approved definitions and always names itself as retrieved
+        knowledge so the provider cites it instead of restating it as analysis.
+        Experimental definitions are never included.
+        """
+        try:
+            retrieved = self.knowledge.retrieve(message, limit=3)
+        except Exception:
+            return ""
+        lines: list[str] = []
+        for item in retrieved:
+            conditions = "; ".join(item.required_conditions[:4]) or "n/a"
+            invalidation = "; ".join(item.invalidation_conditions[:2]) or "n/a"
+            lines.append(
+                f"{item.name} [{item.strategy_id}] ({item.status_label}): "
+                f"required: {conditions} | invalidation: {invalidation}"
+            )
+        if not lines:
+            return ""
+        block = (
+            "Retrieved from the stored strategy knowledge base "
+            "(educational reference, not an analysis result): " + " || ".join(lines)
+        )
+        return block[:MAX_KNOWLEDGE_CONTEXT_CHARS]
 
     def _classify_follow_up(self, message: str) -> str:
         lowered = (message or "").lower()

@@ -27,15 +27,32 @@ _ENV_MAP: dict[str, tuple[str, type]] = {
     "equal_level_tolerance": ("PA_EQUAL_LEVEL_TOLERANCE", float),
     "consolidation_max_width": ("PA_CONSOLIDATION_MAX_WIDTH", float),
     "consolidation_min_candles": ("PA_CONSOLIDATION_MIN_CANDLES", int),
+    "exhaustion_window": ("PA_EXHAUSTION_WINDOW", int),
+    "exhaustion_body_shrink_ratio": ("PA_EXHAUSTION_BODY_SHRINK_RATIO", float),
+    "exhaustion_opposing_wick_min": ("PA_EXHAUSTION_OPPOSING_WICK_MIN", float),
+    "abc_retracement_min": ("PA_ABC_RETRACEMENT_MIN", float),
+    "abc_retracement_max": ("PA_ABC_RETRACEMENT_MAX", float),
+    "abc_min_leg_ratio": ("PA_ABC_MIN_LEG_RATIO", float),
     "zone_tolerance": ("PA_ZONE_TOLERANCE", float),
     "zone_min_touches": ("PA_ZONE_MIN_TOUCHES", int),
     "rejection_wick_min": ("PA_REJECTION_WICK_MIN", float),
     "breakout_close_margin": ("PA_BREAKOUT_CLOSE_MARGIN", float),
     "retest_window": ("PA_RETEST_WINDOW", int),
+    "level_proximity": ("PA_LEVEL_PROXIMITY", float),
+    "failed_test_min_attempts": ("PA_FAILED_TEST_MIN_ATTEMPTS", int),
     "doji_body_ratio_max": ("PA_DOJI_BODY_RATIO_MAX", float),
     "small_body_ratio_max": ("PA_SMALL_BODY_RATIO_MAX", float),
     "strong_body_ratio_min": ("PA_STRONG_BODY_RATIO_MIN", float),
     "strong_range_multiple": ("PA_STRONG_RANGE_MULTIPLE", float),
+    "pin_bar_wick_min": ("PA_PIN_BAR_WICK_MIN", float),
+    "pin_bar_opposite_wick_max": ("PA_PIN_BAR_OPPOSITE_WICK_MAX", float),
+    "pin_bar_max_body": ("PA_PIN_BAR_MAX_BODY", float),
+    "pin_bar_close_position": ("PA_PIN_BAR_CLOSE_POSITION", float),
+    "doji_extreme_wick_min": ("PA_DOJI_EXTREME_WICK_MIN", float),
+    "doji_opposite_wick_max": ("PA_DOJI_OPPOSITE_WICK_MAX", float),
+    "spinning_top_body_max": ("PA_SPINNING_TOP_BODY_MAX", float),
+    "spinning_top_wick_min": ("PA_SPINNING_TOP_WICK_MIN", float),
+    "tweezer_tolerance": ("PA_TWEEZER_TOLERANCE", float),
     "extended_run_length": ("PA_EXTENDED_RUN_LENGTH", int),
     "sequence_signature_length": ("PA_SEQUENCE_SIGNATURE_LENGTH", int),
     "similar_sequence_min_samples": ("PA_SIMILAR_SEQUENCE_MIN_SAMPLES", int),
@@ -70,6 +87,21 @@ class PriceActionConfig:
     consolidation_max_width: float = 0.0025
     #: Minimum candles inside a consolidation window.
     consolidation_min_candles: int = 5
+    # -- trend exhaustion (Phase 12) --
+    #: Candles per window when comparing body sizes for exhaustion.
+    exhaustion_window: int = 3
+    #: Recent bodies must shrink below this fraction of the prior window's average.
+    exhaustion_body_shrink_ratio: float = 0.6
+    #: Opposing-wick/range minimum on the last candle to count as a signal.
+    exhaustion_opposing_wick_min: float = 0.4
+
+    # -- ABC pattern (Phase 12) --
+    #: Minimum B retracement (fraction of the A→B leg) for a textbook ABC.
+    abc_retracement_min: float = 0.3
+    #: Maximum B retracement for a textbook ABC.
+    abc_retracement_max: float = 0.886
+    #: Minimum A→B leg size (fraction of price) to consider the pattern.
+    abc_min_leg_ratio: float = 0.0
 
     # -- support / resistance ---------------------------------------------
     #: Half-width of a support/resistance zone, as a fraction of price.
@@ -82,6 +114,10 @@ class PriceActionConfig:
     breakout_close_margin: float = 0.0005
     #: Candles allowed for a breakout retest to appear.
     retest_window: int = 5
+    #: A candle counts as "at the level" within this multiple of the zone width.
+    level_proximity: float = 1.0
+    #: Attacks into a zone (without a close beyond) required to call it a failed test.
+    failed_test_min_attempts: int = 2
 
     # -- candlestick patterns ---------------------------------------------
     #: Body/range ratio at or below which a candle is a doji.
@@ -92,6 +128,28 @@ class PriceActionConfig:
     strong_body_ratio_min: float = 0.60
     #: Minimum range multiple (vs recent average range) for a strong candle.
     strong_range_multiple: float = 1.2
+    # -- pin bars (Phase 12) --
+    #: Dominant-wick/range minimum for a pin bar.
+    pin_bar_wick_min: float = 0.55
+    #: Maximum opposite-wick/range allowed on a pin bar.
+    pin_bar_opposite_wick_max: float = 0.12
+    #: Maximum body/range for a pin bar.
+    pin_bar_max_body: float = 0.40
+    #: Close must sit within the top/bottom ``pin_bar_close_position`` of the range.
+    pin_bar_close_position: float = 0.65
+    # -- doji variants (Phase 12) --
+    #: Dominant-wick/range minimum for dragonfly/gravestone dojis.
+    doji_extreme_wick_min: float = 0.60
+    #: Opposite-wick/range maximum for dragonfly/gravestone dojis.
+    doji_opposite_wick_max: float = 0.10
+    # -- spinning top (Phase 12) --
+    #: Maximum body/range for a spinning top (must exceed the doji threshold).
+    spinning_top_body_max: float = 0.40
+    #: Minimum *each* wick/range for a spinning top.
+    spinning_top_wick_min: float = 0.20
+    # -- tweezers (Phase 12) --
+    #: Relative tolerance for tweezer highs/lows to count as "matching".
+    tweezer_tolerance: float = 0.001
 
     # -- sequences ---------------------------------------------------------
     #: Run length at or above which a directional run is "extended".
