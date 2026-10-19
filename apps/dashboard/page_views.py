@@ -344,6 +344,69 @@ def book_strategy_toggle(request: HttpRequest, key: str) -> HttpResponse:
 
 
 # ---------------------------------------------------------------------------
+# Book research metrics (Phase 13, requirement 10)
+# ---------------------------------------------------------------------------
+@login_required
+@require_GET
+def book_research(request: HttpRequest) -> HttpResponse:
+    """Research metrics for book strategies: validation, ranking, paper records.
+
+    Reads persisted records only (backtest runs, paper predictions,
+    detections, imported datasets) - it never recomputes numbers on page load
+    and never exposes an approval control. Every metric keeps its own scope
+    label so recognition and prediction accuracy are never conflated.
+    """
+    from collections import Counter
+
+    from apps.book_strategies.models import BookStrategy, PaperForwardPrediction
+    from apps.book_strategies.services.backtest import BOOK_RUN_KIND, COMPARISON_RUN_KIND
+    from apps.book_strategies.services.metrics import RecognitionMetricsService
+    from apps.book_strategies.services.paper_forward import PaperForwardService
+    from apps.research.models import BacktestRun, HistoricalDataset
+
+    strategies = list(BookStrategy.objects.order_by("chapter", "number"))
+    status_counts = Counter(row.research_status for row in strategies)
+    approved_rows = [row for row in strategies if row.decision_use_approved]
+
+    datasets = list(HistoricalDataset.objects.order_by("-created_at")[:20])
+    backtest_runs = list(
+        BacktestRun.objects.filter(strategy_config__kind=BOOK_RUN_KIND).order_by(
+            "-created_at"
+        )[:40]
+    )
+    comparison_run = (
+        BacktestRun.objects.filter(strategy_config__kind=COMPARISON_RUN_KIND)
+        .order_by("-created_at")
+        .first()
+    )
+    comparison = ((comparison_run.results or {}).get("comparison")) if comparison_run else None
+
+    recognition = RecognitionMetricsService().build().as_dict()
+    predictions = list(PaperForwardPrediction.objects.select_related("strategy")[:500])
+    paper_summary = PaperForwardService().summary(predictions)
+    settlement_counts = Counter(row.settlement_status for row in predictions)
+    pending_count = sum(
+        1 for row in predictions if row.status == PaperForwardPrediction.PENDING
+    )
+
+    context = {
+        "strategies": strategies,
+        "status_counts": dict(status_counts),
+        "approved_rows": approved_rows,
+        "approved_count": len(approved_rows),
+        "datasets": datasets,
+        "backtest_runs": backtest_runs,
+        "comparison_run": comparison_run,
+        "comparison": comparison,
+        "recognition": recognition,
+        "paper": paper_summary,
+        "pending_count": pending_count,
+        "settlement_counts": dict(settlement_counts),
+    }
+    return render(request, "dashboard/book_research.html", context)
+
+
+# ---------------------------------------------------------------------------
 # Settings (Step 13)
 # ---------------------------------------------------------------------------
 @login_required

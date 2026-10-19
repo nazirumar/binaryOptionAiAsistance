@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any
 
@@ -19,6 +20,8 @@ from apps.strategy_engine.services.explanation_builder import ExplanationBuilder
 from apps.strategy_engine.services.invalidation_engine import InvalidationEngine
 from apps.strategy_engine.services.setup_classifier import SetupClassifier
 from apps.strategy_engine.services.timing_validator import TimingValidator
+
+logger = logging.getLogger(__name__)
 
 
 class EvaluationService:
@@ -78,9 +81,33 @@ class EvaluationService:
 
         # Evaluate candidates
         candles = list(strategy_input.completed_candles)
+        has_unfinished = any(self.timing_validator.is_candle_unfinished(c) for c in candles)
         bullish_cands = self.bullish_evaluator.evaluate_all(evidence, candles)
         bearish_cands = self.bearish_evaluator.evaluate_all(evidence, candles)
         all_candidates = bullish_cands + bearish_cands
+
+        # Phase 13: book strategies may contribute an EXTRA candidate, but
+        # only for rows with explicit decision_use_approved (see
+        # book_strategies.services.decision_integration). In default
+        # deployments nothing is approved, so this is inert; a failure here
+        # degrades to "no book candidates" and every NO TRADE safeguard below
+        # still applies unchanged.
+        try:
+            from apps.book_strategies.services.decision_integration import (
+                book_strategy_candidates,
+            )
+
+            all_candidates.extend(
+                book_strategy_candidates(
+                    candles,
+                    last_candle_forming=has_unfinished,
+                    instrument=str(strategy_input.instrument or ""),
+                    timeframe=str(strategy_input.timeframe or ""),
+                    market_type=str(strategy_input.market_type or ""),
+                )
+            )
+        except Exception:
+            logger.warning("book strategy candidate evaluation skipped", exc_info=True)
 
         # Confluence
         supporting_all = []
@@ -95,7 +122,6 @@ class EvaluationService:
         timing_validity, timing_info = self.timing_validator.validate_timing(
             candles, strategy_input.timeframe, evaluation_ts
         )
-        has_unfinished = any(self.timing_validator.is_candle_unfinished(c) for c in candles)
 
         # Invalidation
         should_no_trade_inv, reason_codes_inv, primary_inv = self.invalidation_engine.check_all(

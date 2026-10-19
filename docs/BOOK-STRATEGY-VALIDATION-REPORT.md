@@ -80,3 +80,90 @@ data). `approved_for_decision_use`: **false** for all ten.
 
 Until all of the above hold: **NO TRADE. Probability: unavailable
 (uncalibrated).**
+
+---
+
+## Phase 13 continuation — walk-forward, ranking, paper predictions and settlement
+
+The pilot above reported a single chronological split. The continuation added
+**walk-forward folds**, a **ranking** service, **immutable paper predictions**
+and a **binary-settlement** scope. The genuine-data numbers below were produced
+by the real commands against the dev database (300 EURUSD **M5** complete
+`quality_status = ok` candles; the 300 M1 `suspect` candles remain excluded).
+Artifacts: `docs/artifacts/book_validation.json` (per-strategy),
+`docs/artifacts/book_research.json` (backtest + comparison).
+
+### What changed in how numbers are produced
+
+- **Walk-forward** (`BookWalkForwardService`): one causal replay is partitioned
+  into chronological, disjoint folds; each fold and the pool carry their own
+  signal count, accuracy, Wilson 95% interval and unconditional baseline. No
+  detector is re-run per fold, so there is no window leakage.
+- **Ranking** (`BookComparisonService`): only rows with *sufficient* validation
+  **and** sufficient walk-forward evidence are ranked, by out-of-sample margin
+  (accuracy minus baseline) descending, ties by sample size; everything else is
+  unranked and sorted by key only. `approved_for_decision_use` is False on every
+  row.
+- **Metric scopes** (`services/metrics.py`): recognition and prediction are
+  hard-walled apart. `recognition_accuracy` is always `None`
+  (`NOT_COMPUTABLE_NO_GROUND_TRUTH`); only `next_candle_direction` ever carries a
+  number, and that is still **not** binary-option settlement.
+
+### Backtest result (genuine M5 replay)
+
+Ten implemented strategies, pooled signals / next-candle accuracy:
+
+| Strategy | Pooled signals | Accuracy | Sufficient? |
+| --- | --- | --- | --- |
+| SS1 | 24 | 79.2% | No — 6 out-of-sample |
+| SS2 | 31 | 51.6% | No (below baseline) |
+| SS3 | 3 | 100% | No — 0 out-of-sample |
+| SS19 | 1 | 0.0% | No |
+| CH7_S1 | 3 | 66.7% | No |
+| SS5, SS6, SS21, SS22, SS23 | 0 | — | No — zero signals |
+
+Result: **0 ranked, 10 unranked.** Every one of the ten was tiered
+`insufficient_evidence_unranked`; none reached `candidate_for_further_research`
+or even `ranked_but_below_baseline` with a valid claim. No accuracy figure above
+is a claim. All ten were advanced to `research_status = backtested` at most —
+none to `oos_validated`, none approved.
+
+### Paper forward predictions (genuine, frozen)
+
+The `record_paper_predictions` / `resolve_paper_predictions` commands were run
+against the dev database with recognition temporarily enabled for SS1/SS2 (then
+returned to the default OFF). One genuine SS1 bullish prediction was frozen with
+a SHA-256 payload digest; `verify_integrity()` returns True. It remains
+`status = pending` because its outcome candle is not yet complete — the pipeline
+**skips** (never fabricates) an unresolved outcome, so no win/loss was invented.
+After the run, `recognition_enabled` was set back to empty, so nothing remains
+enabled for trading. No settlement could be verified, so the
+`binary_settlement` summary is empty, exactly as it should be.
+
+### Settlement scope caveat
+
+A second, deliberate scope exists (`BookSettlementService`): **binary
+settlement** (win/loss/tie against a real expiry price). It only ever counts
+*verified* settlements; missing quotes yield `UNVERIFIABLE`, and OTC + MT5 data
+is **refused** with `INCOMPATIBLE_FEEDS`. This scope is described here for
+completeness only — the sample above produced no verified settlements, so it
+reports nothing, and it is never conflated with the `next_candle_direction`
+figures in the tables.
+
+### Honest reading of the continuation
+
+- Nothing in the continuation validates anything either. The walk-forward folds
+  on a 300-candle single-instrument window are far too small; the pooled result
+  still says `sufficient_data = false` everywhere, and the ranking service
+  correctly returns **zero ranked strategies**.
+- SS1's apparent strength is unchanged from the pilot and is still a 24-signal
+  single-window artefact; SS2 still does not beat its baseline. Neither is
+  re-tuned.
+- The paper-prediction path is proven *mechanically* (frozen, digest-verified,
+  skip-on-incomplete) but has produced no settled outcomes — which is the
+  truthful state, not a result.
+- `decision_use_approved` remains False for all entries and nothing advances
+  past `backtested`. The gated decision-engine hook (R9) is therefore inert.
+
+**Until real sample sizes exist, across instruments and periods: NO TRADE.
+Probability: unavailable (uncalibrated).**

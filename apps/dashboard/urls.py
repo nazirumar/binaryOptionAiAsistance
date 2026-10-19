@@ -46,6 +46,12 @@ urlpatterns = [
         page_views.book_strategies,
         name="book-strategies",
     ),
+    # Registered before <str:key>/ so "research" is not swallowed as a key.
+    path(
+        "book-strategies/research/",
+        page_views.book_research,
+        name="book-strategies-research",
+    ),
     path(
         "book-strategies/<str:key>/",
         page_views.book_strategy_detail,

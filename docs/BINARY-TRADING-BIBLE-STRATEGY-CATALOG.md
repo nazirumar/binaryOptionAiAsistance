@@ -131,3 +131,37 @@ reading is preserved in the catalog entry text.
 - Martingale / loss-recovery is rejected for every entry (`mtg_policy` records
   the book's own stance, including where the book recommends recovery — that
   stance is transcribed as text, never as an implemented behaviour).
+
+## Phase 13 continuation — research instrumentation on top of the catalog
+
+The catalog itself is unchanged (still 32 entries, same keys, same recorded
+contradictions/ambiguities, no fabricated statistics). Phase 13 was completed by
+adding the *research machinery* that a catalog entry needs before any validation
+claim could even be contemplated. None of it changes what an entry asserts:
+
+- **Recognition vs prediction are separated** (`services/metrics.py`). Catalog
+  entries produce `pattern_recognition` observations; a `recognition_accuracy`
+  is **always `None`** with reason `NOT_COMPUTABLE_NO_GROUND_TRUTH` because the
+  book's illustrations are not a labelled dataset. The only scope in which a
+  numeric accuracy exists is `next_candle_direction`, which is explicitly **not**
+  binary-option settlement.
+- **The catalogued-only entries stay catalogued.** The ten implemented detectors
+  (`ss1`, `ss2`, `ss3`, `ss5`, `ss6`, `ss19`, `ss21`, `ss22`, `ss23`, `ch7_s1`)
+  are the only entries with a `detector_key`; the remaining 22 entries still
+  evaluate to `INSUFFICIENT_DATA / NOT_EVALUATED` and never to a guessed
+  detection. Nothing here silently promotes a catalogued entry to implemented.
+- **Contradictions are still recorded, never repaired.** The continuation code
+  reads the same `contradictions` / `ambiguities` fields the catalog documents;
+  it does not rewrite them and does not use them to pick a winning reading.
+- **Every research artefact is unapproved.** Backtest runs, comparisons, paper
+  predictions and settlements all carry `approved_for_decision_use = False`;
+  the dashboard toggle still flips only `recognition_enabled`. Advancing a
+  `research_status` can move an entry at most to `backtested` — never to
+  `oos_validated` and never to approved.
+- **The catalog is rendered with a "Research metrics →" link** to
+  `/dashboard/book-strategies/research/`, which shows the recognition-scope
+  markers, paper-prediction summary, comparison table and dataset provenance
+  for the entries above.
+
+See `docs/BOOK-STRATEGY-IMPLEMENTATION-REPORT.md` for the component list and
+`docs/BOOK-STRATEGY-VALIDATION-REPORT.md` for the genuine-data numbers.

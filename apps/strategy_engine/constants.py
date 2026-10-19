@@ -24,6 +24,9 @@ class StrategyFamily(models.TextChoices):
     SUPPORT_RESISTANCE_REJECTION = "sr_rejection", "Support/Resistance Rejection"
     BREAKOUT_RETEST_SBR_RBS = "breakout_retest", "Breakout-Retest (SBR/RBS)"
     LIQUIDITY_SWEEP_REJECTION = "liquidity_sweep", "Liquidity Sweep & Rejection"
+    #: Deterministic book pattern from Phase 13; only ever reaches the engine
+    #: after explicit ``decision_use_approved`` (see book_strategies services).
+    BOOK_PATTERN = "book_pattern", "Book Pattern (Trading Bible)"
     COMBINED = "combined", "Combined"
     UNKNOWN = "unknown", "Unknown"
 

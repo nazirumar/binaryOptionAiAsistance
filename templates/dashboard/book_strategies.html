@@ -13,6 +13,8 @@
          class="w-64 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900" />
   <button type="submit" class="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-slate-100 dark:text-slate-900">Filter</button>
   <span class="text-slate-500">{{ total }} entr{{ total|pluralize:"y,ies" }} · {{ implemented_total }} implemented · {{ approved_total }} approved for decision use</span>
+  <a class="ml-auto rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
+     href="{% url 'dashboard:book-strategies-research' %}">Research metrics →</a>
 </form>
 
 <section class="mt-6 space-y-8">

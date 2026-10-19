@@ -163,6 +163,120 @@ Repository-wide gates after this phase: **1108 passed, 3 skipped** (existing
 suite + Phase 13), `ruff check apps tests` clean, `manage.py check` clean,
 `makemigrations --check` clean.
 
+## Phase 13 continuation — research pipeline (R1–R10)
+
+The first pass above delivered the catalog, detectors, recognition, explainer and
+a pilot validation. The continuation completed the remaining research
+requirements so the strategies are genuinely *researchable* without ever
+fabricating a result. Every component below is additive; nothing existing was
+rebuilt.
+
+### R1 — Dataset import with provenance (`apps/research/services/dataset_builder.py`)
+
+`DatasetBuilder.import_ohlc()` validates, sorts, dedupes and gap-detects raw
+OHLC rows. It **rejects rather than repairs**: rows with impossible
+high/low/open/close relationships, missing timestamps or duplicates are dropped
+and counted, and genuine gaps are flagged (never filled). A
+`metadata.provenance` block records the source-file SHA-256, importer, accepted
+/ rejected counts, the reasons for each rejection, and the gap count; naive
+timestamps are assumed UTC and flagged. `is_validated` is true only when there
+are zero rejects **and** zero gaps. The `import_ohlc_csv` command wraps this
+with header aliasing and hashes the input file bytes.
+
+### R2 — Deterministic leak-free backtesting (`services/backtest.py`)
+
+`BookBacktestService.run()` replays the shared causal machinery once and persists
+a `BacktestRun` (kind `book_strategy`). Results are byte-identical across runs on
+the same input. `metrics` always carries `approved_for_decision_use: False`,
+`metric_scope = "next_candle_direction"` and an accuracy status. Signals come
+from the causal replay only (signal at *i* uses `candles[0..i]`, outcome is
+`i+1`), and `advance_research_status()` can move an entry **at most** to
+`backtested`.
+
+### R3 — Chronological OOS + walk-forward (`services/walk_forward.py`)
+
+`WalkForwardValidation.chronological_folds()` returns chronological, disjoint
+half-open `[start, end)` windows with `end <= n-1` — never shuffled.
+`BookWalkForwardService` partitions a single causal replay across those folds
+(no re-running the detector per fold, so there is no window leakage) and reports
+per-fold **and** pooled statistics: signal counts, accuracy, Wilson 95%
+intervals and the unconditional baseline for each window. Insufficient results
+carry explicit reasons (no signals, below threshold, series too short, no
+folds); the dict includes `metric_scope` and a disclaimer that this is **not**
+binary settlement.
+
+### R5 — Comparison / ranking (`services/comparison.py`)
+
+`BookComparisonService.compare()` ranks **only** rows with sufficient validation
+**and** sufficient walk-forward evidence, ordered by out-of-sample margin
+(accuracy minus baseline) descending, ties broken by sample size. Unranked rows
+are sorted by key alone — never by accuracy. Tiers are
+`candidate_for_further_research`, `ranked_but_below_baseline` and
+`insufficient_evidence_unranked`, and `approved_for_decision_use` is False on
+every row. The run is persisted as a `BacktestRun` (kind `book_comparison`).
+
+### R6 — Recognition vs prediction separation (`services/metrics.py`)
+
+Two explicit scopes: `pattern_recognition` and `next_candle_direction`.
+`assert_recognition_scope()` / `assert_prediction_scope()` are hard walls in both
+directions, so a recognition figure can never be quoted as a predictive one and
+vice versa. `recognition_accuracy` is always `None`
+(`NOT_COMPUTABLE_NO_GROUND_TRUTH`), and `verify_reproducibility()` re-runs a
+detector twice and states that it proves *recognition* reproducibility only,
+not predictive power.
+
+### R7 — Binary settlement evaluation (`services/settlement.py`)
+
+`BookSettlementService` wraps the research `BinarySettlement` primitive and
+returns explicit states (win / loss / tie / unverifiable / refused). Missing
+quotes yield `UNVERIFIABLE` with no win rate invented; an OTC screenshot checked
+against MT5 regular-session data is **refused** with `INCOMPATIBLE_FEEDS` and
+never coerced. `summarize()` counts only *verified* settlements and reports
+unverifiable/refused separately with a warning; scope is `binary_settlement`.
+
+### R8 — Immutable paper forward predictions (`services/paper_forward.py`)
+
+`PaperForwardPrediction` freezes a prediction at creation behind a
+`payload_sha256` and a `PROTECTED_FIELDS` / outcome-field guard enforced in
+`save()`. Status changes happen only through `resolve()`, which requires a
+complete outcome candle opening exactly at the signal's close time; incomplete
+outcome candles are skipped, not raised. Verified settlement fields
+(WIN/LOSS/TIE) are write-once; unverifiable ones may be re-evaluated.
+`verify_integrity()` detects tampering. `PaperForwardService` provides
+`record()` / `resolve()` / `settle()` / `summary()`, and the
+`record_paper_predictions` / `resolve_paper_predictions` commands scope feeds by
+the shared source labels `mt5:SYM:TF` and `historical_import:<name>`.
+
+### R9 — Decision-engine integration (`apps/strategy_engine/…`)
+
+`StrategyFamily.BOOK_PATTERN` was added (with a migration).
+`book_strategy_candidates()` returns a candidate only when the entry has
+`decision_use_approved AND recognition_enabled` **and** a fresh
+`CONFIRMED_PATTERN` on the latest *closed* candle; any exception degrades to an
+empty list (never propagates). Book candidates are appended after the engine's
+own candidates, and book evidence never overrides a NO TRADE safeguard. Because
+`decision_use_approved` is False for every entry, the hook is inert in practice —
+it is a correctly-gated placeholder for a future approved strategy.
+
+### R10 — Research dashboard (`apps/dashboard/…`)
+
+`/dashboard/book-strategies/research/` (`book_research` view + template) shows
+the recognition-scope markers (`pattern_recognition`,
+`NOT_COMPUTABLE_NO_GROUND_TRUTH`), the paper-prediction summary, the comparison /
+ranking table, recent backtest runs and imported datasets with their provenance.
+It always displays an explicit "not a performance claim / not binary-option
+settlement" warning. A "Research metrics →" link was added to the catalog list
+page. `PaperForwardPrediction` is registered in the admin read-mostly
+(`has_add_permission = False`).
+
+### Continuation tests
+
+`tests/test_phase13_research.py` — **75 tests** covering R1–R10 and the new
+management commands, all passing. Repository-wide gates after the continuation:
+**1183 passed, 3 skipped** (2 Postgres-only, 1 live-LLM-gated), `ruff check apps
+tests` clean, `manage.py check` clean, `makemigrations --check --dry-run` =
+"No changes detected".
+
 ## Known follow-ups (not blockers)
 
 - The end-to-end persisted vision run against the book mapper remains gated on
@@ -171,3 +285,7 @@ suite + Phase 13), `ruff check apps tests` clean, `manage.py check` clean,
   insufficient for every strategy (see the validation report); more clean
   candles are required before any accuracy claim could even be considered, and
   `decision_use_approved` stays False regardless.
+- Production deployment remains forbidden without explicit user authorization;
+  nothing in Phase 13 was deployed.
+
+**Phase 13 is complete. Phase 14 was not started.**

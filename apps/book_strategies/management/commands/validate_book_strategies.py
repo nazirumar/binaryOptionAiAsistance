@@ -1,8 +1,9 @@
 """Run chronological book-strategy validation over stored market candles.
 
 Reads genuine candles from the configured database (default: all symbols,
-per timeframe), replays each implemented detector forward in time with no
-future leakage, and writes a JSON artifact the validation report can cite.
+per timeframe; or an imported historical dataset via ``--dataset-id``),
+replays each implemented detector forward in time with no future leakage,
+and writes a JSON artifact the validation report can cite.
 
 Every number in the artifact is computed from the actual candle rows - this
 command can only report what the data supports, including "no signals".
@@ -10,6 +11,7 @@ command can only report what the data supports, including "no signals".
 Usage:
     python manage.py validate_book_strategies
     python manage.py validate_book_strategies --symbol EURUSD --timeframe M1
+    python manage.py validate_book_strategies --dataset-id 3
     python manage.py validate_book_strategies --out docs/artifacts/book_validation.json
 """
 
@@ -20,15 +22,18 @@ from pathlib import Path
 from typing import Any
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import QuerySet
 
 from apps.book_strategies.constants import IMPLEMENTED_SPEC_KEYS
+from apps.book_strategies.services.sources import (
+    dataset_candles,
+    mt5_candle_groups,
+    require_groups,
+)
 from apps.book_strategies.services.validation import (
     DEFAULT_MIN_SIGNALS,
     DEFAULT_PAYOUT_RATE,
     BookValidationService,
 )
-from apps.market_data.models import MarketCandle
 
 
 class Command(BaseCommand):
@@ -37,6 +42,12 @@ class Command(BaseCommand):
     def add_arguments(self, parser: Any) -> None:
         parser.add_argument("--symbol", default="", help="Canonical symbol (e.g. EURUSD).")
         parser.add_argument("--timeframe", default="", help="Timeframe (e.g. M1, M5).")
+        parser.add_argument(
+            "--dataset-id",
+            type=int,
+            default=0,
+            help="Validate over an imported historical dataset instead of MT5 rows.",
+        )
         parser.add_argument(
             "--out",
             default="docs/artifacts/book_validation.json",
@@ -49,31 +60,31 @@ class Command(BaseCommand):
         timeframe = str(options["timeframe"] or "")
         out_path = Path(str(options["out"]))
         payout = float(options["payout"])
+        dataset = None
+        import_descriptor: dict[str, Any] | None = None
 
-        qs: QuerySet[MarketCandle] = MarketCandle.objects.filter(
-            is_complete=True, quality_status="ok"
-        )
-        if symbol:
-            qs = qs.filter(symbol__canonical=symbol)
-        if timeframe:
-            qs = qs.filter(timeframe=timeframe)
-        if not qs.exists():
-            raise CommandError(
-                "no complete candles matched the filter - validation needs a "
-                "real dataset (nothing is fabricated when data is absent)"
-            )
-
-        groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
-        for row in qs.order_by("symbol__canonical", "timeframe", "open_time"):
-            key = (row.symbol.canonical, row.timeframe)
-            groups.setdefault(key, []).append(
-                {
-                    "open": float(row.open),
-                    "high": float(row.high),
-                    "low": float(row.low),
-                    "close": float(row.close),
-                }
-            )
+        if int(options["dataset_id"] or 0):
+            try:
+                dataset, loaded = dataset_candles(int(options["dataset_id"]))
+            except ValueError as exc:
+                raise CommandError(str(exc)) from exc
+            groups = {
+                (dataset.instrument or "imported", dataset.timeframe or "M1"): loaded
+            }
+            provenance = (dataset.metadata or {}).get("provenance", {})
+            import_descriptor = {
+                "dataset_id": dataset.pk,
+                "name": dataset.name,
+                "source": dataset.source,
+                "source_file": provenance.get("source_file", ""),
+                "source_sha256": provenance.get("source_sha256", ""),
+            }
+        else:
+            groups = mt5_candle_groups(symbol=symbol, timeframe=timeframe)
+            try:
+                require_groups(groups)
+            except ValueError as exc:
+                raise CommandError(str(exc)) from exc
 
         service = BookValidationService()
         reports: list[dict[str, Any]] = []
@@ -90,6 +101,8 @@ class Command(BaseCommand):
                 payload = report.as_dict()
                 payload["dataset"]["symbol"] = canonical
                 payload["dataset"]["timeframe"] = tf
+                if import_descriptor is not None:
+                    payload["dataset"]["import"] = dict(import_descriptor)
                 reports.append(payload)
                 pooled = payload["splits"]["pooled"]
                 lines.append(
@@ -108,10 +121,11 @@ class Command(BaseCommand):
             "generated_by": "manage.py validate_book_strategies",
             "metric_scope": "next_candle_direction",
             "min_signals_for_claim": DEFAULT_MIN_SIGNALS,
+            "import": import_descriptor,
             "reports": reports,
         }
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(json.dumps(artifact, indent=2), encoding="utf-8")
+        out_path.write_text(json.dumps(artifact, indent=2, default=str), encoding="utf-8")
 
         summary = "\n".join(lines)
         self.stdout.write(summary)
