@@ -186,6 +186,50 @@ if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out
 # Fresh logs each run so a stale file is never mistaken for a live process.
 Get-ChildItem $logDir -Filter *.log -ErrorAction SilentlyContinue | Remove-Item -Force
 
+# --- Pre-flight: clear a stale listener on the web port ---------------------
+# A previously interrupted run (Ctrl+C that missed the child tree, a crashed
+# shell, etc.) can leave a runserver/uvicorn holding the port. A fresh server
+# would then fail to bind and the stack would look "up" while serving nothing,
+# which is worse than failing loudly. Find and stop the squatter first.
+function Get-PortOwnerPids([int]$LocalPort) {
+    $pids = @()
+    try {
+        $conns = Get-NetTCPConnection -LocalPort $LocalPort -State Listen -ErrorAction SilentlyContinue
+        foreach ($c in $conns) { if ($c.OwningProcess) { $pids += [int]$c.OwningProcess } }
+    }
+    catch {
+        # Fall back to netstat on hosts/PowerShell builds without the cmdlet.
+        $lines = (netstat -ano -p tcp 2>$null | Select-String -Pattern ":$LocalPort\s" | Select-String "LISTENING")
+        foreach ($line in $lines) {
+            $parts = ($line.ToString().Trim() -split "\s+")
+            if ($parts.Count -ge 5 -and $parts[-1] -match "^\d+$") { $pids += [int]$parts[-1] }
+        }
+    }
+    return ($pids | Sort-Object -Unique)
+}
+
+if (-not $NoWeb) {
+    $squatters = Get-PortOwnerPids -LocalPort $Port
+    foreach ($squatPid in $squatters) {
+        # Only ever kill this project's own Python, never an unrelated service.
+        $procInfo = Get-CimInstance Win32_Process -Filter "ProcessId=$squatPid" -ErrorAction SilentlyContinue
+        $cmdLine = if ($procInfo) { [string]$procInfo.CommandLine } else { "" }
+        $ownPython = $cmdLine -like "*$Root*" -or $cmdLine -like "*$py*"
+        if ($squatPid -eq $PID -or -not $ownPython) {
+            Write-Host ("    ! port {0} is held by PID {1} but it is not this project's " -f $Port, $squatPid) -ForegroundColor Red
+            Write-Host "      Python (or it is this shell). Refusing to kill it." -ForegroundColor Red
+            Write-Host "      Free the port manually, or pick another with -Port." -ForegroundColor Red
+            exit 1
+        }
+        Write-Host ("  - clearing stale listener on port {0} (PID {1})" -f $Port, $squatPid) -ForegroundColor Yellow
+        & taskkill /PID $squatPid /T /F 2>$null | Out-Null
+    }
+    if ($squatters.Count -gt 0) {
+        # Give the OS a moment to release the socket before rebinding.
+        Start-Sleep -Milliseconds 800
+    }
+}
+
 # --- Process registry -------------------------------------------------------
 $processes = @()
 
@@ -254,8 +298,12 @@ if (-not $NoWeb) {
         )
     }
     else {
+        # --noreload: the auto-reloader forks a second process per worker, which
+        # on Windows is a common source of orphaned children that survive
+        # Ctrl+C and then squat on the port. We do not need reload here because
+        # the whole stack is restarted to pick up changes.
         Start-StackProcess -Name "web" -File $py -Arguments @(
-            "manage.py", "runserver", "$Host_`:$Port"
+            "manage.py", "runserver", "$Host_`:$Port", "--noreload"
         )
     }
 }
@@ -278,16 +326,11 @@ $beatSchedule = Join-Path $logDir "celerybeat-schedule"
 Start-CeleryProcess -Name "beat" `
     -Rest @("-A", "config", "beat", "--schedule", $beatSchedule)
 
-# --- Report -----------------------------------------------------------------
-Write-Host "`n==> Stack is up. $($processes.Count) process(es)." -ForegroundColor Green
-if (-not $NoWeb) {
-    $scheme = "http"
-    Write-Host ("    Web: {0}://{1}:{2}/  ({3})" -f $scheme, $Host_, $Port, $webMode) -ForegroundColor Green
-}
-Write-Host "    Logs: $logDir" -ForegroundColor Green
-Write-Host "    Press Ctrl+C to stop everything.`n" -ForegroundColor Green
-
-# --- Watch: restart nothing, but surface an early death quickly -------------
+# --- Verify -----------------------------------------------------------------
+# Do not announce success on faith. Wait for the web server to actually answer
+# (a bound port that returns nothing is exactly the failure mode this guards)
+# and confirm no child died at startup. Anything wrong is reported loudly and
+# the exit code is non-zero so a supervisor/CI can see it too.
 function Stop-All {
     Write-Host "`n==> Shutting down..." -ForegroundColor Yellow
     foreach ($entry in $script:processes) {
@@ -302,6 +345,61 @@ function Stop-All {
     Write-Host "==> Stopped." -ForegroundColor Yellow
 }
 
+function Test-WebResponding {
+    param([string]$ProbeHost, [int]$ProbePort, [int]$TimeoutSeconds = 25)
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $client = New-Object System.Net.Sockets.TcpClient
+            $client.Connect($ProbeHost, $ProbePort)
+            if ($client.Connected) { $client.Close(); return $true }
+            $client.Close()
+        }
+        catch { }
+        Start-Sleep -Milliseconds 500
+    }
+    return $false
+}
+
+$failed = @()
+
+# Give children a moment to settle before judging them.
+Start-Sleep -Seconds 3
+foreach ($entry in $script:processes) {
+    if ($entry.Proc -and $entry.Proc.HasExited) {
+        $failed += ("{0} exited early (code {1}); see {2}" -f `
+                $entry.Name, $entry.Proc.ExitCode, $entry.Log)
+    }
+}
+
+if (-not $NoWeb) {
+    Write-Host ("`n==> Waiting for web on {0}:{1} ..." -f $Host_, $Port) -ForegroundColor Cyan
+    if (Test-WebResponding -ProbeHost $Host_ -ProbePort $Port) {
+        Write-Host "    web is accepting connections" -ForegroundColor Green
+    }
+    else {
+        $failed += "web did not accept connections on ${Host_}:${Port} within 25s; see $logDir\web.log"
+    }
+}
+
+if ($failed.Count -gt 0) {
+    Write-Host "`n==> NOT fully up:" -ForegroundColor Red
+    foreach ($msg in $failed) { Write-Host "    - $msg" -ForegroundColor Red }
+    Write-Host "`n    Stopping the processes that did start...`n" -ForegroundColor Yellow
+    Stop-All
+    exit 1
+}
+
+# --- Report -----------------------------------------------------------------
+Write-Host "`n==> Stack is up. $($processes.Count) process(es)." -ForegroundColor Green
+if (-not $NoWeb) {
+    $scheme = "http"
+    Write-Host ("    Web: {0}://{1}:{2}/  ({3})" -f $scheme, $Host_, $Port, $webMode) -ForegroundColor Green
+}
+Write-Host "    Logs: $logDir" -ForegroundColor Green
+Write-Host "    Press Ctrl+C to stop everything.`n" -ForegroundColor Green
+
+# --- Watch: restart nothing, but surface an early death quickly -------------
 # Names already reported as dead, so a crashed child is announced once and its
 # warning is not lost to the periodic Clear-Host.
 $reportedDead = @{}
