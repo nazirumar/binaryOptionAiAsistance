@@ -8,10 +8,11 @@ cannot create uncontrolled duplicate work.
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from celery import shared_task
 from django.conf import settings
+from django.db.models import Q
 from django.utils import timezone
 
 from apps.chart_vision.constants import AnalysisStatus, EventKind, Severity, UploadStatus
@@ -50,6 +51,68 @@ def _mark_failed(analysis: ScreenshotAnalysis, code: str, message: str) -> None:
         severity=Severity.ERROR,
         message=f"Analysis job failed: {code}",
     )
+
+
+def stale_analysis_cutoff() -> datetime:
+    """The oldest ``started_at`` a still-RUNNING analysis may have."""
+    seconds = int(getattr(settings, "VISION_ANALYSIS_STALE_SECONDS", 900))
+    return timezone.now() - timedelta(seconds=seconds)
+
+
+def is_analysis_stuck(analysis: ScreenshotAnalysis) -> bool:
+    """True when a RUNNING analysis has outlived the stale threshold.
+
+    A worker killed mid-flight (process restart, OOM, machine reboot) leaves a
+    row ``RUNNING`` with no ``finished_at`` and no further events. Without this
+    check the row would block every future attempt forever.
+    """
+    if analysis.status != AnalysisStatus.RUNNING:
+        return False
+    marker = analysis.started_at or analysis.created_at
+    if marker is None:
+        return False
+    return marker < stale_analysis_cutoff()
+
+
+def reap_stale_analyses(*, requeue: bool = False) -> int:
+    """Recover analyses abandoned in RUNNING past the stale threshold.
+
+    Each one is marked FAILED (``stale_run``) so it becomes retryable, or
+    re-queued when ``requeue`` is set. Returns how many rows were recovered.
+    """
+    cutoff = stale_analysis_cutoff()
+    candidates = ScreenshotAnalysis.objects.filter(
+        status=AnalysisStatus.RUNNING,
+    ).filter(Q(started_at__lt=cutoff) | Q(started_at__isnull=True, created_at__lt=cutoff))
+    recovered = 0
+    for analysis in candidates:
+        if not is_analysis_stuck(analysis):
+            continue
+        if requeue:
+            analysis.status = AnalysisStatus.QUEUED
+            analysis.error_code = ""
+            analysis.error_message = ""
+            analysis.started_at = None
+            analysis.save(
+                update_fields=[
+                    "status", "error_code", "error_message", "started_at", "updated_at"
+                ]
+            )
+        else:
+            _mark_failed(
+                analysis,
+                "stale_run",
+                "Analysis was abandoned by its worker (no heartbeat); recovered "
+                "as failed so it can be retried.",
+            )
+        record_event(
+            analysis=analysis,
+            kind=EventKind.QUEUE,
+            severity=Severity.WARNING,
+            message="Stale running analysis recovered.",
+        )
+        recovered += 1
+    return recovered
 
 
 @shared_task(bind=True, name="chart_vision.analyze_screenshot")
@@ -122,4 +185,24 @@ def purge_screenshots_task(retention_days: int | None = None) -> dict:
     return {"deleted": deleted, "retention_days": days}
 
 
-__all__ = ["analyze_screenshot_task", "purge_screenshots_task"]
+@shared_task(name="chart_vision.reap_stale_analyses")
+def reap_stale_analyses_task(*, requeue: bool = False) -> dict:
+    """Periodically recover analyses abandoned in RUNNING.
+
+    Scheduled on beat so a worker killed mid-flight cannot leave a screenshot
+    permanently stuck at "already queued".
+    """
+    recovered = reap_stale_analyses(requeue=requeue)
+    if recovered:
+        logger.warning("chart_vision.reaped_stale_analyses", extra={"recovered": recovered})
+    return {"recovered": recovered, "requeue": requeue}
+
+
+__all__ = [
+    "analyze_screenshot_task",
+    "is_analysis_stuck",
+    "purge_screenshots_task",
+    "reap_stale_analyses",
+    "reap_stale_analyses_task",
+    "stale_analysis_cutoff",
+]

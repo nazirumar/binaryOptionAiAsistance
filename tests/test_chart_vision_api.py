@@ -211,6 +211,26 @@ def test_analyze_requeues_failed_analysis(api, user):
     assert analysis.status == AnalysisStatus.QUEUED
 
 
+def test_analyze_recovers_a_stuck_running_analysis(api, user):
+    """A RUNNING row whose worker died must not block the screenshot forever."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    screenshot = make_screenshot(user)
+    analysis, _ = get_or_create_analysis(screenshot)
+    ScreenshotAnalysis.objects.filter(pk=analysis.pk).update(
+        status=AnalysisStatus.RUNNING,
+        started_at=timezone.now() - timedelta(seconds=100000),
+    )
+    with mock.patch("apps.chart_vision.tasks.analyze_screenshot_task.delay") as delay:
+        response = api.post(reverse("chart_vision:screenshot-analyze", args=[screenshot.pk]))
+    assert response.status_code == 202
+    assert delay.call_count == 1
+    analysis.refresh_from_db()
+    assert analysis.status == AnalysisStatus.QUEUED
+
+
 # ---------------------------------------------------------------------------
 # Detail / history / status
 # ---------------------------------------------------------------------------

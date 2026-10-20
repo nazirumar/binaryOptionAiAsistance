@@ -68,6 +68,24 @@ def _launch_analysis(screenshot: ChartScreenshot) -> tuple[ScreenshotAnalysis, i
             "This screenshot has already been analysed.",
         )
     if analysis.is_in_flight:
+        # A RUNNING row whose worker died mid-flight would otherwise block this
+        # screenshot forever. Detect the stale run and recover it.
+        from apps.chart_vision.tasks import is_analysis_stuck, reap_stale_analyses
+
+        if is_analysis_stuck(analysis):
+            reap_stale_analyses()
+            analysis.refresh_from_db()
+            analysis.status = AnalysisStatus.QUEUED
+            analysis.error_code = ""
+            analysis.error_message = ""
+            analysis.started_at = None
+            analysis.save(
+                update_fields=[
+                    "status", "error_code", "error_message", "started_at", "updated_at"
+                ]
+            )
+            _enqueue_analysis(analysis)
+            return analysis, status.HTTP_202_ACCEPTED, "Previous attempt was stale; re-queued."
         return (
             analysis,
             status.HTTP_202_ACCEPTED,

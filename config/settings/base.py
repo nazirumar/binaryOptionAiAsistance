@@ -90,6 +90,10 @@ env = environ.Env(
     VISION_SCREENSHOT_ROOT=(str, ""),
     VISION_SCREENSHOT_RETENTION_DAYS=(int, 30),
     VISION_ANALYSIS_MAX_ATTEMPTS=(int, 3),
+    # A RUNNING analysis older than this is considered abandoned (its worker
+    # died mid-flight) and is recovered by the stale-run reaper. Generous by
+    # default so a slow but live provider is never reaped.
+    VISION_ANALYSIS_STALE_SECONDS=(int, 900),
     VISION_UPLOAD_THROTTLE=(str, "30/minute"),
     VISION_READ_THROTTLE=(str, "240/minute"),
     # --- Reasoning LLM (Phase 8) ---
@@ -468,6 +472,7 @@ VISION_SCREENSHOT_ROOT = Path(
 )
 VISION_SCREENSHOT_RETENTION_DAYS = env("VISION_SCREENSHOT_RETENTION_DAYS")
 VISION_ANALYSIS_MAX_ATTEMPTS = env("VISION_ANALYSIS_MAX_ATTEMPTS")
+VISION_ANALYSIS_STALE_SECONDS = env("VISION_ANALYSIS_STALE_SECONDS")
 
 # ---------------------------------------------------------------------------
 # Market synchronization (Phase 4)
@@ -600,6 +605,11 @@ CELERY_BEAT_SCHEDULE = {
     "chart-vision.purge-screenshots-daily": {
         "task": "chart_vision.purge_screenshots",
         "schedule": 60 * 60 * 24,  # 24h
+        "options": {"queue": "vision"},
+    },
+    "chart-vision.reap-stale-analyses": {
+        "task": "chart_vision.reap_stale_analyses",
+        "schedule": 60 * 5,  # every 5 min: recover workers killed mid-flight
         "options": {"queue": "vision"},
     },
     "core.health-probe-minutely": {

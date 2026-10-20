@@ -140,3 +140,63 @@ def test_analysis_owner_matches_screenshot_owner(user):
     analysis, _ = get_or_create_analysis(screenshot)
     assert isinstance(analysis, ScreenshotAnalysis)
     assert analysis.owner == user
+
+
+# ---------------------------------------------------------------------------
+# Stale-run recovery (a worker killed mid-flight must not block forever)
+# ---------------------------------------------------------------------------
+from apps.chart_vision.tasks import (  # noqa: E402
+    is_analysis_stuck,
+    reap_stale_analyses,
+    reap_stale_analyses_task,
+)
+
+
+def _running_analysis(user, *, started_ago_seconds: int):
+    screenshot = make_screenshot(user)
+    analysis, _ = get_or_create_analysis(screenshot)
+    ScreenshotAnalysis.objects.filter(pk=analysis.pk).update(
+        status=AnalysisStatus.RUNNING,
+        started_at=timezone.now() - timedelta(seconds=started_ago_seconds),
+    )
+    analysis.refresh_from_db()
+    return analysis
+
+
+def test_is_analysis_stuck_only_when_running_and_old(user):
+    fresh = _running_analysis(user, started_ago_seconds=5)
+    assert is_analysis_stuck(fresh) is False
+
+
+def test_reap_marks_a_long_running_analysis_failed(user):
+    stuck = _running_analysis(user, started_ago_seconds=100000)
+    assert is_analysis_stuck(stuck) is True
+
+    recovered = reap_stale_analyses()
+    assert recovered == 1
+    stuck.refresh_from_db()
+    assert stuck.status == AnalysisStatus.FAILED
+    assert stuck.error_code == "stale_run"
+    assert stuck.finished_at is not None
+
+
+def test_reap_leaves_a_live_running_analysis_alone(user):
+    live = _running_analysis(user, started_ago_seconds=5)
+    assert reap_stale_analyses() == 0
+    live.refresh_from_db()
+    assert live.status == AnalysisStatus.RUNNING
+
+
+def test_reap_requeue_puts_the_row_back_in_flight(user):
+    stuck = _running_analysis(user, started_ago_seconds=100000)
+    recovered = reap_stale_analyses(requeue=True)
+    assert recovered == 1
+    stuck.refresh_from_db()
+    assert stuck.status == AnalysisStatus.QUEUED
+    assert stuck.started_at is None
+
+
+def test_reap_task_returns_a_summary(user):
+    _running_analysis(user, started_ago_seconds=100000)
+    result = reap_stale_analyses_task.delay()
+    assert result.result["recovered"] == 1
