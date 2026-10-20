@@ -2,7 +2,12 @@
 # ---------------------------------------------------------------------------
 # Single-file launcher: starts the whole local stack at once.
 #
+#   scripts\run_all.cmd                 (from cmd.exe)
 #   powershell -ExecutionPolicy Bypass -File scripts/run_all.ps1
+#
+# scripts\run_all.cmd is a thin CMD wrapper that just calls this script with
+# -ExecutionPolicy Bypass and forwards all arguments, so the stack can be
+# started from a plain Command Prompt.
 #
 # What it starts (mirrors compose.yaml / compose.prod.yaml):
 #   web              uvicorn ASGI on http://127.0.0.1:8000, or Django

@@ -142,6 +142,22 @@ Or run everything at once:
 powershell -ExecutionPolicy Bypass -File scripts/check.ps1
 ```
 
+### Run the whole stack (web + Celery workers + beat)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_all.ps1
+```
+
+Both launchers also have a thin CMD wrapper, so they can be started from a plain
+Command Prompt (`cmd.exe`) — arguments are forwarded unchanged and the exit code
+is propagated:
+
+```bat
+scripts\run_all.cmd
+scripts\run_all.cmd -WithMT5
+scripts\check.cmd
+```
+
 ### Environment notes
 
 - The project targets **Python 3.12+**. This repository was developed and verified on
