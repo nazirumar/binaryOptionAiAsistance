@@ -1,0 +1,25 @@
+{% comment %}HTMX fragment: the current user's unread signal alerts.{% endcomment %}
+{% if alerts %}
+  <ul class="divide-y divide-slate-100 dark:divide-slate-800">
+    {% for alert in alerts %}
+      <li class="flex flex-wrap items-start gap-2 px-4 py-3">
+        <span class="status-dot status-dot-info mt-1.5" aria-hidden="true"></span>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-medium text-slate-900 dark:text-slate-100">{{ alert.title }}</p>
+          <p class="text-caption text-slate-500 dark:text-slate-400">{{ alert.body }}</p>
+          <p class="text-caption text-slate-400">{{ alert.created_at|date:"Y-m-d H:i" }} UTC</p>
+        </div>
+        <button type="button"
+                class="btn btn-ghost btn-sm"
+                hx-post="{% url 'dashboard:live-signal-alert-read' alert.pk %}"
+                hx-target="closest li"
+                hx-swap="outerHTML"
+                aria-label="Mark alert read">Dismiss</button>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <div class="card-body">
+    <p class="text-sm text-slate-500 dark:text-slate-400">No unread alerts.</p>
+  </div>
+{% endif %}

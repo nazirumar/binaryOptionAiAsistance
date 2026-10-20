@@ -1,0 +1,97 @@
+{% comment %}HTMX fragment: monitor + feed status summary for Live Signals.{% endcomment %}
+<section class="mb-6 grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
+  <div class="metric">
+    <p class="metric-label">Monitoring</p>
+    <p class="metric-value metric-value-sm">
+      {{ dashboard.active_monitors|length }} active
+    </p>
+    <p class="metric-caption">
+      {% if dashboard.unavailable_monitors %}
+        {{ dashboard.unavailable_monitors|length }} feed{{ dashboard.unavailable_monitors|length|pluralize }} unavailable
+      {% else %}
+        all feeds reporting
+      {% endif %}
+    </p>
+  </div>
+  <div class="metric">
+    <p class="metric-label">New signals</p>
+    <p class="metric-value">{{ dashboard.new_signal_count }}</p>
+    <p class="metric-caption">{{ dashboard.forming_count }} forming / awaiting</p>
+  </div>
+  <div class="metric">
+    <p class="metric-label">Confirmed patterns</p>
+    <p class="metric-value">{{ dashboard.confirmed_patterns }}</p>
+    <p class="metric-caption">{{ dashboard.invalidated_count }} invalidated</p>
+  </div>
+  <div class="metric">
+    <p class="metric-label">Directional signals</p>
+    <p class="metric-value">{{ dashboard.directional_signals }}</p>
+    <p class="metric-caption">
+      {% if dashboard.directional_signals %}approved strategies only{% else %}none eligible yet{% endif %}
+    </p>
+  </div>
+</section>
+
+<section class="card mb-6" aria-labelledby="monitors-heading">
+  <div class="card-header">
+    <div>
+      <h2 id="monitors-heading" class="card-title">Feed &amp; instrument monitors</h2>
+      <p class="card-subtitle">
+        Last successful candle update:
+        {% if dashboard.last_update %}{{ dashboard.last_update|date:"Y-m-d H:i:s" }} UTC{% else %}never{% endif %}
+      </p>
+    </div>
+    {% if dashboard.unavailable_monitors %}
+      <span class="badge badge-warning"><span class="status-dot status-dot-warning" aria-hidden="true"></span> Degraded</span>
+    {% else %}
+      <span class="badge badge-success"><span class="status-dot status-dot-success status-dot-pulse" aria-hidden="true"></span> Monitoring</span>
+    {% endif %}
+  </div>
+  {% if dashboard.monitors %}
+    <div class="table-wrapper">
+      <table class="table table-responsive">
+        <caption class="sr-only">Configured instrument monitors and feed state</caption>
+        <thead>
+          <tr>
+            <th scope="col">Instrument</th>
+            <th scope="col">Timeframe</th>
+            <th scope="col">Market</th>
+            <th scope="col">Feed</th>
+            <th scope="col">Last candle</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in dashboard.monitors %}
+            <tr>
+              <td data-label="Instrument" class="font-medium text-slate-900 dark:text-slate-100">{{ m.canonical_instrument }}</td>
+              <td data-label="Timeframe">{{ m.timeframe }}</td>
+              <td data-label="Market">{{ m.market_type|capfirst }}</td>
+              <td data-label="Feed">
+                {% if m.feed_state == 'ok' %}
+                  <span class="status-pill status-pill-success">Live</span>
+                {% elif m.feed_state == 'stale' %}
+                  <span class="status-pill status-pill-warning">Stale</span>
+                {% elif m.feed_state == 'incompatible' %}
+                  <span class="status-pill status-pill-danger">Incompatible</span>
+                {% else %}
+                  <span class="status-pill status-pill-neutral">Unavailable</span>
+                {% endif %}
+              </td>
+              <td data-label="Last candle">
+                {% if m.last_evaluated_candle_open_time %}{{ m.last_evaluated_candle_open_time|date:"Y-m-d H:i" }}{% else %}—{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="card-body">
+      <p class="text-sm text-slate-500 dark:text-slate-400">
+        No instruments are being monitored yet. Configure
+        <code>LIVE_SIGNAL_MONITORS</code> and run the monitor, or ask an
+        administrator to enable it.
+      </p>
+    </div>
+  {% endif %}
+</section>

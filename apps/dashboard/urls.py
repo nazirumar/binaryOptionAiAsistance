@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.urls import path
 
 from apps.dashboard import page_views, views
+from apps.live_signals import page_views as live_views
 from apps.screenshot_eval import page_views as eval_views
 
 app_name = "dashboard"
@@ -62,6 +63,38 @@ urlpatterns = [
         "book-strategies/<str:key>/toggle/",
         page_views.book_strategy_toggle,
         name="book-strategy-toggle",
+    ),
+    # ---- Phase 15: live signals monitor ------------------------------------
+    path("live-signals/", live_views.live_signals, name="live-signals"),
+    path(
+        "live-signals/feed/",
+        live_views.live_signals_feed,
+        name="live-signals-feed",
+    ),
+    path(
+        "live-signals/status/",
+        live_views.live_signals_status_fragment,
+        name="live-signals-status",
+    ),
+    path(
+        "live-signals/outcomes/",
+        live_views.live_signals_outcomes,
+        name="live-signals-outcomes",
+    ),
+    path(
+        "live-signals/settings/",
+        live_views.live_signals_settings,
+        name="live-signals-settings",
+    ),
+    path(
+        "live-signals/<int:pk>/",
+        live_views.live_signal_detail,
+        name="live-signal-detail",
+    ),
+    path(
+        "live-signals/alerts/<int:pk>/read/",
+        live_views.live_signal_alert_read,
+        name="live-signal-alert-read",
     ),
     # ---- Phase 14: screenshot evaluation / forward testing -----------------
     path("forward-testing/", eval_views.forward_testing, name="forward-testing"),

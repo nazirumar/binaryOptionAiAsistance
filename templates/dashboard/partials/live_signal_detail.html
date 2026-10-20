@@ -1,0 +1,90 @@
+{% comment %}HTMX fragment: full evidence panel for one live signal.{% endcomment %}
+<div class="card-header">
+  <div class="min-w-0">
+    <h2 class="card-title">
+      {{ signal.strategy_name|default:signal.strategy_key }}
+      <span class="text-caption text-slate-400">· {{ signal.instrument }} {{ signal.timeframe }} · {{ signal.market_type|capfirst }}</span>
+    </h2>
+    <p class="card-subtitle">
+      Detected {{ signal.detected_at|date:"Y-m-d H:i:s" }} UTC
+      {% if signal.strategy_version %}· strategy v{{ signal.strategy_version }}{% endif %}
+    </p>
+  </div>
+  {% if signal.category == 'research_validated' %}
+    <span class="status-pill status-pill-info">Validated directional</span>
+  {% elif signal.category == 'confirmed_pattern' %}
+    <span class="status-pill status-pill-neutral">Confirmed pattern</span>
+  {% else %}
+    <span class="status-pill status-pill-neutral">Experimental pattern</span>
+  {% endif %}
+</div>
+
+<div class="card-body">
+  {# ---- Governance strip ------------------------------------------------ #}
+  <dl class="meta-strip mb-5">
+    <div class="meta-item"><dt class="meta-key">Decision use</dt><dd class="meta-value">{{ signal.approval_status }}</dd></div>
+    <div class="meta-item"><dt class="meta-key">Data provider</dt><dd class="meta-value">{{ signal.provider }}</dd></div>
+    <div class="meta-item"><dt class="meta-key">Feed compatibility</dt><dd class="meta-value">{{ signal.feed_compatibility }}</dd></div>
+    <div class="meta-item"><dt class="meta-key">Data verification</dt><dd class="meta-value">{{ signal.data_verification }}</dd></div>
+    <div class="meta-item"><dt class="meta-key">Engine decision</dt><dd class="meta-value">{{ signal.decision }}</dd></div>
+    <div class="meta-item"><dt class="meta-key">Probability</dt><dd class="meta-value">{{ signal.probability_status }}</dd></div>
+  </dl>
+
+  <div class="grid gap-5 lg:grid-cols-2">
+    {# ---- Candle references ------------------------------------------- #}
+    <div>
+      <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Candle references</h3>
+      <dl class="mt-2 space-y-1 text-sm">
+        <div class="flex justify-between gap-3"><dt class="text-slate-500 dark:text-slate-400">Signal candle open</dt><dd>{{ signal.signal_candle_open_time|date:"Y-m-d H:i:s" }}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-slate-500 dark:text-slate-400">Signal candle close</dt><dd>{{ signal.signal_candle_close_time|date:"Y-m-d H:i:s" }}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-slate-500 dark:text-slate-400">Confirmation candle</dt><dd>{% if signal.confirmation_candle_open_time %}{{ signal.confirmation_candle_open_time|date:"Y-m-d H:i:s" }}{% else %}—{% endif %}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-slate-500 dark:text-slate-400">Expiry rule</dt><dd>{{ signal.expiry_rule|default:"—" }}</dd></div>
+      </dl>
+    </div>
+
+    {# ---- Outcome ------------------------------------------------------ #}
+    <div>
+      <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Paper outcome</h3>
+      <dl class="mt-2 space-y-1 text-sm">
+        <div class="flex justify-between gap-3"><dt class="text-slate-500 dark:text-slate-400">Status</dt><dd>{{ signal.get_outcome_status_display }}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-slate-500 dark:text-slate-400">Outcome candle</dt><dd>{% if signal.outcome_candle_open_time %}{{ signal.outcome_candle_open_time|date:"Y-m-d H:i:s" }}{% else %}—{% endif %}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-slate-500 dark:text-slate-400">Close price</dt><dd>{% if signal.outcome_candle_close_price is not None %}{{ signal.outcome_candle_close_price }}{% else %}—{% endif %}</dd></div>
+        <div class="flex justify-between gap-3"><dt class="text-slate-500 dark:text-slate-400">Note</dt><dd>{{ signal.outcome_note|default:"—" }}</dd></div>
+      </dl>
+    </div>
+  </div>
+
+  {# ---- Evidence -------------------------------------------------------- #}
+  <div class="mt-5">
+    <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Observed evidence</h3>
+    {% if signal.observed_evidence %}
+      <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700 dark:text-slate-300">
+        {% for item in signal.observed_evidence %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+    {% else %}
+      <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">No evidence recorded.</p>
+    {% endif %}
+  </div>
+
+  {% if signal.missing_conditions %}
+  <div class="mt-4">
+    <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Missing conditions</h3>
+    <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-status-warning-fg dark:text-status-warning-dark">
+      {% for item in signal.missing_conditions %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if signal.invalidation_evidence %}
+  <div class="mt-4">
+    <h3 class="text-sm font-semibold text-slate-900 dark:text-slate-100">Invalidation evidence</h3>
+    <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-status-danger-fg dark:text-status-danger-dark">
+      {% for item in signal.invalidation_evidence %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <p class="mt-5 text-caption text-slate-400">
+    Frozen record · integrity digest {{ signal.payload_sha256|slice:":12" }}…
+  </p>
+</div>

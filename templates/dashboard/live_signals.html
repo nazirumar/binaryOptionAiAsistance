@@ -1,0 +1,60 @@
+{% extends "dashboard/layout.html" %}
+{% load static %}
+
+{% block title %}Live Signals · {{ app_name }}{% endblock %}
+{% block page_title %}Live Signals{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Workspace</p>
+    <h1 class="page-title">Live Signals</h1>
+    <p class="page-description">Automatic monitoring of closed candles from your configured market feed.</p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{% url 'dashboard:live-signals-outcomes' %}" class="btn btn-secondary btn-sm">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chart"></use></svg>
+      Paper outcomes
+    </a>
+    <a href="{% url 'dashboard:live-signals-settings' %}" class="btn btn-secondary btn-sm">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-settings"></use></svg>
+      Monitoring settings
+    </a>
+  </div>
+</div>
+
+<section class="notice notice-info mb-6" role="note">
+  <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-info"></use></svg>
+  <div>
+    <p class="font-semibold">Research and paper monitoring only</p>
+    <p class="mt-1 text-sm">{{ disclaimer }}</p>
+  </div>
+</section>
+
+{# ---- Status + counters (polled) --------------------------------------- #}
+<div id="live-signals-status"
+     hx-get="{% url 'dashboard:live-signals-status' %}"
+     hx-trigger="load, every {{ poll_seconds }}s"
+     hx-swap="innerHTML">
+  {% include "dashboard/partials/live_signals_status.html" %}
+</div>
+
+{# ---- Signal feed (polled) --------------------------------------------- #}
+<div id="live-signals-feed"
+     hx-get="{% url 'dashboard:live-signals-feed' %}{% if querystring %}?{{ querystring }}{% endif %}"
+     hx-trigger="every {{ poll_seconds }}s"
+     hx-swap="innerHTML">
+  {% include "dashboard/partials/live_signals_feed.html" %}
+</div>
+
+{# ---- Detail panel (filled by HTMX on row click) ------------------------ #}
+<section id="live-signal-detail-panel" class="mt-6" aria-live="polite" hidden>
+  <div id="live-signal-detail" class="card">
+    <div class="card-body text-sm text-slate-500 dark:text-slate-400">
+      Select a signal to view its full evidence.
+    </div>
+  </div>
+</section>
+
+<p class="mt-4 text-caption text-slate-400">{{ monitor_disclaimer }}</p>
+{% endblock %}

@@ -59,6 +59,16 @@ NAV_GROUPS: tuple[NavGroup, ...] = (
                 match=("dashboard:assistant", "dashboard:conversation-detail"),
             ),
             NavEntry("Analysis History", "dashboard:analyses", "icon-history"),
+            NavEntry(
+                "Live Signals",
+                "dashboard:live-signals",
+                "icon-activity",
+                match=(
+                    "dashboard:live-signals",
+                    "dashboard:live-signals-outcomes",
+                    "dashboard:live-signals-settings",
+                ),
+            ),
         ),
     ),
     NavGroup(
@@ -147,6 +157,17 @@ _BREADCRUMB_PARENTS: dict[str, tuple[str, str, str | None]] = {
         "dashboard:assistant",
     ),
     "dashboard:analyses": ("Workspace", "Analysis History", None),
+    "dashboard:live-signals": ("Workspace", "Live Signals", None),
+    "dashboard:live-signals-outcomes": (
+        "Workspace",
+        "Live Signals",
+        "dashboard:live-signals",
+    ),
+    "dashboard:live-signals-settings": (
+        "Workspace",
+        "Live Signals",
+        "dashboard:live-signals",
+    ),
     "dashboard:strategy-library": ("Strategies", "Strategy Library", None),
     "dashboard:strategy-detail": (
         "Strategies",

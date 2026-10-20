@@ -1,0 +1,170 @@
+{% comment %}HTMX fragment: filters + recent signal feed for Live Signals.{% endcomment %}
+
+{# ---- Filters ---------------------------------------------------------- #}
+<form method="get"
+      action="{% url 'dashboard:live-signals' %}"
+      class="card mb-6"
+      hx-get="{% url 'dashboard:live-signals-feed' %}"
+      hx-target="#live-signals-feed"
+      hx-swap="innerHTML"
+      hx-push-url="false">
+  <div class="card-header">
+    <h2 class="card-title">Filters</h2>
+  </div>
+  <div class="card-body grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div>
+      <label for="filter-strategy" class="form-label">Strategy</label>
+      <select id="filter-strategy" name="strategy" class="form-select">
+        <option value="">All strategies</option>
+        {% for key, name in dashboard.filter_options.strategies %}
+          <option value="{{ key }}" {% if dashboard.filters.strategy == key %}selected{% endif %}>{{ key }} — {{ name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filter-instrument" class="form-label">Instrument</label>
+      <select id="filter-instrument" name="instrument" class="form-select">
+        <option value="">All instruments</option>
+        {% for instrument in dashboard.filter_options.instruments %}
+          <option value="{{ instrument }}" {% if dashboard.filters.instrument == instrument %}selected{% endif %}>{{ instrument }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filter-timeframe" class="form-label">Timeframe</label>
+      <select id="filter-timeframe" name="timeframe" class="form-select">
+        <option value="">All timeframes</option>
+        {% for timeframe in dashboard.filter_options.timeframes %}
+          <option value="{{ timeframe }}" {% if dashboard.filters.timeframe == timeframe %}selected{% endif %}>{{ timeframe }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filter-category" class="form-label">Category</label>
+      <select id="filter-category" name="category" class="form-select">
+        <option value="">All categories</option>
+        {% for value, label in categories %}
+          <option value="{{ value }}" {% if dashboard.filters.category == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filter-status" class="form-label">Status</label>
+      <select id="filter-status" name="status" class="form-select">
+        <option value="">All statuses</option>
+        {% for value, label in statuses %}
+          <option value="{{ value }}" {% if dashboard.filters.status == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="filter-outcome" class="form-label">Outcome</label>
+      <select id="filter-outcome" name="outcome" class="form-select">
+        <option value="">All outcomes</option>
+        {% for value, label in outcomes %}
+          <option value="{{ value }}" {% if dashboard.filters.outcome == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="flex items-end gap-2">
+      <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+      <a href="{% url 'dashboard:live-signals' %}" class="btn btn-ghost btn-sm">Reset</a>
+    </div>
+  </div>
+</form>
+
+{# ---- Feed ------------------------------------------------------------- #}
+<section class="card" aria-labelledby="feed-heading">
+  <div class="card-header">
+    <div>
+      <h2 id="feed-heading" class="card-title">Recent signals</h2>
+      <p class="card-subtitle">Detected from closed candles only. Newest first.</p>
+    </div>
+    <span class="badge badge-neutral">{{ dashboard.recent_signals|length }} shown</span>
+  </div>
+  {% if dashboard.recent_signals %}
+    <div class="table-wrapper">
+      <table class="table table-responsive">
+        <caption class="sr-only">Recent live signals</caption>
+        <thead>
+          <tr>
+            <th scope="col">Signal</th>
+            <th scope="col">Instrument</th>
+            <th scope="col">TF</th>
+            <th scope="col">Category</th>
+            <th scope="col">Status</th>
+            <th scope="col">Direction</th>
+            <th scope="col">Outcome</th>
+            <th scope="col"><span class="sr-only">Detail</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for signal in dashboard.recent_signals %}
+            <tr>
+              <td data-label="Signal">
+                <span class="font-medium text-slate-900 dark:text-slate-100">{{ signal.strategy_name|default:signal.strategy_key }}</span>
+                <span class="block text-caption text-slate-400">{{ signal.strategy_key }}{% if signal.strategy_version %} · v{{ signal.strategy_version }}{% endif %}</span>
+              </td>
+              <td data-label="Instrument">{{ signal.instrument }}</td>
+              <td data-label="TF">{{ signal.timeframe }}</td>
+              <td data-label="Category">
+                {% if signal.category == 'research_validated' %}
+                  <span class="status-pill status-pill-info">Validated</span>
+                {% elif signal.category == 'confirmed_pattern' %}
+                  <span class="status-pill status-pill-neutral">Confirmed</span>
+                {% else %}
+                  <span class="status-pill status-pill-neutral">Experimental</span>
+                {% endif %}
+              </td>
+              <td data-label="Status">
+                {% if signal.status == 'CONFIRMED_PATTERN' %}
+                  <span class="status-pill status-pill-success">Confirmed</span>
+                {% elif signal.status == 'INVALIDATED' %}
+                  <span class="status-pill status-pill-danger">Invalidated</span>
+                {% elif signal.status == 'EXPIRED' %}
+                  <span class="status-pill status-pill-neutral">Expired</span>
+                {% elif signal.status == 'UNVERIFIABLE' %}
+                  <span class="status-pill status-pill-warning">Unverifiable</span>
+                {% else %}
+                  <span class="status-pill status-pill-neutral">{{ signal.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td data-label="Direction">
+                {% if signal.direction == 'bullish' %}
+                  <span class="inline-flex items-center gap-1 font-medium text-status-success-fg dark:text-status-success-dark">
+                    <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-arrow-up"></use></svg> Bullish
+                  </span>
+                {% elif signal.direction == 'bearish' %}
+                  <span class="inline-flex items-center gap-1 font-medium text-status-danger-fg dark:text-status-danger-dark">
+                    <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-arrow-down"></use></svg> Bearish
+                  </span>
+                {% else %}
+                  <span class="text-slate-400">—</span>
+                {% endif %}
+              </td>
+              <td data-label="Outcome">{{ signal.get_outcome_status_display }}</td>
+              <td data-label="Detail">
+                <button type="button"
+                        class="btn btn-ghost btn-sm"
+                        hx-get="{% url 'dashboard:live-signal-detail' signal.pk %}"
+                        hx-target="#live-signal-detail"
+                        hx-swap="innerHTML"
+                        onclick="document.getElementById('live-signal-detail-panel').hidden=false;document.getElementById('live-signal-detail-panel').scrollIntoView({behavior:'smooth',block:'nearest'});"
+                        aria-label="View evidence for {{ signal.strategy_name|default:signal.strategy_key }}">
+                  <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-search"></use></svg>
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="card-body">
+      <p class="text-sm text-slate-500 dark:text-slate-400">
+        No signals match the current filters. The monitor only reports setups it
+        actually detected from closed candles.
+      </p>
+    </div>
+  {% endif %}
+</section>

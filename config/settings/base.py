@@ -209,6 +209,7 @@ LOCAL_APPS = [
     "apps.screenshot_eval",
     "apps.ai_assistant",
     "apps.trading_journal",
+    "apps.live_signals",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -577,6 +578,7 @@ CELERY_TASK_ROUTES = {
     "market_data.*": {"queue": "market"},
     "market_sync.*": {"queue": "market"},
     "ai_assistant.*": {"queue": "assistant"},
+    "live_signals.*": {"queue": "market"},
 }
 
 # --- Periodic maintenance (Phase 10) --------------------------------------
@@ -600,7 +602,26 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": 60,  # 1min
         "options": {"queue": "market"},
     },
+    "live-signals.monitor-minute": {
+        "task": "live_signals.run_monitors",
+        "schedule": 45,  # just under a minute: M1 bars are picked up promptly
+        "options": {"queue": "market"},
+    },
 }
+
+# ---------------------------------------------------------------------------
+# Live signals (Phase 15)
+# ---------------------------------------------------------------------------
+#: Instrument/timeframe/market triples the monitor watches by default. Each
+#: entry is ``"CANONICAL:TIMEFRAME[:market_type]"`` (market_type defaults to
+#: ``regular``). Empty by default: with nothing configured the monitor reports
+#: UNAVAILABLE rather than pretending to watch a feed.
+LIVE_SIGNAL_MONITORS = env.list("LIVE_SIGNAL_MONITORS", default=[])
+#: Which candle provider the monitor uses ("db" reads already-persisted
+#: MarketCandle rows; "mt5" fetches through the terminal at monitor time).
+LIVE_SIGNAL_PROVIDER = env("LIVE_SIGNAL_PROVIDER", default="db")
+#: How many seconds the live-signals page polls for updates (HTMX fallback).
+LIVE_SIGNAL_POLL_SECONDS = env.int("LIVE_SIGNAL_POLL_SECONDS", default=15)
 
 # ---------------------------------------------------------------------------
 # Channels

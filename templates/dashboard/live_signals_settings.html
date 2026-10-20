@@ -1,0 +1,125 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Live signal settings · {{ app_name }}{% endblock %}
+{% block page_title %}Live signal settings{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Workspace · Live Signals</p>
+    <h1 class="page-title">Monitoring settings</h1>
+    <p class="page-description">Choose what you watch and how you are alerted. These preferences can only narrow what is shown — they never bypass strategy approval.</p>
+  </div>
+</div>
+
+<section class="notice notice-info mb-6" role="note">
+  <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-shield-check"></use></svg>
+  <div>
+    <p class="font-semibold">Approval rules cannot be changed here</p>
+    <p class="mt-1 text-sm">{{ disclaimer }}</p>
+  </div>
+</section>
+
+<form method="post" action="{% url 'dashboard:live-signals-settings' %}" data-pending>
+  {% csrf_token %}
+
+  <div class="space-y-6">
+    <section class="card" aria-labelledby="watch-heading">
+      <div class="card-header"><h2 id="watch-heading" class="card-title">Instruments &amp; timeframes</h2></div>
+      <div class="card-body grid gap-6 lg:grid-cols-2">
+        <div>
+          <label for="instruments" class="form-label">Instruments</label>
+          <input id="instruments" name="instruments" type="text" class="form-control"
+                 placeholder="EURUSD, GBPUSD" value="{{ settings_obj.instruments|join:', ' }}"
+                 aria-describedby="instruments-help" />
+          <p id="instruments-help" class="form-hint">Comma-separated canonical codes. Leave empty to watch the system default set.</p>
+        </div>
+        <fieldset>
+          <legend class="form-label">Timeframes</legend>
+          <div class="mt-2 flex flex-wrap gap-3">
+            {% for timeframe in timeframes %}
+              <label class="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" name="timeframes" value="{{ timeframe }}"
+                       {% if timeframe in settings_obj.timeframes %}checked{% endif %} />
+                {{ timeframe }}
+              </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="strategies-heading">
+      <div class="card-header">
+        <div>
+          <h2 id="strategies-heading" class="card-title">Enabled strategies</h2>
+          <p class="card-subtitle">Only strategies with recognition enabled are listed.</p>
+        </div>
+      </div>
+      <div class="card-body">
+        {% if strategies %}
+          <fieldset>
+            <legend class="sr-only">Enabled strategies</legend>
+            <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {% for strategy in strategies %}
+                <label class="inline-flex items-start gap-2 text-sm">
+                  <input type="checkbox" name="enabled_strategies" value="{{ strategy.key }}"
+                         {% if strategy.key in settings_obj.enabled_strategies %}checked{% endif %} class="mt-0.5" />
+                  <span>
+                    <span class="font-medium text-slate-900 dark:text-slate-100">{{ strategy.key }}</span>
+                    <span class="block text-caption text-slate-500 dark:text-slate-400">{{ strategy.name }}</span>
+                    {% if strategy.decision_use_approved %}
+                      <span class="status-pill status-pill-info mt-1">Approved for decisions</span>
+                    {% else %}
+                      <span class="status-pill status-pill-neutral mt-1">Pattern alerts only</span>
+                    {% endif %}
+                  </span>
+                </label>
+              {% endfor %}
+            </div>
+          </fieldset>
+        {% else %}
+          <p class="text-sm text-slate-500 dark:text-slate-400">No strategies have recognition enabled yet.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="alerts-heading">
+      <div class="card-header"><h2 id="alerts-heading" class="card-title">Alerts &amp; display</h2></div>
+      <div class="card-body space-y-4">
+        <label class="flex items-start gap-3">
+          <input type="checkbox" name="alerts_enabled" class="mt-1" {% if settings_obj.alerts_enabled %}checked{% endif %} />
+          <span>
+            <span class="font-medium text-slate-900 dark:text-slate-100">In-app alerts</span>
+            <span class="block text-caption text-slate-500 dark:text-slate-400">Notify me about new confirmed events.</span>
+          </span>
+        </label>
+        <label class="flex items-start gap-3">
+          <input type="checkbox" name="browser_notifications" class="mt-1" {% if settings_obj.browser_notifications %}checked{% endif %} />
+          <span>
+            <span class="font-medium text-slate-900 dark:text-slate-100">Browser notifications</span>
+            <span class="block text-caption text-slate-500 dark:text-slate-400">Requires your explicit permission in the browser. No external messaging service is used.</span>
+          </span>
+        </label>
+        <label class="flex items-start gap-3">
+          <input type="checkbox" name="show_experimental" class="mt-1" {% if settings_obj.show_experimental %}checked{% endif %} />
+          <span>
+            <span class="font-medium text-slate-900 dark:text-slate-100">Show experimental patterns</span>
+            <span class="block text-caption text-slate-500 dark:text-slate-400">Include forming and unconfirmed setups in my feed.</span>
+          </span>
+        </label>
+        <label class="flex items-start gap-3">
+          <input type="checkbox" name="only_approved" class="mt-1" {% if settings_obj.only_approved %}checked{% endif %} />
+          <span>
+            <span class="font-medium text-slate-900 dark:text-slate-100">Only approved signals</span>
+            <span class="block text-caption text-slate-500 dark:text-slate-400">Hide pattern alerts and show only research-validated directional signals.</span>
+          </span>
+        </label>
+      </div>
+      <div class="card-header border-t border-b-0 justify-end">
+        <button type="submit" class="btn btn-primary">Save preferences</button>
+      </div>
+    </section>
+  </div>
+</form>
+{% endblock %}

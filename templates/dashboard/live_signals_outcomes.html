@@ -1,0 +1,108 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Live signal outcomes · {{ app_name }}{% endblock %}
+{% block page_title %}Live signal outcomes{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Workspace · Live Signals</p>
+    <h1 class="page-title">Paper outcome tracking</h1>
+    <p class="page-description">Recognition counts and directional performance are reported separately. Nothing here is a profitability claim.</p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{% url 'dashboard:live-signals' %}" class="btn btn-secondary btn-sm">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-activity"></use></svg>
+      Back to Live Signals
+    </a>
+  </div>
+</div>
+
+<section class="notice notice-info mb-6" role="note">
+  <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-info"></use></svg>
+  <p class="text-sm">{{ disclaimer }}</p>
+</section>
+
+{# ---- Recognition metrics (direction-free) ----------------------------- #}
+<section class="mb-6" aria-labelledby="recognition-heading">
+  <h2 id="recognition-heading" class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Recognition metrics</h2>
+  <div class="grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
+    <div class="metric"><p class="metric-label">Total patterns</p><p class="metric-value">{{ outcomes.recognition.total_patterns }}</p></div>
+    <div class="metric"><p class="metric-label">Confirmed</p><p class="metric-value">{{ outcomes.recognition.confirmed_patterns }}</p></div>
+    <div class="metric"><p class="metric-label">Invalidated</p><p class="metric-value">{{ outcomes.recognition.invalidated }}</p></div>
+    <div class="metric"><p class="metric-label">Expired</p><p class="metric-value">{{ outcomes.recognition.expired }}</p></div>
+  </div>
+</section>
+
+{# ---- Directional metrics (paper) -------------------------------------- #}
+<section class="mb-6" aria-labelledby="directional-heading">
+  <h2 id="directional-heading" class="mb-3 text-sm font-semibold text-slate-900 dark:text-slate-100">Directional performance (paper)</h2>
+  <div class="grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
+    <div class="metric"><p class="metric-label">Eligible signals</p><p class="metric-value">{{ outcomes.directional.total_eligible }}</p></div>
+    <div class="metric"><p class="metric-label">Resolved</p><p class="metric-value">{{ outcomes.directional.resolved }}</p></div>
+    <div class="metric"><p class="metric-label">Correct</p><p class="metric-value">{{ outcomes.directional.confirmed_correct }}</p></div>
+    <div class="metric"><p class="metric-label">Incorrect</p><p class="metric-value">{{ outcomes.directional.confirmed_incorrect }}</p></div>
+  </div>
+  <div class="mt-4 card">
+    <div class="card-body text-sm">
+      {% if outcomes.directional.resolved %}
+        <p>
+          Hit rate (paper, next-candle close direction):
+          <span class="font-semibold">
+            {% widthratio outcomes.directional.hit_rate 1 100 %}%
+          </span>
+          {% if outcomes.directional.wilson_low is not None %}
+            · 95% Wilson interval {{ outcomes.directional.wilson_low|floatformat:3 }}–{{ outcomes.directional.wilson_high|floatformat:3 }}
+          {% endif %}
+        </p>
+      {% else %}
+        <p class="text-slate-500 dark:text-slate-400">No resolved directional signals yet.</p>
+      {% endif %}
+      {% if outcomes.directional.insufficient %}
+        <p class="mt-2 text-status-warning-fg dark:text-status-warning-dark">{{ outcomes.directional.note }}</p>
+      {% endif %}
+      <dl class="meta-strip mt-4">
+        <div class="meta-item"><dt class="meta-key">Ties</dt><dd class="meta-value">{{ outcomes.directional.ties }}</dd></div>
+        <div class="meta-item"><dt class="meta-key">Unverifiable</dt><dd class="meta-value">{{ outcomes.directional.unverified }}</dd></div>
+        <div class="meta-item"><dt class="meta-key">Minimum sample</dt><dd class="meta-value">{{ outcomes.directional.minimum_signals }}</dd></div>
+      </dl>
+    </div>
+  </div>
+</section>
+
+{# ---- Breakdowns ------------------------------------------------------- #}
+<section class="card" aria-labelledby="breakdown-heading">
+  <div class="card-header"><h2 id="breakdown-heading" class="card-title">By strategy</h2></div>
+  {% if outcomes.by_strategy %}
+    <div class="table-wrapper">
+      <table class="table table-responsive">
+        <caption class="sr-only">Recognition and directional metrics by strategy</caption>
+        <thead>
+          <tr>
+            <th scope="col">Strategy</th>
+            <th scope="col">Patterns</th>
+            <th scope="col">Confirmed</th>
+            <th scope="col">Eligible</th>
+            <th scope="col">Resolved</th>
+            <th scope="col">Correct</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in outcomes.by_strategy %}
+            <tr>
+              <td data-label="Strategy" class="font-medium text-slate-900 dark:text-slate-100">{{ row.strategy_key }}</td>
+              <td data-label="Patterns">{{ row.recognition.total_patterns }}</td>
+              <td data-label="Confirmed">{{ row.recognition.confirmed_patterns }}</td>
+              <td data-label="Eligible">{{ row.directional.total_eligible }}</td>
+              <td data-label="Resolved">{{ row.directional.resolved }}</td>
+              <td data-label="Correct">{{ row.directional.confirmed_correct }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="card-body"><p class="text-sm text-slate-500 dark:text-slate-400">No signals recorded yet.</p></div>
+  {% endif %}
+</section>
+{% endblock %}
