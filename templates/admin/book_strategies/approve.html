@@ -1,0 +1,65 @@
+{% extends "admin/base_site.html" %}
+{% comment %}
+Intermediate confirmation page for the "Approve for decision use" admin action.
+
+Approval is deliberately not a single click: the operator must type the
+validation evidence (accuracy, Wilson interval, sample size, out-of-sample
+result) that justifies it. The text is stored on each strategy's
+`validation_notes` as the audit record.
+{% endcomment %}
+
+{% block content %}
+  <h1>Approve book strategies for decision use</h1>
+
+  <p style="max-width: 60ch;">
+    Approval is the single switch that lets a detected pattern carry a
+    <strong>direction</strong>. It is only granted after documented validation and
+    stays subject to the engine's existing <em>NO TRADE</em> safeguards — a
+    probability is never produced (it remains uncalibrated).
+  </p>
+
+  <p style="max-width: 60ch;">
+    A strategy can only be approved once its research status has reached
+    <code>{{ approvable|join:"</code> or <code>" }}</code>, and it must declare a
+    deterministic detector. Validation below {{ min_signals }} signals is
+    considered insufficient.
+  </p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% for strategy in queryset %}
+      <input type="hidden" name="{{ action_checkbox_name }}" value="{{ strategy.pk }}" />
+    {% endfor %}
+    <input type="hidden" name="action" value="approve_for_decision_use" />
+    <input type="hidden" name="apply" value="1" />
+
+    <fieldset class="module aligned" style="margin: 1rem 0;">
+      <div class="form-row">
+        <label for="id_justification" class="required">Validation evidence</label>
+        <textarea id="id_justification" name="justification" rows="6" cols="70"
+                  style="width: 100%; max-width: 70ch;"
+                  placeholder="e.g. SS1 on EURUSD M5: 46 pooled signals, 61% next-candle accuracy, Wilson 95% [46%, 74%], OOS 52% on 14 signals."></textarea>
+        <p class="help" style="max-width: 70ch;">
+          Required. Record the accuracy, Wilson interval, sample size and
+          out-of-sample result that justify approval. Stored on each strategy.
+        </p>
+      </div>
+    </fieldset>
+
+    <h2>Selected strategies</h2>
+    <ul>
+      {% for strategy in queryset %}
+        <li>
+          <strong>{{ strategy.key }}</strong> — {{ strategy.name }}
+          (status: {{ strategy.get_research_status_display }},
+          detector: {{ strategy.detector_key|default:"—" }})
+        </li>
+      {% endfor %}
+    </ul>
+
+    <div class="submit-row">
+      <input type="submit" value="Approve for decision use" class="default" />
+      <a href="{% url 'admin:book_strategies_bookstrategy_changelist' %}" class="button cancel-link">Cancel</a>
+    </div>
+  </form>
+{% endblock %}

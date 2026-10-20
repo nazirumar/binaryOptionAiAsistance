@@ -791,6 +791,80 @@ class TestDashboard:
 
 
 # ---------------------------------------------------------------------------
+# Admin: explicit, justified approval action (never a single untracked click)
+# ---------------------------------------------------------------------------
+class TestAdminApprovalAction:
+    @pytest.fixture
+    def admin_client(self, client):
+        superuser = UserFactory(
+            username="book-superuser", is_staff=True, is_superuser=True
+        )
+        client.force_login(superuser)
+        return client
+
+    def _run(self, admin_client, keys, justification, *, action="approve_for_decision_use"):
+        rows = BookStrategy.objects.filter(key__in=keys)
+        return admin_client.post(
+            "/admin/book_strategies/bookstrategy/",
+            {
+                "action": action,
+                "_selected_action": [str(r.pk) for r in rows],
+                "apply": "1",
+                "justification": justification,
+            },
+            follow=True,
+        )
+
+    def test_approval_refused_while_pipeline_incomplete(self, admin_client):
+        """Status below oos_validated cannot be approved, even with evidence."""
+        BookStrategy.objects.filter(key="SS1").update(research_status="implemented")
+        self._run(admin_client, ["SS1"], "accuracy 70% Wilson [60,80] n=40 OOS 65%")
+        row = BookStrategy.objects.get(key="SS1")
+        assert row.decision_use_approved is False
+        assert row.research_status == "implemented"
+
+    def test_approval_refused_without_justification(self, admin_client):
+        BookStrategy.objects.filter(key="SS1").update(research_status="oos_validated")
+        self._run(admin_client, ["SS1"], "too short")
+        row = BookStrategy.objects.get(key="SS1")
+        assert row.decision_use_approved is False
+        assert row.research_status == "oos_validated"
+
+    def test_approval_succeeds_with_evidence_and_stores_it(self, admin_client):
+        note = "SS1 EURUSD M5: 46 signals, 61% next-candle accuracy, Wilson [46,74], OOS 52%"
+        BookStrategy.objects.filter(key="SS1").update(research_status="oos_validated")
+        self._run(admin_client, ["SS1"], note)
+        row = BookStrategy.objects.get(key="SS1")
+        assert row.decision_use_approved is True
+        assert row.research_status == "approved"
+        assert row.validation_notes == note
+
+    def test_approval_page_renders_justification_form(self, admin_client):
+        BookStrategy.objects.filter(key="SS1").update(research_status="oos_validated")
+        row = BookStrategy.objects.get(key="SS1")
+        response = admin_client.post(
+            "/admin/book_strategies/bookstrategy/",
+            {"action": "approve_for_decision_use", "_selected_action": [str(row.pk)]},
+        )
+        assert response.status_code == 200
+        assert b"Validation evidence" in response.content
+        # The intermediate page must not have approved anything yet.
+        row.refresh_from_db()
+        assert row.decision_use_approved is False
+
+    def test_revoke_action_clears_approval(self, admin_client):
+        BookStrategy.objects.filter(key="SS1").update(
+            research_status="approved", decision_use_approved=True
+        )
+        self._run(admin_client, ["SS1"], "", action="revoke_decision_use_approval")
+        row = BookStrategy.objects.get(key="SS1")
+        assert row.decision_use_approved is False
+        # Never overstates progress: steps back to the last completed stage.
+        assert row.research_status == "oos_validated"
+
+
+
+# ---------------------------------------------------------------------------
 # Seed command: idempotent, knowledge-only, switches stay off
 # ---------------------------------------------------------------------------
 class TestSeedCommand:
