@@ -128,6 +128,47 @@ def test_mt5_dashboard_renders_with_market_data(client):
 
 
 @pytest.mark.django_db
+def test_settings_page_renders_for_user(client):
+    client.force_login(UserFactory())
+    response = client.get("/dashboard/settings/")
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_settings_profile_get_redirects_to_settings_page(client):
+    """The profile endpoint is a form target, not a page: a browser GET is
+    redirected instead of answered with a raw 405."""
+    client.force_login(UserFactory())
+    response = client.get("/dashboard/settings/profile/")
+    assert response.status_code == 302
+    assert response.url == "/dashboard/settings/"
+
+
+@pytest.mark.django_db
+def test_settings_profile_post_saves_and_redirects(client):
+    from apps.accounts.models import UserPreference
+
+    user = UserFactory(display_name="Old Name")
+    client.force_login(user)
+    UserPreference.objects.get_or_create(user=user)
+
+    response = client.post(
+        "/dashboard/settings/profile/",
+        {
+            "display_name": "New Name",
+            "email": user.email,
+            "timezone": "UTC",
+            "preferred_theme": "dark",
+            "data_retention_days": 0,
+        },
+    )
+    assert response.status_code == 302
+    assert response.url == "/dashboard/settings/"
+    user.refresh_from_db()
+    assert user.display_name == "New Name"
+
+
+@pytest.mark.django_db
 def test_theme_cookie_controls_initial_theme(client):
     default = client.get("/")
     assert b'class="dark"' in default.content  # default theme is dark

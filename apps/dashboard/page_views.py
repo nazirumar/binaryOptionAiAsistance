@@ -21,7 +21,7 @@ from django.db.models import Q
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from apps.dashboard.services.analytics_service import (
     StrategyAnalytics,
@@ -424,10 +424,16 @@ def settings_page(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-@require_POST
+@require_http_methods(["GET", "POST"])
 def settings_profile(request: HttpRequest) -> HttpResponse:
     from apps.accounts.forms import PreferenceForm, ProfileForm
     from apps.accounts.models import UserPreference
+
+    if request.method == "GET":
+        # This is a form-submit endpoint, not a page. A browser GET (e.g. a
+        # stray bookmark) is redirected to the real settings page rather than
+        # answered with a raw 405. Writes still require POST + CSRF.
+        return redirect("dashboard:settings")
 
     preference, _ = UserPreference.objects.get_or_create(user=request.user)
     profile_form = ProfileForm(request.POST, instance=request.user)
