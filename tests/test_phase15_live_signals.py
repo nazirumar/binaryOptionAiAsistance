@@ -846,6 +846,19 @@ class TestDashboardViews:
         assert response.status_code == 200
         assert "Monitoring" in response.content.decode()
 
+    def test_status_fragment_does_not_claim_a_stale_feed_is_reporting(self, client):
+        """A stale feed must never read as 'all feeds reporting live'."""
+        user = UserFactory()
+        client.force_login(user)
+        monitor = make_monitor()
+        monitor.feed_state = FeedState.STALE
+        monitor.save(update_fields=["feed_state"])
+        response = client.get(reverse("dashboard:live-signals-status"))
+        body = response.content.decode()
+        assert response.status_code == 200
+        assert "all feeds reporting live" not in body
+        assert "stale" in body.lower()
+
     def test_outcomes_page_keeps_metrics_separate(self, client):
         user = UserFactory()
         client.force_login(user)

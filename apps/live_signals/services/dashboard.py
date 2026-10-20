@@ -84,6 +84,7 @@ def build_dashboard(user, filters: SignalFilters | None = None) -> dict:
     monitors = list(InstrumentMonitor.objects.all())
     active_monitors = [m for m in monitors if m.enabled]
     unavailable = [m for m in monitors if m.feed_state in (FeedState.UNAVAILABLE, FeedState.INCOMPATIBLE)]
+    stale = [m for m in monitors if m.feed_state == FeedState.STALE]
 
     last_update = max(
         (m.last_successful_candle_update for m in monitors if m.last_successful_candle_update),
@@ -110,6 +111,7 @@ def build_dashboard(user, filters: SignalFilters | None = None) -> dict:
         "monitors": monitors,
         "active_monitors": active_monitors,
         "unavailable_monitors": unavailable,
+        "stale_monitors": stale,
         "last_update": last_update,
         "new_signal_count": counts["confirmed"] or 0,
         "confirmed_patterns": counts["confirmed"] or 0,

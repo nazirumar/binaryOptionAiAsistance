@@ -61,6 +61,10 @@ REASONING_LLM_PROVIDER = "mock"
 REASONING_LLM_API_KEY = ""
 REASONING_LLM_MODEL = "mock-reasoning-1"
 
+# Tests are hermetic: no monitors are ever created from a developer's local
+# .env. Tests that exercise monitors create them explicitly.
+LIVE_SIGNAL_MONITORS = []
+
 # Static files: skip the manifest (and collectstatic) during tests.
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},

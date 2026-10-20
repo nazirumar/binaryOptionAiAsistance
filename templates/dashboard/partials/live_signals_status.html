@@ -8,8 +8,10 @@
     <p class="metric-caption">
       {% if dashboard.unavailable_monitors %}
         {{ dashboard.unavailable_monitors|length }} feed{{ dashboard.unavailable_monitors|length|pluralize }} unavailable
+      {% elif dashboard.stale_monitors %}
+        {{ dashboard.stale_monitors|length }} feed{{ dashboard.stale_monitors|length|pluralize }} stale
       {% else %}
-        all feeds reporting
+        all feeds reporting live
       {% endif %}
     </p>
   </div>
@@ -43,6 +45,8 @@
     </div>
     {% if dashboard.unavailable_monitors %}
       <span class="badge badge-warning"><span class="status-dot status-dot-warning" aria-hidden="true"></span> Degraded</span>
+    {% elif dashboard.stale_monitors %}
+      <span class="badge badge-warning"><span class="status-dot status-dot-warning" aria-hidden="true"></span> Stale feed</span>
     {% else %}
       <span class="badge badge-success"><span class="status-dot status-dot-success status-dot-pulse" aria-hidden="true"></span> Monitoring</span>
     {% endif %}
