@@ -42,6 +42,14 @@ param(
     # Skip the web server (workers + beat only).
     [switch]$NoWeb,
 
+    # Also start the MT5 Windows data worker (separate host by default; opt-in
+    # here so a machine without a live terminal is never left with a dead
+    # worker). A bounded preflight proves the terminal is reachable first.
+    [switch]$WithMT5,
+
+    # Seconds to wait for the MT5 preflight connection before giving up.
+    [int]$MT5ProbeTimeoutSeconds = 45,
+
     # Force Celery "solo" pool (Windows-safe; required if prefork misbehaves).
     [switch]$SoloPool
 )
@@ -326,6 +334,89 @@ $beatSchedule = Join-Path $logDir "celerybeat-schedule"
 Start-CeleryProcess -Name "beat" `
     -Rest @("-A", "config", "beat", "--schedule", $beatSchedule)
 
+# --- MT5 worker (opt-in) ----------------------------------------------------
+# The MT5 worker is a separate host by default (it needs a live Windows
+# terminal). With -WithMT5 we start it here, but only after a BOUNDED preflight
+# proves the terminal is actually reachable. Without that, a machine with no
+# logged-in terminal would spawn a worker that dies immediately (or hangs),
+# and the stack would look "up" while market data silently stayed stale.
+$mt5Status = "not requested"
+if ($WithMT5) {
+    $mt5ProbeLog = Join-Path $logDir "mt5-preflight.log"
+    Write-Host ("`n==> MT5 preflight (<= {0}s) ..." -f $MT5ProbeTimeoutSeconds) -ForegroundColor Cyan
+
+    # Bound the native connect: a tiny per-attempt timeout plus no retries, so
+    # the child cannot sit inside the MT5 API for minutes (the failure mode
+    # seen with mt5_integration_check). The hard kill below is the backstop.
+    $probeEnv = @{
+        MT5_TIMEOUT_MS          = "5000"
+        MT5_MAX_RETRIES         = "0"
+        MT5_RETRY_BACKOFF_SECONDS = "0"
+    }
+    $prevEnv = @{}
+    foreach ($k in $probeEnv.Keys) {
+        $prevEnv[$k] = [Environment]::GetEnvironmentVariable($k, "Process")
+        [Environment]::SetEnvironmentVariable($k, $probeEnv[$k], "Process")
+    }
+
+    $probe = Start-Process -FilePath $py `
+        -ArgumentList @("manage.py", "mt5_worker", "--once", "--collector", "mt5-preflight") `
+        -WorkingDirectory $Root -NoNewWindow -PassThru `
+        -RedirectStandardOutput $mt5ProbeLog -RedirectStandardError "$mt5ProbeLog.err"
+
+    $finished = $probe.WaitForExit($MT5ProbeTimeoutSeconds * 1000)
+    if (-not $finished) {
+        & taskkill /PID $probe.Id /T /F 2>$null | Out-Null
+        $mt5Status = "unreachable"
+        Write-Host ("    MT5 did not connect within {0}s - NOT starting the worker." -f $MT5ProbeTimeoutSeconds) -ForegroundColor Red
+    }
+    else {
+        # Even after Refresh(), Start-Process -PassThru can report a blank
+        # ExitCode on some Windows/PowerShell builds, so success is judged on
+        # the worker's own evidence: it logs "mt5.connect.success" only after a
+        # real handshake, and prints a CommandError to stderr on failure.
+        try { $probe.Refresh() } catch { }
+        $probeExit = $probe.ExitCode
+        $probeOut = (Get-Content $mt5ProbeLog -Raw -ErrorAction SilentlyContinue)
+        $probeErr = (Get-Content "$mt5ProbeLog.err" -Raw -ErrorAction SilentlyContinue)
+        $connected = ($probeOut -match "MT5 worker .* starting:") -and
+            ($probeErr -match "mt5\.connect\.success") -and
+            ($probeErr -notmatch "Could not connect to MT5")
+
+        if ($connected -or $probeExit -eq 0) {
+            $mt5Status = "ready"
+            Write-Host "    MT5 preflight connected - starting the worker." -ForegroundColor Green
+        }
+        else {
+            $mt5Status = "unreachable"
+            $reason = if ($null -ne $probeExit) { "exit $probeExit" } else { "no successful handshake" }
+            Write-Host ("    MT5 preflight failed ({0}) - NOT starting the worker." -f $reason) -ForegroundColor Red
+        }
+    }
+
+    # Restore the environment so the real worker uses the normal settings.
+    foreach ($k in $probeEnv.Keys) {
+        [Environment]::SetEnvironmentVariable($k, $prevEnv[$k], "Process")
+    }
+
+    if ($mt5Status -eq "ready") {
+        # The heartbeat id is what the dashboard reads, so a stable, readable
+        # id (not worker-<pid>) is used here.
+        Start-StackProcess -Name "mt5-worker" -File $py -Arguments @(
+            "manage.py", "mt5_worker", "--collector", "mt5-worker"
+        )
+    }
+    else {
+        Write-Host "    Last lines of the preflight log:" -ForegroundColor DarkGray
+        Get-Content $mt5ProbeLog -Tail 6 -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Host "      $_" -ForegroundColor DarkGray }
+        Get-Content "$mt5ProbeLog.err" -Tail 6 -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Host "      $_" -ForegroundColor DarkGray }
+        Write-Host "    Market data will stay stale until MT5 connects. The rest" -ForegroundColor Yellow
+        Write-Host "    of the stack is starting normally." -ForegroundColor Yellow
+    }
+}
+
 # --- Verify -----------------------------------------------------------------
 # Do not announce success on faith. Wait for the web server to actually answer
 # (a bound port that returns nothing is exactly the failure mode this guards)
@@ -396,6 +487,18 @@ if (-not $NoWeb) {
     $scheme = "http"
     Write-Host ("    Web: {0}://{1}:{2}/  ({3})" -f $scheme, $Host_, $Port, $webMode) -ForegroundColor Green
 }
+if ($WithMT5) {
+    if ($mt5Status -eq "ready") {
+        Write-Host "    MT5 worker: running (market data should update)" -ForegroundColor Green
+    }
+    else {
+        Write-Host "    MT5 worker: NOT running - market data will stay stale" -ForegroundColor Red
+        Write-Host "                (log the MT5 terminal in, then re-run)" -ForegroundColor Red
+    }
+}
+else {
+    Write-Host "    MT5 worker: not started (pass -WithMT5 to include it)" -ForegroundColor DarkGray
+}
 Write-Host "    Logs: $logDir" -ForegroundColor Green
 Write-Host "    Press Ctrl+C to stop everything.`n" -ForegroundColor Green
 
@@ -409,8 +512,13 @@ try {
         foreach ($entry in $script:processes) {
             if ($entry.Proc.HasExited -and -not $reportedDead.ContainsKey($entry.Name)) {
                 $reportedDead[$entry.Name] = $true
-                Write-Host ("`nWARN: {0} exited early (code {1}). See {2}" -f `
-                        $entry.Name, $entry.Proc.ExitCode, $entry.Log) -ForegroundColor Red
+                if ($entry.Name -eq "mt5-worker") {
+                    Write-Host "`nWARN: mt5-worker exited (code $($entry.Proc.ExitCode)). Market data has stopped updating. See $($entry.Log)" -ForegroundColor Red
+                }
+                else {
+                    Write-Host ("`nWARN: {0} exited early (code {1}). See {2}" -f `
+                            $entry.Name, $entry.Proc.ExitCode, $entry.Log) -ForegroundColor Red
+                }
                 Start-Sleep -Seconds 3
             }
         }
