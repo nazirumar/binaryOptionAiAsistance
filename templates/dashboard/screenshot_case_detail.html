@@ -1,0 +1,101 @@
+{% extends "dashboard/layout.html" %}
+{% block title %}{{ case.label }} · {{ app_name }}{% endblock %}
+{% block page_content %}
+<nav class="text-xs text-slate-400"><a class="hover:underline" href="{% url 'dashboard:screenshot-cases' %}">← Screenshot cases</a></nav>
+<h1 class="mt-2 text-2xl font-bold">{{ case.label }}</h1>
+<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+  {{ case.instrument }}/{{ case.timeframe }} · {{ case.market_type }} · quality {{ case.quality }} ·
+  {{ case.visible_candle_count }} visible candle(s) · case kind <strong>{{ case.case_kind }}</strong> ·
+  review <strong>{{ case.review_state }}</strong>
+</p>
+
+<div class="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-400">
+  Expected strategies (human label): {{ case.expected_strategy_keys|default_if_none:"—" }} ·
+  coordinates reliable: {{ case.coordinates_reliable|yesno:"yes,no" }} ·
+  provenance source: {{ case.source }}
+</div>
+
+<!-- Recognitions -->
+<section class="mt-8">
+  <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Recognition results (latest run)</h2>
+  <p class="mt-1 text-xs text-slate-500">A recognised pattern is an observation, never a trade: decision is always NO_TRADE and probability is unavailable.</p>
+  {% if recognition_rows %}
+  <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Strategy</th><th class="px-3 py-2">State</th><th class="px-3 py-2">Verification</th><th class="px-3 py-2">Missing</th><th class="px-3 py-2">Decision</th><th class="px-3 py-2">Matches label</th></tr>
+      </thead>
+      <tbody>
+        {% for r in recognition_rows %}
+        <tr class="border-t border-slate-100 dark:border-slate-800">
+          <td class="px-3 py-1.5">{{ r.strategy_id }}</td>
+          <td class="px-3 py-1.5 text-xs">{{ r.recognition_state }}</td>
+          <td class="px-3 py-1.5 text-xs">{{ r.data_verification }}</td>
+          <td class="px-3 py-1.5 text-xs">{{ r.missing_conditions|length }}</td>
+          <td class="px-3 py-1.5 text-xs">{{ r.decision }}</td>
+          <td class="px-3 py-1.5 text-xs">{{ r.matches_label|default_if_none:"—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="mt-3 text-sm text-slate-500">No recognition run yet.</p>
+  {% endif %}
+</section>
+
+<!-- Annotations -->
+<section class="mt-8">
+  <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Chart annotations</h2>
+  {% if annotations %}
+  <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Kind</th><th class="px-3 py-2">Label</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Coordinates</th><th class="px-3 py-2">Reason</th></tr>
+      </thead>
+      <tbody>
+        {% for a in annotations %}
+        <tr class="border-t border-slate-100 dark:border-slate-800">
+          <td class="px-3 py-1.5 text-xs">{{ a.kind }}</td>
+          <td class="px-3 py-1.5 text-xs">{{ a.label }}</td>
+          <td class="px-3 py-1.5 text-xs">{{ a.status }}</td>
+          <td class="px-3 py-1.5 text-xs">{{ a.relative_coordinates|default_if_none:"—" }}</td>
+          <td class="px-3 py-1.5 text-xs text-slate-400">{{ a.reason }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="mt-3 text-sm text-slate-500">No annotations. Unreliable coordinates are never drawn - only skipped records appear here.</p>
+  {% endif %}
+</section>
+
+<!-- Forward predictions -->
+<section class="mt-8">
+  <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Forward paper predictions</h2>
+  {% if predictions %}
+  <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+    <table class="w-full text-left text-sm">
+      <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900">
+        <tr><th class="px-3 py-2">Strategy</th><th class="px-3 py-2">Direction</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Verdict</th><th class="px-3 py-2">Decision</th><th class="px-3 py-2">Integrity</th></tr>
+      </thead>
+      <tbody>
+        {% for p in predictions %}
+        <tr class="border-t border-slate-100 dark:border-slate-800">
+          <td class="px-3 py-1.5">{{ p.strategy_id }} <span class="text-xs text-slate-400">v{{ p.strategy_version|default:"—" }}</span></td>
+          <td class="px-3 py-1.5">{{ p.get_direction_display }}</td>
+          <td class="px-3 py-1.5 text-xs">{{ p.status }}</td>
+          <td class="px-3 py-1.5 text-xs">{{ p.outcome.verdict|default:"—" }}</td>
+          <td class="px-3 py-1.5 text-xs text-slate-400">{{ p.decision_timestamp|date:"Y-m-d H:i" }}</td>
+          <td class="px-3 py-1.5 text-xs">{{ p.verify_integrity|yesno:"ok,TAMPERED" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="mt-3 text-sm text-slate-500">No forward predictions locked for this case.</p>
+  {% endif %}
+</section>
+{% endblock %}

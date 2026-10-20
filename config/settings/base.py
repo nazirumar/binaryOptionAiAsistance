@@ -206,6 +206,7 @@ LOCAL_APPS = [
     "apps.book_strategies",
     "apps.strategy_engine",
     "apps.research",
+    "apps.screenshot_eval",
     "apps.ai_assistant",
     "apps.trading_journal",
 ]

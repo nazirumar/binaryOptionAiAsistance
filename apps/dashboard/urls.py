@@ -5,6 +5,7 @@ from __future__ import annotations
 from django.urls import path
 
 from apps.dashboard import page_views, views
+from apps.screenshot_eval import page_views as eval_views
 
 app_name = "dashboard"
 
@@ -61,6 +62,21 @@ urlpatterns = [
         "book-strategies/<str:key>/toggle/",
         page_views.book_strategy_toggle,
         name="book-strategy-toggle",
+    ),
+    # ---- Phase 14: screenshot evaluation / forward testing -----------------
+    path("forward-testing/", eval_views.forward_testing, name="forward-testing"),
+    path("review-queue/", eval_views.review_queue, name="review-queue"),
+    path("review-queue/scan/", eval_views.review_queue_scan, name="review-queue-scan"),
+    path(
+        "review-queue/<int:pk>/resolve/",
+        eval_views.review_resolve,
+        name="review-resolve",
+    ),
+    path("screenshot-cases/", eval_views.case_list, name="screenshot-cases"),
+    path(
+        "screenshot-cases/<int:pk>/",
+        eval_views.case_detail,
+        name="screenshot-case-detail",
     ),
     path("settings/", page_views.settings_page, name="settings"),
     path("settings/profile/", page_views.settings_profile, name="settings-profile"),
