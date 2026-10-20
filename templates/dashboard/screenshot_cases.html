@@ -1,45 +1,67 @@
 {% extends "dashboard/layout.html" %}
-{% block title %}Screenshot cases · {{ app_name }}{% endblock %}
-{% block page_content %}
-<h1 class="text-2xl font-bold">Screenshot cases</h1>
-<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-  Your Phase 14 evaluation dataset. A case counts as ground truth only once a reviewer confirms or
-  corrects its label. No case is fabricated; unknown fields stay unknown.
-</p>
 
-<div class="mt-4 grid gap-4 sm:grid-cols-2">
-  <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-    <dt class="text-xs uppercase text-slate-400">Total cases</dt><dd class="text-2xl font-bold">{{ total }}</dd>
+{% block title %}Screenshot Cases · {{ app_name }}{% endblock %}
+{% block page_title %}Screenshot cases{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Research</p>
+    <h1 class="page-title">Screenshot cases</h1>
+    <p class="page-description">Your evaluation dataset. A case counts as ground truth only once a reviewer confirms or corrects its label. No case is fabricated; unknown fields stay unknown.</p>
   </div>
-  <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-    <dt class="text-xs uppercase text-slate-400">Human-labelled</dt><dd class="text-2xl font-bold">{{ labelled }}</dd>
+</div>
+
+<div class="mb-6 grid gap-4 xs:grid-cols-2">
+  <div class="metric">
+    <p class="metric-label">Total cases</p>
+    <p class="metric-value">{{ total }}</p>
+  </div>
+  <div class="metric">
+    <p class="metric-label">Human-labelled</p>
+    <p class="metric-value">{{ labelled }}</p>
   </div>
 </div>
 
 {% if cases %}
-<div class="mt-6 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-  <table class="w-full text-left text-sm">
-    <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900">
-      <tr><th class="px-3 py-2">Label</th><th class="px-3 py-2">Kind</th><th class="px-3 py-2">Instr/TF</th><th class="px-3 py-2">Market</th><th class="px-3 py-2">Review</th><th class="px-3 py-2">Expected</th></tr>
-    </thead>
-    <tbody>
-      {% for c in cases %}
-      <tr class="border-t border-slate-100 dark:border-slate-800">
-        <td class="px-3 py-1.5"><a class="hover:underline" href="{% url 'dashboard:screenshot-case-detail' c.pk %}">{{ c.label }}</a></td>
-        <td class="px-3 py-1.5 text-xs">{{ c.case_kind }}</td>
-        <td class="px-3 py-1.5 text-xs">{{ c.instrument }}/{{ c.timeframe }}</td>
-        <td class="px-3 py-1.5 text-xs">{{ c.market_type }}</td>
-        <td class="px-3 py-1.5 text-xs">{{ c.review_state }}</td>
-        <td class="px-3 py-1.5 text-xs">{{ c.expected_strategy_keys }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
+  <div class="table-card">
+    <div class="table-wrapper">
+      <table class="table table-responsive">
+        <caption class="sr-only">Screenshot evaluation cases</caption>
+        <thead>
+          <tr>
+            <th scope="col">Label</th>
+            <th scope="col">Kind</th>
+            <th scope="col">Instr/TF</th>
+            <th scope="col">Market</th>
+            <th scope="col">Review</th>
+            <th scope="col">Expected</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in cases %}
+            <tr>
+              <td data-label="Label"><a class="btn-link text-xs" href="{% url 'dashboard:screenshot-case-detail' c.pk %}">{{ c.label }}</a></td>
+              <td data-label="Kind" class="text-caption">{{ c.case_kind }}</td>
+              <td data-label="Instr/TF" class="text-caption">{{ c.instrument }}/{{ c.timeframe }}</td>
+              <td data-label="Market" class="text-caption">{{ c.market_type }}</td>
+              <td data-label="Review">
+                {% if c.review_state == 'confirmed' %}<span class="badge badge-success">{{ c.review_state }}</span>
+                {% elif c.review_state == 'corrected' %}<span class="badge badge-info">{{ c.review_state }}</span>
+                {% else %}<span class="badge badge-neutral">{{ c.review_state }}</span>{% endif %}
+              </td>
+              <td data-label="Expected" class="text-caption">{{ c.expected_strategy_keys }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
 {% else %}
-<div class="mt-6 rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">
-  No cases yet. Import real screenshots with
-  <code>python manage.py import_screenshot_cases --directory &lt;dir&gt; --owner &lt;user&gt;</code>.
-</div>
+  <div class="empty-state">
+    <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-image"></use></svg></div>
+    <p class="empty-state-title">No cases yet</p>
+    <p class="empty-state-text">Import real screenshots with <code>python manage.py import_screenshot_cases --directory &lt;dir&gt; --owner &lt;user&gt;</code>.</p>
+  </div>
 {% endif %}
 {% endblock %}

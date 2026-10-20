@@ -1,88 +1,120 @@
 {% extends "dashboard/layout.html" %}
+
 {% block title %}Probability &amp; calibration · {{ app_name }}{% endblock %}
+{% block page_title %}Probability &amp; calibration{% endblock %}
+
 {% block page_content %}
-<h1 class="text-2xl font-bold">Probability &amp; calibration</h1>
-<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-  Calibration results from Phase 7 model validation.
-</p>
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Research</p>
+    <h1 class="page-title">Probability &amp; calibration</h1>
+    <p class="page-description">Calibration results from model validation. A probability is shown only when a calibrated, approved model exists; otherwise it is reported as unavailable.</p>
+  </div>
+</div>
 
-<!-- Calibration status -->
-<section class="mt-6 mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-  <h2 class="font-semibold">Calibration status</h2>
-  {% if probability.calibration_status.status == "calibrated" %}
-    <p class="mt-2 text-sm text-emerald-600 dark:text-emerald-400">A calibrated model is active for this account.</p>
-  {% else %}
-    <p class="mt-2 text-sm text-slate-500">{{ probability.calibration_status.message|default:probability.calibration_status.status }}</p>
-  {% endif %}
+{# ---- Calibration status ---------------------------------------------- #}
+<section class="card mb-6" aria-labelledby="calibration-heading">
+  <div class="card-header">
+    <h2 id="calibration-heading" class="card-title">Calibration status</h2>
+    {% if probability.calibration_status.status == "calibrated" %}
+      <span class="badge badge-success">Calibrated</span>
+    {% else %}
+      <span class="badge badge-neutral">Not calibrated</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    {% if probability.calibration_status.status == "calibrated" %}
+      <p class="text-sm text-status-success-fg dark:text-status-success-dark">A calibrated model is active for this account.</p>
+    {% else %}
+      <p class="text-sm text-slate-500 dark:text-slate-400">{{ probability.calibration_status.message|default:probability.calibration_status.status }}</p>
+    {% endif %}
+  </div>
 </section>
 
-<!-- Probability types -->
-<section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-  <h2 class="font-semibold">Probability domains</h2>
-  <p class="mt-1 text-xs text-slate-500">Directional, settlement and confluence are distinct and never conflated.</p>
-  <dl class="mt-3 grid gap-4 sm:grid-cols-3">
-    {% for key, item in probability.probabilities.items %}
-      <div class="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-        <dt class="text-sm font-medium">{{ item.label }}</dt>
-        <dd class="mt-1 text-xs text-slate-500">{{ item.description }}</dd>
-        {% if item.available is False and item.is_probability is not False %}
-          <p class="mt-2 text-xs text-amber-600 dark:text-amber-400">Not available</p>
-        {% endif %}
-      </div>
-    {% endfor %}
-  </dl>
+{# ---- Probability domains --------------------------------------------- #}
+<section class="card mb-6" aria-labelledby="domains-heading">
+  <div class="card-header">
+    <div>
+      <h2 id="domains-heading" class="card-title">Probability domains</h2>
+      <p class="card-subtitle">Directional, settlement and confluence are distinct and never conflated.</p>
+    </div>
+  </div>
+  <div class="card-body">
+    <dl class="grid gap-4 sm:grid-cols-3">
+      {% for key, item in probability.probabilities.items %}
+        <div class="rounded-md bg-surface-light-muted p-4 dark:bg-surface-dark">
+          <dt class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ item.label }}</dt>
+          <dd class="mt-1 text-caption text-slate-500 dark:text-slate-400">{{ item.description }}</dd>
+          {% if item.available is False and item.is_probability is not False %}
+            <p class="mt-2 text-caption font-medium text-status-warning-fg dark:text-status-warning-dark">Not available</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </dl>
+  </div>
 </section>
 
-<!-- Models -->
-<section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-  <h2 class="font-semibold">Calibrated models</h2>
+{# ---- Calibrated models ----------------------------------------------- #}
+<section class="card mb-6" aria-labelledby="models-heading">
+  <div class="card-header"><h2 id="models-heading" class="card-title">Calibrated models</h2></div>
   {% if probability.models %}
-    <div class="mt-3 overflow-x-auto">
-      <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-        <thead class="bg-slate-50 dark:bg-slate-800/50">
+    <div class="table-wrapper">
+      <table class="table table-responsive">
+        <caption class="sr-only">Calibrated models on record</caption>
+        <thead>
           <tr>
-            <th class="px-3 py-2 text-left text-xs font-medium text-slate-500">Name</th>
-            <th class="px-3 py-2 text-left text-xs font-medium text-slate-500">Version</th>
-            <th class="px-3 py-2 text-right text-xs font-medium text-slate-500">Brier</th>
-            <th class="px-3 py-2 text-right text-xs font-medium text-slate-500">Cal. error</th>
-            <th class="px-3 py-2 text-right text-xs font-medium text-slate-500">Samples</th>
-            <th class="px-3 py-2 text-left text-xs font-medium text-slate-500">Status</th>
+            <th scope="col">Name</th>
+            <th scope="col">Version</th>
+            <th scope="col" class="table-numeric">Brier</th>
+            <th scope="col" class="table-numeric">Cal. error</th>
+            <th scope="col" class="table-numeric">Samples</th>
+            <th scope="col">Status</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody>
           {% for m in probability.models %}
-          <tr>
-            <td class="px-3 py-2">{{ m.name }}</td>
-            <td class="px-3 py-2">{{ m.version }}</td>
-            <td class="px-3 py-2 text-right">{{ m.brier_score|default:"n/a" }}</td>
-            <td class="px-3 py-2 text-right">{{ m.calibration_error|default:"n/a" }}</td>
-            <td class="px-3 py-2 text-right">{{ m.sample_size|default:"n/a" }}</td>
-            <td class="px-3 py-2">{% if m.is_approved %}Approved{% else %}Not approved{% endif %}</td>
-          </tr>
+            <tr>
+              <td data-label="Name">{{ m.name }}</td>
+              <td data-label="Version">{{ m.version }}</td>
+              <td data-label="Brier" class="table-numeric">{{ m.brier_score|default:"n/a" }}</td>
+              <td data-label="Cal. error" class="table-numeric">{{ m.calibration_error|default:"n/a" }}</td>
+              <td data-label="Samples" class="table-numeric">{{ m.sample_size|default:"n/a" }}</td>
+              <td data-label="Status">
+                {% if m.is_approved %}<span class="badge badge-success">Approved</span>{% else %}<span class="badge badge-neutral">Not approved</span>{% endif %}
+              </td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   {% else %}
-    <p class="mt-2 text-sm text-slate-500">No calibrated models on record.</p>
+    <div class="card-body">
+      <div class="empty-state">
+        <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-gauge"></use></svg></div>
+        <p class="empty-state-title">No calibrated models on record</p>
+        <p class="empty-state-text">Calibrated models appear here after model validation produces an approved, calibrated model.</p>
+      </div>
+    </div>
   {% endif %}
 </section>
 
-<!-- Confluence distribution -->
-<section class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-  <h2 class="font-semibold">Confluence score distribution</h2>
-  {% if probability.confluence.count %}
-    <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-4">
-      <div><dt class="text-xs text-slate-500">Samples</dt><dd class="mt-1 font-medium">{{ probability.confluence.count }}</dd></div>
-      <div><dt class="text-xs text-slate-500">Mean</dt><dd class="mt-1 font-medium">{{ probability.confluence.average }}</dd></div>
-      <div><dt class="text-xs text-slate-500">Min</dt><dd class="mt-1 font-medium">{{ probability.confluence.min }}</dd></div>
-      <div><dt class="text-xs text-slate-500">Max</dt><dd class="mt-1 font-medium">{{ probability.confluence.max }}</dd></div>
-    </dl>
-    <p class="mt-3 text-xs text-amber-600 dark:text-amber-400">
-      Confluence is a deterministic, uncalibrated score. It is not a success probability.
-    </p>
-  {% else %}
-    <p class="mt-2 text-sm text-slate-500">{{ probability.confluence.message }}</p>
-  {% endif %}
+{# ---- Confluence distribution ----------------------------------------- #}
+<section class="card" aria-labelledby="confluence-heading">
+  <div class="card-header"><h2 id="confluence-heading" class="card-title">Confluence score distribution</h2></div>
+  <div class="card-body">
+    {% if probability.confluence.count %}
+      <dl class="grid gap-4 sm:grid-cols-4">
+        <div><dt class="metric-label">Samples</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ probability.confluence.count }}</dd></div>
+        <div><dt class="metric-label">Mean</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ probability.confluence.average }}</dd></div>
+        <div><dt class="metric-label">Min</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ probability.confluence.min }}</dd></div>
+        <div><dt class="metric-label">Max</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ probability.confluence.max }}</dd></div>
+      </dl>
+      <p class="mt-3 text-caption text-status-warning-fg dark:text-status-warning-dark">
+        Confluence is a deterministic, uncalibrated score. It is not a success probability.
+      </p>
+    {% else %}
+      <p class="text-sm text-slate-500 dark:text-slate-400">{{ probability.confluence.message }}</p>
+    {% endif %}
+  </div>
 </section>
 {% endblock %}

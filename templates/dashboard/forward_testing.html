@@ -1,141 +1,153 @@
 {% extends "dashboard/layout.html" %}
-{% block title %}Forward testing · {{ app_name }}{% endblock %}
-{% block page_content %}
-<h1 class="text-2xl font-bold">Forward testing</h1>
-<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-  Phase 14 surface: real screenshot recognition and forward paper evaluation. Recognition metrics
-  (did the system identify the labelled pattern?) and prediction metrics (did verified outcomes move
-  the way the prediction said?) are separate scopes and are <strong>never combined</strong>.
-</p>
 
-<div class="mt-4 rounded-lg bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-  Nothing here enables trading and no strategy is approved for decision use. Unverified, refused, tie
-  and unresolved outcomes are excluded from every hit rate. NO TRADE records are decisions, not
-  predictions.
+{% block title %}Forward testing · {{ app_name }}{% endblock %}
+{% block page_title %}Forward testing{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Research</p>
+    <h1 class="page-title">Forward testing</h1>
+    <p class="page-description">Real screenshot recognition and forward paper evaluation. Recognition metrics (did the system identify the labelled pattern?) and prediction metrics (did verified outcomes move the way the prediction said?) are separate scopes and are <strong>never combined</strong>.</p>
+  </div>
 </div>
 
-<section class="mt-6 grid gap-4 sm:grid-cols-3">
-  <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-    <dt class="text-xs uppercase text-slate-400">Cases</dt>
-    <dd class="text-2xl font-bold">{{ total_cases }}</dd>
-    <p class="text-xs text-slate-500">{{ labelled_cases }} human-labelled (ground truth)</p>
+<div class="notice notice-warning mb-6" role="note">
+  <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-alert"></use></svg>
+  <span>Nothing here enables trading and no strategy is approved for decision use. Unverified, refused, tie and unresolved outcomes are excluded from every hit rate. NO TRADE records are decisions, not predictions.</span>
+</div>
+
+<section class="grid gap-4 sm:grid-cols-3">
+  <div class="metric">
+    <p class="metric-label">Cases</p>
+    <p class="metric-value">{{ total_cases }}</p>
+    <p class="metric-caption">{{ labelled_cases }} human-labelled (ground truth)</p>
   </div>
-  <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-    <dt class="text-xs uppercase text-slate-400">Predictions recorded</dt>
-    <dd class="text-2xl font-bold">{{ metrics.prediction.up|add:metrics.prediction.down|add:metrics.prediction.no_trade }}</dd>
-    <p class="text-xs text-slate-500">UP {{ metrics.prediction.up }} · DOWN {{ metrics.prediction.down }} · NO TRADE {{ metrics.prediction.no_trade }}</p>
+  <div class="metric">
+    <p class="metric-label">Predictions recorded</p>
+    <p class="metric-value">{{ metrics.prediction.up|add:metrics.prediction.down|add:metrics.prediction.no_trade }}</p>
+    <p class="metric-caption">UP {{ metrics.prediction.up }} · DOWN {{ metrics.prediction.down }} · NO TRADE {{ metrics.prediction.no_trade }}</p>
   </div>
-  <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-    <dt class="text-xs uppercase text-slate-400">Open review items</dt>
-    <dd class="text-2xl font-bold">{{ review_open }}</dd>
-    <p class="text-xs text-slate-500"><a class="hover:underline" href="{% url 'dashboard:review-queue' %}">Review queue →</a></p>
+  <div class="metric">
+    <p class="metric-label">Open review items</p>
+    <p class="metric-value">{{ review_open }}</p>
+    <p class="metric-caption"><a class="btn-link text-caption" href="{% url 'dashboard:review-queue' %}">Review queue <svg class="h-3 w-3" aria-hidden="true"><use href="#icon-chevron-right"></use></svg></a></p>
   </div>
 </section>
 
-<!-- Recognition scope -->
-<section class="mt-8">
-  <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
-    Recognition metrics <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">{{ metrics.recognition.metric_scope }}</code>
-  </h2>
-  <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">{{ recognition_disclaimer }}</p>
-  <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-    <table class="w-full text-left text-sm">
-      <tbody>
-        <tr class="border-b border-slate-100 dark:border-slate-800"><th class="px-3 py-1.5 text-xs text-slate-400">Human-labelled cases</th><td class="px-3 py-1.5">{{ metrics.recognition.labelled_cases }}</td></tr>
-        <tr class="border-b border-slate-100 dark:border-slate-800"><th class="px-3 py-1.5 text-xs text-slate-400">True positives</th><td class="px-3 py-1.5">{{ metrics.recognition.true_positives }}</td></tr>
-        <tr class="border-b border-slate-100 dark:border-slate-800"><th class="px-3 py-1.5 text-xs text-slate-400">False positives</th><td class="px-3 py-1.5">{{ metrics.recognition.false_positives }}</td></tr>
-        <tr class="border-b border-slate-100 dark:border-slate-800"><th class="px-3 py-1.5 text-xs text-slate-400">False negatives</th><td class="px-3 py-1.5">{{ metrics.recognition.false_negatives }}</td></tr>
-        <tr class="border-b border-slate-100 dark:border-slate-800"><th class="px-3 py-1.5 text-xs text-slate-400">Incomplete formations</th><td class="px-3 py-1.5">{{ metrics.recognition.incomplete_formations }}</td></tr>
-        <tr class="border-b border-slate-100 dark:border-slate-800"><th class="px-3 py-1.5 text-xs text-slate-400">Precision</th>
-          <td class="px-3 py-1.5 font-mono">{% if metrics.recognition.precision != None %}{{ metrics.recognition.precision|floatformat:3 }} [{{ metrics.recognition.precision_wilson_95.0|floatformat:2 }}–{{ metrics.recognition.precision_wilson_95.1|floatformat:2 }}]{% else %}n/a{% endif %}</td></tr>
-        <tr class="border-b border-slate-100 dark:border-slate-800"><th class="px-3 py-1.5 text-xs text-slate-400">Recall</th>
-          <td class="px-3 py-1.5 font-mono">{% if metrics.recognition.recall != None %}{{ metrics.recognition.recall|floatformat:3 }} [{{ metrics.recognition.recall_wilson_95.0|floatformat:2 }}–{{ metrics.recognition.recall_wilson_95.1|floatformat:2 }}]{% else %}n/a{% endif %}</td></tr>
-        <tr><th class="px-3 py-1.5 text-xs text-slate-400">Status</th>
-          <td class="px-3 py-1.5 text-xs">{% if metrics.recognition.sufficient_data %}sufficient{% else %}{{ metrics.recognition.insufficient_reason }}{% endif %}</td></tr>
-      </tbody>
-    </table>
+{# ---- Recognition scope ------------------------------------------------ #}
+<section class="card mt-8" aria-labelledby="recognition-heading">
+  <div class="card-header">
+    <h2 id="recognition-heading" class="card-title">Recognition metrics <code class="rounded bg-surface-light-sunken px-1 text-caption dark:bg-surface-dark-overlay">{{ metrics.recognition.metric_scope }}</code></h2>
+  </div>
+  <div class="card-body">
+    <p class="text-caption text-slate-600 dark:text-slate-400">{{ recognition_disclaimer }}</p>
+    <dl class="kv-list mt-3">
+      <div class="kv-row"><dt class="kv-key">Human-labelled cases</dt><dd class="kv-value">{{ metrics.recognition.labelled_cases }}</dd></div>
+      <div class="kv-row"><dt class="kv-key">True positives</dt><dd class="kv-value">{{ metrics.recognition.true_positives }}</dd></div>
+      <div class="kv-row"><dt class="kv-key">False positives</dt><dd class="kv-value">{{ metrics.recognition.false_positives }}</dd></div>
+      <div class="kv-row"><dt class="kv-key">False negatives</dt><dd class="kv-value">{{ metrics.recognition.false_negatives }}</dd></div>
+      <div class="kv-row"><dt class="kv-key">Incomplete formations</dt><dd class="kv-value">{{ metrics.recognition.incomplete_formations }}</dd></div>
+      <div class="kv-row"><dt class="kv-key">Precision</dt>
+        <dd class="kv-value">{% if metrics.recognition.precision != None %}{{ metrics.recognition.precision|floatformat:3 }} [{{ metrics.recognition.precision_wilson_95.0|floatformat:2 }}–{{ metrics.recognition.precision_wilson_95.1|floatformat:2 }}]{% else %}n/a{% endif %}</dd></div>
+      <div class="kv-row"><dt class="kv-key">Recall</dt>
+        <dd class="kv-value">{% if metrics.recognition.recall != None %}{{ metrics.recognition.recall|floatformat:3 }} [{{ metrics.recognition.recall_wilson_95.0|floatformat:2 }}–{{ metrics.recognition.recall_wilson_95.1|floatformat:2 }}]{% else %}n/a{% endif %}</dd></div>
+      <div class="kv-row"><dt class="kv-key">Status</dt>
+        <dd class="kv-value">{% if metrics.recognition.sufficient_data %}<span class="badge badge-success">sufficient</span>{% else %}<span class="badge badge-warning">{{ metrics.recognition.insufficient_reason }}</span>{% endif %}</dd></div>
+    </dl>
   </div>
 </section>
 
-<!-- Prediction scope -->
-<section class="mt-8">
-  <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">
-    Prediction metrics <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">{{ metrics.prediction.metric_scope }}</code>
-  </h2>
-  <p class="mt-2 text-xs text-slate-600 dark:text-slate-400">{{ prediction_disclaimer }}</p>
-  <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-    <table class="w-full text-left text-sm">
-      <tbody>
-        <tr class="border-b border-slate-100 dark:border-slate-800"><th class="px-3 py-1.5 text-xs text-slate-400">Verified outcomes</th><td class="px-3 py-1.5">{{ metrics.prediction.verified_total }} (correct {{ metrics.prediction.verified_correct }})</td></tr>
-        <tr class="border-b border-slate-100 dark:border-slate-800"><th class="px-3 py-1.5 text-xs text-slate-400">Directional hit rate</th>
-          <td class="px-3 py-1.5 font-mono">{% if metrics.prediction.hit_rate != None %}{{ metrics.prediction.hit_rate|floatformat:3 }} [{{ metrics.prediction.hit_rate_wilson_95.0|floatformat:2 }}–{{ metrics.prediction.hit_rate_wilson_95.1|floatformat:2 }}]{% else %}n/a{% endif %}</td></tr>
-        <tr class="border-b border-slate-100 dark:border-slate-800"><th class="px-3 py-1.5 text-xs text-slate-400">Excluded (unverified/refused/tie/unresolved)</th>
-          <td class="px-3 py-1.5">{{ metrics.prediction.unverified }} / {{ metrics.prediction.refused }} / {{ metrics.prediction.ties }} / {{ metrics.prediction.unresolved }}</td></tr>
-        <tr><th class="px-3 py-1.5 text-xs text-slate-400">Status</th>
-          <td class="px-3 py-1.5 text-xs">{% if metrics.prediction.sufficient_data %}sufficient{% else %}{{ metrics.prediction.insufficient_reason }}{% endif %}</td></tr>
-      </tbody>
-    </table>
+{# ---- Prediction scope ------------------------------------------------- #}
+<section class="card mt-6" aria-labelledby="prediction-heading">
+  <div class="card-header">
+    <h2 id="prediction-heading" class="card-title">Prediction metrics <code class="rounded bg-surface-light-sunken px-1 text-caption dark:bg-surface-dark-overlay">{{ metrics.prediction.metric_scope }}</code></h2>
+  </div>
+  <div class="card-body">
+    <p class="text-caption text-slate-600 dark:text-slate-400">{{ prediction_disclaimer }}</p>
+    <dl class="kv-list mt-3">
+      <div class="kv-row"><dt class="kv-key">Verified outcomes</dt><dd class="kv-value">{{ metrics.prediction.verified_total }} (correct {{ metrics.prediction.verified_correct }})</dd></div>
+      <div class="kv-row"><dt class="kv-key">Directional hit rate</dt>
+        <dd class="kv-value">{% if metrics.prediction.hit_rate != None %}{{ metrics.prediction.hit_rate|floatformat:3 }} [{{ metrics.prediction.hit_rate_wilson_95.0|floatformat:2 }}–{{ metrics.prediction.hit_rate_wilson_95.1|floatformat:2 }}]{% else %}n/a{% endif %}</dd></div>
+      <div class="kv-row"><dt class="kv-key">Excluded (unverified/refused/tie/unresolved)</dt>
+        <dd class="kv-value">{{ metrics.prediction.unverified }} / {{ metrics.prediction.refused }} / {{ metrics.prediction.ties }} / {{ metrics.prediction.unresolved }}</dd></div>
+      <div class="kv-row"><dt class="kv-key">Status</dt>
+        <dd class="kv-value">{% if metrics.prediction.sufficient_data %}<span class="badge badge-success">sufficient</span>{% else %}<span class="badge badge-warning">{{ metrics.prediction.insufficient_reason }}</span>{% endif %}</dd></div>
+    </dl>
   </div>
 </section>
 
-<!-- Segment breakdowns -->
-<section class="mt-8 grid gap-6 lg:grid-cols-2">
+{# ---- Segment breakdowns ----------------------------------------------- #}
+<section class="mt-6 grid gap-6 lg:grid-cols-2">
   {% for dimension, buckets in segments.items %}
-  <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">By {{ dimension }}</h3>
-    {% if buckets %}
-      <table class="mt-2 w-full text-left text-xs">
-        <thead class="text-slate-400"><tr><th class="py-1">Key</th><th>Total</th><th>Verified</th><th>Hit rate</th><th>Excluded</th></tr></thead>
-        <tbody>
-          {% for key, b in buckets.items %}
-          <tr class="border-t border-slate-100 dark:border-slate-800">
-            <td class="py-1">{{ key }}</td>
-            <td>{{ b.total }}</td>
-            <td>{{ b.verified_total }}</td>
-            <td class="font-mono">{% if b.hit_rate != None %}{{ b.hit_rate|floatformat:2 }}{% else %}n/a{% endif %}</td>
-            <td>{{ b.excluded }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}<p class="mt-2 text-xs text-slate-500">No predictions recorded yet.</p>{% endif %}
-  </div>
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">By {{ dimension }}</h3></div>
+      <div class="card-body">
+        {% if buckets %}
+          <table class="table">
+            <caption class="sr-only">Predictions by {{ dimension }}</caption>
+            <thead><tr><th scope="col">Key</th><th scope="col" class="table-numeric">Total</th><th scope="col" class="table-numeric">Verified</th><th scope="col" class="table-numeric">Hit rate</th><th scope="col" class="table-numeric">Excluded</th></tr></thead>
+            <tbody>
+              {% for key, b in buckets.items %}
+                <tr>
+                  <td>{{ key }}</td>
+                  <td class="table-numeric">{{ b.total }}</td>
+                  <td class="table-numeric">{{ b.verified_total }}</td>
+                  <td class="table-numeric">{% if b.hit_rate != None %}{{ b.hit_rate|floatformat:2 }}{% else %}n/a{% endif %}</td>
+                  <td class="table-numeric">{{ b.excluded }}</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}<p class="text-sm text-slate-500 dark:text-slate-400">No predictions recorded yet.</p>{% endif %}
+      </div>
+    </div>
   {% endfor %}
 </section>
 
-<!-- Recent predictions -->
-<section class="mt-8">
-  <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Recent forward predictions</h2>
+{# ---- Recent predictions ---------------------------------------------- #}
+<section class="mt-8" aria-labelledby="recent-heading">
+  <div class="section-header"><h2 id="recent-heading" class="section-title">Recent forward predictions</h2></div>
   {% if predictions %}
-    <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-      <table class="w-full text-left text-sm">
-        <thead class="bg-slate-50 text-xs uppercase text-slate-500 dark:bg-slate-900">
-          <tr><th class="px-3 py-2">Strategy</th><th class="px-3 py-2">Direction</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Verdict</th><th class="px-3 py-2">Instr/TF</th><th class="px-3 py-2">Decision time</th></tr>
-        </thead>
-        <tbody>
-          {% for p in predictions %}
-          <tr class="border-t border-slate-100 dark:border-slate-800">
-            <td class="px-3 py-1.5"><a class="hover:underline" href="{% url 'dashboard:screenshot-case-detail' p.case_id %}">{{ p.strategy_id }}</a></td>
-            <td class="px-3 py-1.5">{{ p.get_direction_display }}</td>
-            <td class="px-3 py-1.5">{{ p.status }}</td>
-            <td class="px-3 py-1.5 text-xs">{{ p.outcome.verdict|default:"—" }}</td>
-            <td class="px-3 py-1.5 text-xs">{{ p.instrument }}/{{ p.timeframe }} ({{ p.market_type }})</td>
-            <td class="px-3 py-1.5 text-xs text-slate-400">{{ p.decision_timestamp|date:"Y-m-d H:i" }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="table-card">
+      <div class="table-wrapper">
+        <table class="table table-responsive">
+          <caption class="sr-only">Recent forward predictions</caption>
+          <thead>
+            <tr>
+              <th scope="col">Strategy</th>
+              <th scope="col">Direction</th>
+              <th scope="col">Status</th>
+              <th scope="col">Verdict</th>
+              <th scope="col">Instr/TF</th>
+              <th scope="col">Decision time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in predictions %}
+              <tr>
+                <td data-label="Strategy"><a class="btn-link text-xs" href="{% url 'dashboard:screenshot-case-detail' p.case_id %}">{{ p.strategy_id }}</a></td>
+                <td data-label="Direction">{{ p.get_direction_display }}</td>
+                <td data-label="Status">{{ p.status }}</td>
+                <td data-label="Verdict" class="text-caption">{{ p.outcome.verdict|default:"—" }}</td>
+                <td data-label="Instr/TF" class="text-caption">{{ p.instrument }}/{{ p.timeframe }} ({{ p.market_type }})</td>
+                <td data-label="Decision time" class="text-caption text-slate-400">{{ p.decision_timestamp|date:"Y-m-d H:i" }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   {% else %}
-    <div class="mt-3 rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">
-      No forward predictions yet. Import real screenshots
-      (<code>manage.py import_screenshot_cases</code>), run recognition
-      (<code>manage.py run_screenshot_recognition</code>) and lock predictions.
+    <div class="empty-state">
+      <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-target"></use></svg></div>
+      <p class="empty-state-title">No forward predictions yet</p>
+      <p class="empty-state-text">Import real screenshots (<code>manage.py import_screenshot_cases</code>), run recognition (<code>manage.py run_screenshot_recognition</code>) and lock predictions.</p>
     </div>
   {% endif %}
 </section>
 
-<p class="mt-8 rounded-lg bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-900">
+<p class="notice notice-neutral mt-8 text-caption">
   Commands: <code>manage.py import_screenshot_cases</code> ·
   <code>manage.py run_screenshot_recognition</code> · <code>manage.py scan_review_queue</code> ·
   <code>manage.py screenshot_forward_report</code>. Recognition and prediction scopes never mix.

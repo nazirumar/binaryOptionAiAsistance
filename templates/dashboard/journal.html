@@ -1,64 +1,75 @@
 {% extends "dashboard/layout.html" %}
-{% block title %}Trading journal · {{ app_name }}{% endblock %}
+
+{% block title %}Trading Journal · {{ app_name }}{% endblock %}
+{% block page_title %}Trading journal{% endblock %}
+
 {% block page_content %}
-<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
-  <div>
-    <h1 class="text-2xl font-bold">Trading journal</h1>
-    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-      Manually recorded trades. Real, demo, backtested and hypothetical entries are kept separate.
-    </p>
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Research</p>
+    <h1 class="page-title">Trading journal</h1>
+    <p class="page-description">Manually recorded trades. Real, demo, backtested and hypothetical entries are kept separate.</p>
   </div>
-  <div class="flex items-center gap-2">
-    <a href="{% url 'dashboard:export-journal-csv' %}" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Export CSV</a>
-    <a href="{% url 'dashboard:journal-create' %}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">New trade</a>
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{% url 'dashboard:export-journal-csv' %}" class="btn btn-secondary btn-sm">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-download"></use></svg>
+      Export CSV
+    </a>
+    <a href="{% url 'dashboard:journal-create' %}" class="btn btn-primary btn-sm">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-plus"></use></svg>
+      New trade
+    </a>
   </div>
 </div>
 
-<!-- Provenance summary -->
-<section class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+{# ---- Provenance summary ---------------------------------------------- #}
+<section class="mb-6 grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
   {% for trade_type, summary in performance.items %}
-    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <p class="text-xs font-medium text-slate-500">{{ trade_type|capfirst }}</p>
-      <p class="mt-1 text-2xl font-bold">{{ summary.total_recorded }}</p>
-      <p class="mt-1 text-xs text-slate-500">Net P/L {{ summary.net_profit_loss }}</p>
-      <p class="text-xs text-slate-500">Win rate {{ summary.win_rate_display }}</p>
+    <div class="metric">
+      <p class="metric-label">{{ trade_type|capfirst }}</p>
+      <p class="metric-value">{{ summary.total_recorded }}</p>
+      <p class="metric-caption">Net P/L {{ summary.net_profit_loss }}</p>
+      <p class="metric-caption">Win rate {{ summary.win_rate_display }}</p>
     </div>
   {% endfor %}
 </section>
 
-<section class="rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+<section class="table-card">
   {% if trades %}
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-        <thead class="bg-slate-50 dark:bg-slate-800/50">
+    <div class="table-wrapper">
+      <table class="table table-responsive">
+        <caption class="sr-only">Your journal trades</caption>
+        <thead>
           <tr>
-            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">ID</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Type</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Instrument</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Direction</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Result</th>
-            <th class="px-4 py-2 text-right text-xs font-medium text-slate-500">P/L</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Entry</th>
-            <th class="px-4 py-2 text-right text-xs font-medium text-slate-500">Actions</th>
+            <th scope="col">ID</th>
+            <th scope="col">Type</th>
+            <th scope="col">Instrument</th>
+            <th scope="col">Direction</th>
+            <th scope="col">Result</th>
+            <th scope="col" class="table-numeric">P/L</th>
+            <th scope="col">Entry</th>
+            <th scope="col"><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody>
           {% for t in trades %}
             <tr>
-              <td class="px-4 py-2">#{{ t.pk }}</td>
-              <td class="px-4 py-2">{{ t.get_trade_type_display }}</td>
-              <td class="px-4 py-2">{{ t.instrument }}</td>
-              <td class="px-4 py-2">{{ t.get_direction_display }}</td>
-              <td class="px-4 py-2">{{ t.get_result_display }}</td>
-              <td class="px-4 py-2 text-right">{{ t.profit_loss|default:"—" }}</td>
-              <td class="px-4 py-2 whitespace-nowrap">{{ t.entry_timestamp|date:"Y-m-d H:i" }}</td>
-              <td class="px-4 py-2 text-right whitespace-nowrap">
-                <a href="{% url 'dashboard:journal-edit' t.pk %}" class="text-indigo-600 hover:underline dark:text-indigo-400">Edit</a>
-                <form method="post" action="{% url 'dashboard:journal-delete' t.pk %}" class="ml-2 inline"
-                      onsubmit="return confirm('Delete this journal entry?');">
-                  {% csrf_token %}
-                  <button type="submit" class="text-red-600 hover:underline dark:text-red-400">Delete</button>
-                </form>
+              <td data-label="ID">#{{ t.pk }}</td>
+              <td data-label="Type">{{ t.get_trade_type_display }}</td>
+              <td data-label="Instrument">{{ t.instrument }}</td>
+              <td data-label="Direction">{{ t.get_direction_display }}</td>
+              <td data-label="Result">{{ t.get_result_display }}</td>
+              <td data-label="P/L" class="table-numeric">{{ t.profit_loss|default:"—" }}</td>
+              <td data-label="Entry" class="whitespace-nowrap">{{ t.entry_timestamp|date:"Y-m-d H:i" }}</td>
+              <td class="text-right whitespace-nowrap">
+                <div class="inline-flex items-center gap-1">
+                  <a href="{% url 'dashboard:journal-edit' t.pk %}" class="btn btn-ghost btn-sm">Edit</a>
+                  <form method="post" action="{% url 'dashboard:journal-delete' t.pk %}" class="inline"
+                        onsubmit="return confirm('Delete this journal entry?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger-subtle btn-sm">Delete</button>
+                  </form>
+                </div>
               </td>
             </tr>
           {% endfor %}
@@ -67,7 +78,17 @@
     </div>
     {% include "dashboard/partials/pagination.html" %}
   {% else %}
-    <div class="p-8 text-center text-sm text-slate-500">No journal entries yet.</div>
+    <div class="card-body">
+      <div class="empty-state">
+        <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-journal"></use></svg></div>
+        <p class="empty-state-title">No journal entries yet</p>
+        <p class="empty-state-text">Record your first trade to start tracking outcomes and keeping real, demo and hypothetical entries separate.</p>
+        <a href="{% url 'dashboard:journal-create' %}" class="btn btn-primary btn-sm mt-1">
+          <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-plus"></use></svg>
+          New trade
+        </a>
+      </div>
+    </div>
   {% endif %}
 </section>
 {% endblock %}

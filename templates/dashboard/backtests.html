@@ -1,68 +1,95 @@
 {% extends "dashboard/layout.html" %}
-{% block title %}Backtests · {{ app_name }}{% endblock %}
-{% block page_content %}
-<h1 class="text-2xl font-bold">Backtests</h1>
-<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-  Backtests run in the background worker; the page never runs them synchronously.
-</p>
 
-<!-- Run a backtest -->
-<section class="mt-6 mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-  <h2 class="font-semibold">Start a backtest</h2>
-  {% if datasets %}
-    <form method="post" action="{% url 'dashboard:backtest-run' %}" class="mt-3 grid gap-3 sm:grid-cols-4">
-      {% csrf_token %}
-      <div>
-        <label class="block text-xs text-slate-500">Dataset</label>
-        <select name="dataset_id" required class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">
-          {% for d in datasets %}<option value="{{ d.pk }}">{{ d.name }} ({{ d.instrument }} {{ d.timeframe }})</option>{% endfor %}
-        </select>
+{% block title %}Backtests · {{ app_name }}{% endblock %}
+{% block page_title %}Backtests{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Research</p>
+    <h1 class="page-title">Backtests</h1>
+    <p class="page-description">Backtests run in the background worker; the page never runs them synchronously. Results appear here once the worker finishes.</p>
+  </div>
+</div>
+
+{# ---- Start a backtest ------------------------------------------------- #}
+<section class="card mb-6" aria-labelledby="start-heading">
+  <div class="card-header"><h2 id="start-heading" class="card-title">Start a backtest</h2></div>
+  <div class="card-body">
+    {% if datasets %}
+      <form method="post" action="{% url 'dashboard:backtest-run' %}" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-pending>
+        {% csrf_token %}
+        <div>
+          <label for="backtest-dataset" class="form-label">Dataset</label>
+          <select id="backtest-dataset" name="dataset_id" required class="form-select">
+            {% for d in datasets %}<option value="{{ d.pk }}">{{ d.name }} ({{ d.instrument }} {{ d.timeframe }})</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="backtest-strategy" class="form-label">Strategy</label>
+          <input id="backtest-strategy" type="text" name="strategy" placeholder="e.g. sr_rejection" class="form-control" />
+        </div>
+        <div>
+          <label for="backtest-name" class="form-label">Name</label>
+          <input id="backtest-name" type="text" name="name" placeholder="Optional" class="form-control" />
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="btn btn-primary w-full">
+            <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-flask"></use></svg>
+            Queue backtest
+          </button>
+        </div>
+      </form>
+    {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-database"></use></svg></div>
+        <p class="empty-state-title">No historical datasets available</p>
+        <p class="empty-state-text">Import a dataset with <code>python manage.py import_ohlc_csv</code> before starting a backtest.</p>
       </div>
-      <div>
-        <label class="block text-xs text-slate-500">Strategy</label>
-        <input type="text" name="strategy" placeholder="e.g. sr_rejection" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
-      </div>
-      <div>
-        <label class="block text-xs text-slate-500">Name</label>
-        <input type="text" name="name" placeholder="Optional" class="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100" />
-      </div>
-      <div class="flex items-end">
-        <button type="submit" class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">Queue backtest</button>
-      </div>
-    </form>
-  {% else %}
-    <p class="mt-2 text-sm text-slate-500">No historical datasets available. Import a dataset first.</p>
-  {% endif %}
+    {% endif %}
+  </div>
 </section>
 
-<!-- Runs -->
-<section class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-  <h2 class="font-semibold">Backtest runs</h2>
+{# ---- Runs ------------------------------------------------------------- #}
+<section class="card" aria-labelledby="runs-heading">
+  <div class="card-header"><h2 id="runs-heading" class="card-title">Backtest runs</h2></div>
   {% if runs %}
-    <div class="mt-3 overflow-x-auto">
-      <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-        <thead class="bg-slate-50 dark:bg-slate-800/50">
+    <div class="table-wrapper">
+      <table class="table table-responsive">
+        <caption class="sr-only">Backtest runs</caption>
+        <thead>
           <tr>
-            <th class="px-3 py-2 text-left text-xs font-medium text-slate-500">Name</th>
-            <th class="px-3 py-2 text-left text-xs font-medium text-slate-500">Status</th>
-            <th class="px-3 py-2 text-right text-xs font-medium text-slate-500">Samples</th>
-            <th class="px-3 py-2 text-left text-xs font-medium text-slate-500">Created</th>
+            <th scope="col">Name</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="table-numeric">Samples</th>
+            <th scope="col">Created</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody>
           {% for r in runs %}
-          <tr>
-            <td class="px-3 py-2">{{ r.name }}</td>
-            <td class="px-3 py-2">{{ r.status }}</td>
-            <td class="px-3 py-2 text-right">{{ r.sample_count }}</td>
-            <td class="px-3 py-2">{{ r.created_at|date:"Y-m-d H:i" }}</td>
-          </tr>
+            <tr>
+              <td data-label="Name" class="font-medium text-slate-900 dark:text-slate-100">{{ r.name }}</td>
+              <td data-label="Status">
+                {% if r.status == 'completed' %}<span class="badge badge-success">{{ r.status|capfirst }}</span>
+                {% elif r.status == 'failed' %}<span class="badge badge-danger">{{ r.status|capfirst }}</span>
+                {% elif r.status == 'running' %}<span class="badge badge-info">{{ r.status|capfirst }}</span>
+                {% else %}<span class="badge badge-neutral">{{ r.status|capfirst }}</span>{% endif %}
+              </td>
+              <td data-label="Samples" class="table-numeric">{{ r.sample_count }}</td>
+              <td data-label="Created" class="whitespace-nowrap">{{ r.created_at|date:"Y-m-d H:i" }}</td>
+            </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   {% else %}
-    <p class="mt-2 text-sm text-slate-500">No backtests recorded yet.</p>
+    <div class="card-body">
+      <div class="empty-state">
+        <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-flask"></use></svg></div>
+        <p class="empty-state-title">No backtests recorded yet</p>
+        <p class="empty-state-text">Queue a backtest above to get started.</p>
+      </div>
+    </div>
   {% endif %}
 </section>
 {% endblock %}

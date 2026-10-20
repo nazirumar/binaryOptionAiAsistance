@@ -1,81 +1,174 @@
-{% extends "base.html" %}
+{% extends "dashboard/layout.html" %}
+{% load static %}
 
-{% block title %}Chart vision · {{ app_name }}{% endblock %}
+{% block title %}Screenshot Analysis · {{ app_name }}{% endblock %}
+{% block page_title %}Screenshot Analysis{% endblock %}
 
-{% block content %}
-<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
-  <div>
-    <h1 class="text-2xl font-bold">Screenshot analysis</h1>
-    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-      Upload an IQ Option candlestick-chart screenshot and analyse its visible
-      price-action characteristics with a configurable vision model.
-    </p>
-  </div>
-  <a href="{% url 'dashboard:index' %}"
-     class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">
-    Back to dashboard
-  </a>
+{% block page_content %}
+{% include "dashboard/partials/page_header.html" with eyebrow="Workspace" title="Screenshot Analysis" description="Upload an IQ Option candlestick-chart screenshot and analyse its visible price-action characteristics with a configurable vision model." %}
+
+{# Honest limitation notice — mirrors the backend disclaimer. #}
+<div class="notice notice-warning mb-6" role="note">
+  <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-alert"></use></svg>
+  <span>{{ disclaimer }}</span>
 </div>
 
-<div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
-  {{ disclaimer }}
+<div class="grid gap-6 lg:grid-cols-3">
+  {# ---- Upload workspace ---------------------------------------------- #}
+  <section class="lg:col-span-2" aria-labelledby="upload-heading">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2 id="upload-heading" class="card-title">Upload a screenshot</h2>
+          <p class="card-subtitle">PNG, JPEG or WebP · stored privately and visible only to you.</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'dashboard:vision-upload' %}" enctype="multipart/form-data"
+              data-pending>
+          {% csrf_token %}
+          <div class="upload-area" data-upload-zone>
+            <div class="upload-area-icon">
+              <svg class="h-6 w-6" aria-hidden="true"><use href="#icon-upload"></use></svg>
+            </div>
+            <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              Drag &amp; drop your chart screenshot here
+            </p>
+            <p class="text-caption text-slate-500 dark:text-slate-400">
+              or choose a file — PNG, JPEG or WebP
+            </p>
+            <label class="sr-only" for="vision-image">Chart screenshot</label>
+            <input id="vision-image" type="file" name="image" required
+                   accept="image/png,image/jpeg,image/webp"
+                   class="sr-only" />
+            <button type="button" class="btn btn-secondary btn-sm mt-2"
+                    onclick="document.getElementById('vision-image').click()">
+              <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-image"></use></svg>
+              Choose file
+            </button>
+            <p class="mt-2 text-caption text-slate-500 dark:text-slate-400" data-upload-filename aria-live="polite"></p>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" data-pending-submit>
+              <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-scan"></use></svg>
+              Upload &amp; analyse
+            </button>
+            <span class="text-caption text-slate-500 dark:text-slate-400">
+              The analysis runs in the background; you can leave this page.
+            </span>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {# ---- Previous analyses ------------------------------------------- #}
+    <div class="mt-6">
+      <div class="section-header">
+        <h2 class="section-title">Previous analyses</h2>
+        {% if has_history %}
+          <a href="{% url 'dashboard:analyses' %}" class="btn-link text-xs">
+            Full history
+            <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+          </a>
+        {% endif %}
+      </div>
+
+      {% if has_history %}
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="table table-responsive">
+              <caption class="sr-only">Your most recent screenshot analyses</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Screenshot</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Model</th>
+                  <th scope="col" class="table-numeric">Candles</th>
+                  <th scope="col">Created</th>
+                  <th scope="col"><span class="sr-only">Actions</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for analysis in history %}
+                  <tr>
+                    <td data-label="Screenshot">
+                      <span class="font-medium text-slate-900 dark:text-slate-100">#{{ analysis.screenshot_id }}</span>
+                    </td>
+                    <td data-label="Status">
+                      {% include "dashboard/partials/analysis_status_badge.html" with status=analysis.status label=analysis.get_status_display %}
+                    </td>
+                    <td data-label="Model">{{ analysis.model_name|default:"—" }}</td>
+                    <td data-label="Candles" class="table-numeric">{{ analysis.candle_count }}</td>
+                    <td data-label="Created" class="whitespace-nowrap">{{ analysis.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="text-right">
+                      <a href="{% url 'dashboard:vision-detail' analysis.screenshot_id %}" class="btn-link text-xs">
+                        View
+                        <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+                      </a>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <svg class="h-6 w-6" aria-hidden="true"><use href="#icon-scan"></use></svg>
+          </div>
+          <p class="empty-state-title">No analyses yet</p>
+          <p class="empty-state-text">Upload a chart screenshot to get your first structured, evidence-based analysis.</p>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  {# ---- Guidance sidebar --------------------------------------------- #}
+  <aside class="lg:col-span-1" aria-labelledby="how-heading">
+    <div class="card">
+      <div class="card-header">
+        <h2 id="how-heading" class="card-title">How the analysis works</h2>
+      </div>
+      <div class="card-body">
+        <ol class="space-y-4">
+          <li class="flex gap-3">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-50 text-caption font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">1</span>
+            <div>
+              <p class="text-sm font-medium text-slate-900 dark:text-slate-100">Upload</p>
+              <p class="text-caption text-slate-500 dark:text-slate-400">A privately stored chart screenshot.</p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-50 text-caption font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">2</span>
+            <div>
+              <p class="text-sm font-medium text-slate-900 dark:text-slate-100">Vision observation</p>
+              <p class="text-caption text-slate-500 dark:text-slate-400">Candles, structure, patterns and zones visible in the image.</p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-50 text-caption font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">3</span>
+            <div>
+              <p class="text-sm font-medium text-slate-900 dark:text-slate-100">Structured evidence</p>
+              <p class="text-caption text-slate-500 dark:text-slate-400">Observations, warnings and anything the model could not read.</p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand-50 text-caption font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300">4</span>
+            <div>
+              <p class="text-sm font-medium text-slate-900 dark:text-slate-100">Research use only</p>
+              <p class="text-caption text-slate-500 dark:text-slate-400">Observations are not calibrated predictions and never place trades.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="notice notice-neutral mt-4" role="note">
+      <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-info"></use></svg>
+      <span>Analysis quality depends on the screenshot: full candles, clear axis labels and a recognised instrument give the most reliable observations.</span>
+    </div>
+  </aside>
 </div>
-
-<!-- Upload -->
-<section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-  <h2 class="font-semibold">Upload a screenshot</h2>
-  <p class="mt-1 text-xs text-slate-500">
-    PNG, JPEG or WebP. Images are stored privately and only visible to you.
-  </p>
-  <form method="post" action="{% url 'dashboard:vision-upload' %}" enctype="multipart/form-data"
-        class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-    {% csrf_token %}
-    <input type="file" name="image" required accept="image/png,image/jpeg,image/webp"
-           class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-white dark:border-slate-700 dark:bg-slate-800 dark:file:bg-slate-100 dark:file:text-slate-900" />
-    <button type="submit"
-            class="whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">
-      Upload &amp; analyse
-    </button>
-  </form>
-</section>
-
-<!-- History -->
-<section>
-  <h2 class="mb-3 text-lg font-semibold">Previous analyses</h2>
-  {% if has_history %}
-    <div class="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800">
-      <table class="min-w-full divide-y divide-slate-200 text-sm dark:divide-slate-800">
-        <thead class="bg-slate-50 dark:bg-slate-800/50">
-          <tr>
-            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Screenshot</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Status</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Model</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Candles</th>
-            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500">Created</th>
-            <th class="px-4 py-2"></th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-          {% for analysis in history %}
-            <tr>
-              <td class="px-4 py-2">#{{ analysis.screenshot_id }}</td>
-              <td class="px-4 py-2">{{ analysis.get_status_display }}</td>
-              <td class="px-4 py-2">{{ analysis.model_name|default:"—" }}</td>
-              <td class="px-4 py-2">{{ analysis.candle_count }}</td>
-              <td class="px-4 py-2 whitespace-nowrap">{{ analysis.created_at|date:"Y-m-d H:i" }}</td>
-              <td class="px-4 py-2 text-right">
-                <a href="{% url 'dashboard:vision-detail' analysis.screenshot_id %}"
-                   class="text-indigo-600 hover:underline dark:text-indigo-400">View</a>
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% else %}
-    <div class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900">
-      No analyses yet. Upload a screenshot to get started.
-    </div>
-  {% endif %}
-</section>
 {% endblock %}

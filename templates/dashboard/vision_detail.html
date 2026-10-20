@@ -1,42 +1,69 @@
-{% extends "base.html" %}
+{% extends "dashboard/layout.html" %}
+{% load static %}
 
-{% block title %}Analysis · {{ app_name }}{% endblock %}
+{% block title %}Screenshot #{{ screenshot.pk }} · {{ app_name }}{% endblock %}
+{% block page_title %}Screenshot #{{ screenshot.pk }}{% endblock %}
 
-{% block content %}
-<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
-  <div>
-    <h1 class="text-2xl font-bold">Screenshot #{{ screenshot.pk }}</h1>
-    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+{% block page_content %}
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Workspace · Screenshot Analysis</p>
+    <h1 class="page-title">Screenshot #{{ screenshot.pk }}</h1>
+    <p class="page-description">
       {{ screenshot.width }}×{{ screenshot.height }} {{ screenshot.image_format|upper }} ·
-      {{ screenshot.size_bytes }} bytes
+      {{ screenshot.size_bytes }} bytes · uploaded {{ screenshot.created_at|date:"Y-m-d H:i" }}
     </p>
   </div>
-  <div class="flex items-center gap-2">
-    <a href="{% url 'dashboard:vision' %}"
-       class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{% url 'dashboard:vision' %}" class="btn btn-secondary btn-sm">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
       Back to uploads
     </a>
   </div>
 </div>
 
-<div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
-  {{ disclaimer }}
+<div class="notice notice-warning mb-6" role="note">
+  <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-alert"></use></svg>
+  <span>{{ disclaimer }}</span>
 </div>
 
-<div class="mb-6 grid gap-4 lg:grid-cols-2">
-  <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-    <h2 class="font-semibold">Preview</h2>
-    <img src="{% url 'chart_vision:screenshot-image' screenshot.pk %}" alt="Uploaded chart screenshot"
-         class="mt-3 w-full rounded-lg border border-slate-200 dark:border-slate-800" />
+<div class="grid gap-6 lg:grid-cols-5">
+  {# ---- Preview column ----------------------------------------------- #}
+  <div class="lg:col-span-2">
+    <div class="card lg:sticky lg:top-[calc(var(--topbar-height)+1.5rem)]">
+      <div class="card-header">
+        <h2 class="card-title">Screenshot preview</h2>
+      </div>
+      <div class="card-body">
+        <img src="{% url 'chart_vision:screenshot-image' screenshot.pk %}"
+             alt="Uploaded chart screenshot #{{ screenshot.pk }}"
+             class="w-full rounded-md border border-surface-light-border dark:border-surface-dark-border" />
+        <dl class="kv-list mt-4">
+          <div class="kv-row"><dt class="kv-key">Dimensions</dt><dd class="kv-value">{{ screenshot.width }}×{{ screenshot.height }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Format</dt><dd class="kv-value">{{ screenshot.image_format|upper }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Size</dt><dd class="kv-value">{{ screenshot.size_bytes }} bytes</dd></div>
+          <div class="kv-row"><dt class="kv-key">Upload status</dt><dd class="kv-value">{{ screenshot.get_upload_status_display }}</dd></div>
+        </dl>
+      </div>
+    </div>
   </div>
 
-  <div>
+  {# ---- Results column (HTMX, polled while in flight) ---------------- #}
+  <div class="lg:col-span-3">
     <div id="vision-status"
+         aria-live="polite"
+         aria-busy="{% if in_flight %}true{% else %}false{% endif %}"
          hx-get="{% url 'dashboard:vision-status' screenshot.pk %}"
          hx-trigger="load{% if in_flight %}, every 4s{% endif %}"
          hx-swap="innerHTML">
-      <div class="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900">
-        Loading analysis…
+      {# Server-rendered skeleton until the fragment arrives. #}
+      <div class="card">
+        <div class="card-body space-y-3">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-text"></div>
+          <div class="skeleton-text w-2/3"></div>
+          <p class="pt-2 text-caption text-slate-500 dark:text-slate-400">Loading analysis…</p>
+        </div>
       </div>
     </div>
   </div>

@@ -1,110 +1,279 @@
 {% extends "dashboard/layout.html" %}
 
 {% block title %}Dashboard · {{ app_name }}{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block page_content %}
-<div class="mb-6 flex flex-wrap items-end justify-between gap-3">
-  <div>
-    <h1 class="text-2xl font-bold">Dashboard</h1>
-    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-      Welcome back, {{ user.name }}.
-    </p>
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Workspace</p>
+    <h1 class="page-title">Welcome back, {{ user.name }}</h1>
+    <p class="page-description">Your research workspace — every figure below is computed from your own recorded analyses, evaluations and trades.</p>
   </div>
-  <div class="text-right text-xs text-slate-500 dark:text-slate-500">
-    <div>Build v{{ app_version }}</div>
-    <div>Environment: {{ debug|yesno:"development,production" }}</div>
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{% url 'dashboard:vision' %}" class="btn btn-primary">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-upload"></use></svg>
+      Analyse a screenshot
+    </a>
+    <a href="{% url 'dashboard:backtests' %}" class="btn btn-secondary">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-flask"></use></svg>
+      Run a backtest
+    </a>
   </div>
 </div>
 
-<!-- System status (HTMX polling) -->
+{# ---- System status (HTMX polling) ------------------------------------- #}
 <div
   id="status-card"
   hx-get="{% url 'dashboard:status' %}"
   hx-trigger="load, every 30s"
   hx-swap="innerHTML"
-  class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
+  aria-live="polite"
+  class="mb-6"
 >
-  <div class="animate-pulse text-sm text-slate-500">Loading status…</div>
+  <div class="card">
+    <div class="card-body space-y-2">
+      <div class="skeleton-title"></div>
+      <div class="skeleton-text w-1/2"></div>
+    </div>
+  </div>
 </div>
 
-<!-- Real database-backed metrics -->
-<section class="mb-6">
-  <h2 class="mb-3 text-lg font-semibold">Your activity</h2>
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <p class="text-xs text-slate-500">Screenshot analyses</p>
-      <p class="mt-1 text-2xl font-bold">{{ overview.counts.screenshot_analyses }}</p>
+{# ---- Key metrics ------------------------------------------------------ #}
+<section class="mb-6" aria-labelledby="metrics-heading">
+  <div class="section-header">
+    <h2 id="metrics-heading" class="section-title">Your activity</h2>
+  </div>
+  <div class="grid gap-4 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div class="metric">
+      <p class="metric-label">Screenshot analyses</p>
+      <p class="metric-value">{{ overview.counts.screenshot_analyses }}</p>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <p class="text-xs text-slate-500">Strategy evaluations</p>
-      <p class="mt-1 text-2xl font-bold">{{ overview.counts.strategy_evaluations }}</p>
+    <div class="metric">
+      <p class="metric-label">Strategy evaluations</p>
+      <p class="metric-value">{{ overview.counts.strategy_evaluations }}</p>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <p class="text-xs text-slate-500">Journal trades</p>
-      <p class="mt-1 text-2xl font-bold">{{ overview.counts.journal_trades }}</p>
+    <div class="metric">
+      <p class="metric-label">AI conversations</p>
+      <p class="metric-value">{{ overview.counts.ai_conversations }}</p>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <p class="text-xs text-slate-500">UP / DOWN / NO TRADE</p>
-      <p class="mt-1 text-2xl font-bold">
-        {{ overview.decisions.up }} / {{ overview.decisions.down }} / {{ overview.decisions.no_trade }}
-      </p>
+    <div class="metric">
+      <p class="metric-label">Journal trades</p>
+      <p class="metric-value">{{ overview.counts.journal_trades }}</p>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <p class="text-xs text-slate-500">MT5 connection</p>
-      <p class="mt-1 text-lg font-medium">{{ overview.market.mt5_state|capfirst }}</p>
+    <div class="metric">
+      <p class="metric-label">Decisions (UP / DOWN / NO&nbsp;TRADE)</p>
+      <p class="metric-value text-xl">{{ overview.decisions.up }} / {{ overview.decisions.down }} / {{ overview.decisions.no_trade }}</p>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <p class="text-xs text-slate-500">Validated real performance</p>
+    <div class="metric">
+      <p class="metric-label">MT5 connection</p>
+      <p class="metric-value text-xl">{{ overview.market.mt5_state|capfirst }}</p>
+      <p class="metric-caption">Last sync: {{ overview.market.last_sync_at|date:"Y-m-d H:i"|default:"never" }}</p>
+    </div>
+    <div class="metric">
+      <p class="metric-label">Validated real performance</p>
       {% if overview.performance.has_valid_outcomes %}
-        <p class="mt-1 text-lg font-medium">Net {{ overview.performance.net_profit_loss }}</p>
+        <p class="metric-value text-xl">Net {{ overview.performance.net_profit_loss }}</p>
+        <p class="metric-caption">From {{ overview.performance.settled_real_trades }} settled trades</p>
       {% else %}
-        <p class="mt-1 text-sm text-slate-500">{{ overview.performance.message }}</p>
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ overview.performance.message }}</p>
+      {% endif %}
+    </div>
+    <div class="metric">
+      <p class="metric-label">Latest backtest</p>
+      {% if overview.backtests.available %}
+        <p class="metric-value text-xl">{{ overview.backtests.status|capfirst }}</p>
+        <p class="metric-caption">{{ overview.backtests.name|truncatechars:28 }}</p>
+      {% else %}
+        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">No backtests yet.</p>
       {% endif %}
     </div>
   </div>
 </section>
 
-<!-- Quick links to workspaces -->
-<section class="mb-6 grid gap-3 sm:grid-cols-2">
-  <a href="{% url 'dashboard:mt5' %}"
-     class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 transition hover:border-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-600">
+<div class="grid gap-6 lg:grid-cols-3">
+  {# ---- Recent analyses + processing --------------------------------- #}
+  <section class="lg:col-span-2 space-y-6" aria-labelledby="recent-heading">
     <div>
-      <h2 class="font-semibold">MT5 market data</h2>
-      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Connection status, latest quote, spread, last completed candle and sync health.
-      </p>
+      <div class="section-header">
+        <h2 id="recent-heading" class="section-title">Recent analyses</h2>
+        <a href="{% url 'dashboard:analyses' %}" class="btn-link text-xs">
+          All analyses <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+        </a>
+      </div>
+      {% if overview.recent_analyses %}
+        <div class="table-card">
+          <div class="table-wrapper">
+            <table class="table table-responsive">
+              <caption class="sr-only">Your most recent screenshot analyses</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Screenshot</th>
+                  <th scope="col">Instrument</th>
+                  <th scope="col">Timeframe</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in overview.recent_analyses %}
+                  <tr>
+                    <td data-label="Screenshot">
+                      <a href="{% url 'dashboard:vision-detail' item.screenshot_id %}" class="btn-link text-xs">#{{ item.screenshot_id }}</a>
+                    </td>
+                    <td data-label="Instrument">{{ item.instrument }}</td>
+                    <td data-label="Timeframe">{{ item.timeframe }}</td>
+                    <td data-label="Status">
+                      {% include "dashboard/partials/analysis_status_badge.html" with status=item.status label=item.status|capfirst %}
+                    </td>
+                    <td data-label="Created" class="whitespace-nowrap">{{ item.created_at|date:"Y-m-d H:i" }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-scan"></use></svg></div>
+          <p class="empty-state-title">No analyses yet</p>
+          <p class="empty-state-text">Upload a chart screenshot to create your first analysis.</p>
+          <a href="{% url 'dashboard:vision' %}" class="btn btn-primary btn-sm mt-1">Analyse a screenshot</a>
+        </div>
+      {% endif %}
     </div>
-    <span class="text-sm font-medium text-slate-500">Open →</span>
-  </a>
-  <a href="{% url 'dashboard:vision' %}"
-     class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5 transition hover:border-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-600">
-    <div>
-      <h2 class="font-semibold">Screenshot vision</h2>
-      <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-        Upload an IQ Option chart screenshot and analyse its visible candles, structure and patterns.
-      </p>
-    </div>
-    <span class="text-sm font-medium text-slate-500">Open →</span>
-  </a>
-</section>
 
-<!-- Roadmap -->
-<section>
-  <h2 class="mb-3 text-lg font-semibold">Project roadmap</h2>
+    {# ---- Processing status ----------------------------------------- #}
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Analysis processing</h2>
+        <span class="text-caption text-slate-500 dark:text-slate-400">Live counts from the job pipeline</span>
+      </div>
+      <div class="card-body">
+        <div class="grid grid-cols-3 gap-3 sm:grid-cols-6">
+          <div class="text-center">
+            <p class="metric-value text-lg">{{ overview.processing.queued }}</p>
+            <p class="metric-label">Queued</p>
+          </div>
+          <div class="text-center">
+            <p class="metric-value text-lg">{{ overview.processing.running }}</p>
+            <p class="metric-label">Running</p>
+          </div>
+          <div class="text-center">
+            <p class="metric-value text-lg text-status-success-fg dark:text-status-success-dark">{{ overview.processing.completed }}</p>
+            <p class="metric-label">Completed</p>
+          </div>
+          <div class="text-center">
+            <p class="metric-value text-lg">{{ overview.processing.partial }}</p>
+            <p class="metric-label">Partial</p>
+          </div>
+          <div class="text-center">
+            <p class="metric-value text-lg">{{ overview.processing.insufficient }}</p>
+            <p class="metric-label">Insufficient</p>
+          </div>
+          <div class="text-center">
+            <p class="metric-value text-lg text-status-danger-fg dark:text-status-danger-dark">{{ overview.processing.failed }}</p>
+            <p class="metric-label">Failed</p>
+          </div>
+        </div>
+        {% if overview.processing.failed %}
+          <div class="error-state mt-4" role="alert">
+            <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-alert-circle"></use></svg>
+            <span>{{ overview.processing.failed }} analysis run(s) failed. Open the analysis to see the error and retry safely.</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  {# ---- Side column: research + reminders ---------------------------- #}
+  <aside class="space-y-6" aria-label="Research and reminders">
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Research readiness</h2></div>
+      <div class="card-body">
+        <dl class="kv-list">
+          <div class="kv-row">
+            <dt class="kv-key">Probability calibration</dt>
+            <dd class="kv-value">
+              {% if overview.probability.available %}
+                <span class="badge badge-success">Approved</span>
+                <span class="ml-1 text-caption">{{ overview.probability.name }} {{ overview.probability.version }}</span>
+              {% else %}
+                <span class="badge badge-neutral">Not calibrated</span>
+              {% endif %}
+            </dd>
+          </div>
+          <div class="kv-row">
+            <dt class="kv-key">Market data</dt>
+            <dd class="kv-value">
+              <span class="badge {% if overview.market.mt5_state == 'connected' %}badge-success{% else %}badge-neutral{% endif %}">
+                {{ overview.market.mt5_state|capfirst }}
+              </span>
+            </dd>
+          </div>
+          <div class="kv-row">
+            <dt class="kv-key">Last backtest</dt>
+            <dd class="kv-value">
+              {% if overview.backtests.available %}{{ overview.backtests.created_at|date:"Y-m-d" }}{% else %}—{% endif %}
+            </dd>
+          </div>
+        </dl>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <a href="{% url 'dashboard:probability' %}" class="btn btn-secondary btn-sm">Probability</a>
+          <a href="{% url 'dashboard:market-health' %}" class="btn btn-secondary btn-sm">Market health</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h2 class="card-title">Jump back in</h2></div>
+      <div class="card-body grid gap-2">
+        <a href="{% url 'dashboard:assistant' %}" class="nav-item">
+          <svg aria-hidden="true"><use href="#icon-sparkles"></use></svg>
+          <span class="nav-item-label">AI Assistant</span>
+        </a>
+        <a href="{% url 'dashboard:strategy-library' %}" class="nav-item">
+          <svg aria-hidden="true"><use href="#icon-library"></use></svg>
+          <span class="nav-item-label">Strategy Library</span>
+        </a>
+        <a href="{% url 'dashboard:review-queue' %}" class="nav-item">
+          <svg aria-hidden="true"><use href="#icon-inbox"></use></svg>
+          <span class="nav-item-label">Review Queue</span>
+        </a>
+        <a href="{% url 'dashboard:mt5' %}" class="nav-item">
+          <svg aria-hidden="true"><use href="#icon-database"></use></svg>
+          <span class="nav-item-label">MT5 market data</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="notice notice-neutral" role="note">
+      <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-shield"></use></svg>
+      <span>This is an analysis and research tool. It never places trades and does not guarantee outcomes. Build v{{ app_version }}.</span>
+    </div>
+  </aside>
+</div>
+
+{# ---- Platform capability (build phases) ----------------------------- #}
+<section class="mt-6" aria-labelledby="capability-heading">
+  <div class="section-header">
+    <h2 id="capability-heading" class="section-title">Platform capability</h2>
+    <span class="text-caption text-slate-500 dark:text-slate-400">Analysis build {{ app_version }}</span>
+  </div>
   <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
     {% for phase in phases %}
-      <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-medium text-slate-500">Phase {{ phase.number }}</span>
+      <div class="card card-body py-3">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-caption text-slate-500 dark:text-slate-400">Phase {{ phase.number }}</span>
           {% if phase.status == 'complete' %}
-            <span class="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">Complete</span>
+            <span class="badge badge-success">Complete</span>
           {% elif phase.status == 'in_progress' %}
-            <span class="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-950 dark:text-amber-300">In progress</span>
+            <span class="badge badge-warning">In progress</span>
           {% else %}
-            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">Planned</span>
+            <span class="badge badge-neutral">Planned</span>
           {% endif %}
         </div>
-        <p class="mt-2 font-medium">{{ phase.name }}</p>
+        <p class="mt-1.5 text-sm font-medium text-slate-800 dark:text-slate-200">{{ phase.name }}</p>
       </div>
     {% endfor %}
   </div>

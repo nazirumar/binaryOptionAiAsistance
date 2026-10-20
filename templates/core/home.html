@@ -3,45 +3,64 @@
 {% block title %}Home · {{ app_name }}{% endblock %}
 
 {% block content %}
-<section class="mx-auto max-w-3xl py-10 text-center">
-  <span class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
-    AI-assisted chart analysis · Research tool
-  </span>
-  <h1 class="mt-6 text-3xl font-bold tracking-tight sm:text-4xl">
-    Nazbeen Academy <span class="text-indigo-500">Binary Ai Asisstance</span>
-  </h1>
-  <p class="mx-auto mt-4 max-w-2xl text-slate-600 dark:text-slate-400">
-    Upload an IQ Option candlestick screenshot and receive a structured, evidence-based
-    analysis of market structure, price action and next-candle hypotheses — cross-checked
-    against a live MetaTrader&nbsp;5 reference feed whenever a matching instrument exists.
-  </p>
+{# ---- Hero ------------------------------------------------------------- #}
+<section class="relative overflow-hidden">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="relative mx-auto max-w-3xl py-12 text-center sm:py-16">
+    <span class="badge badge-brand">
+      <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#icon-sparkles"></use></svg>
+      AI-assisted chart analysis · Research tool
+    </span>
+    <h1 class="mt-6 text-display tracking-tight text-slate-900 dark:text-white">
+      Nazbeen Academy <span class="text-brand-500">Binary Ai Asisstance</span>
+    </h1>
+    <p class="mx-auto mt-5 max-w-2xl text-base text-slate-600 dark:text-slate-400">
+      Upload an IQ Option candlestick screenshot and receive a structured, evidence-based
+      analysis of market structure, price action and next-candle hypotheses — cross-checked
+      against a live MetaTrader&nbsp;5 reference feed whenever a matching instrument exists.
+    </p>
 
-  <div class="mt-8 flex items-center justify-center gap-3">
-    {% if user.is_authenticated %}
-      <a href="{% url 'dashboard:index' %}" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500">Open dashboard</a>
-    {% else %}
-      <a href="{% url 'accounts:signup' %}" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500">Get started</a>
-      <a href="{% url 'accounts:login' %}" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-semibold hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Sign in</a>
-    {% endif %}
+    <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+      {% if user.is_authenticated %}
+        <a href="{% url 'dashboard:index' %}" class="btn btn-primary btn-lg">
+          <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-dashboard"></use></svg>
+          Open dashboard
+        </a>
+      {% else %}
+        <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-lg">Get started</a>
+        <a href="{% url 'accounts:login' %}" class="btn btn-secondary btn-lg">Sign in</a>
+      {% endif %}
+    </div>
   </div>
+</section>
 
-  <div class="mt-12 grid gap-4 text-left sm:grid-cols-3">
-    <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-      <h3 class="font-semibold">Evidence, not promises</h3>
+{# ---- Principles ------------------------------------------------------- #}
+<section class="mx-auto mt-12 grid gap-4 text-left sm:grid-cols-3" aria-label="Principles">
+  <article class="card card-hover">
+    <div class="card-body">
+      <span class="icon-badge" aria-hidden="true"><svg class="h-5 w-5"><use href="#icon-shield"></use></svg></span>
+      <h2 class="card-title mt-4">Evidence, not promises</h2>
       <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Directional evidence and contradictions are reported honestly, including NO-TRADE conditions.</p>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-      <h3 class="font-semibold">Data integrity first</h3>
+  </article>
+  <article class="card card-hover">
+    <div class="card-body">
+      <span class="icon-badge" aria-hidden="true"><svg class="h-5 w-5"><use href="#icon-link"></use></svg></span>
+      <h2 class="card-title mt-4">Data integrity first</h2>
       <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">Screenshots are verified against the MT5 feed; mismatches are flagged, never hidden.</p>
     </div>
-    <div class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-      <h3 class="font-semibold">No fabricated probabilities</h3>
+  </article>
+  <article class="card card-hover">
+    <div class="card-body">
+      <span class="icon-badge" aria-hidden="true"><svg class="h-5 w-5"><use href="#icon-gauge"></use></svg></span>
+      <h2 class="card-title mt-4">No fabricated probabilities</h2>
       <p class="mt-2 text-sm text-slate-600 dark:text-slate-400">UP/DOWN probabilities appear only once a model has been statistically calibrated.</p>
     </div>
-  </div>
-
-  <p class="mx-auto mt-10 max-w-2xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
-    This application is for analysis and research. It never places binary-option trades and does not constitute financial advice.
-  </p>
+  </article>
 </section>
+
+<p class="notice notice-warning mx-auto mt-10 max-w-2xl text-caption" role="note">
+  <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-alert"></use></svg>
+  <span>This application is for analysis and research. It never places binary-option trades and does not constitute financial advice.</span>
+</p>
 {% endblock %}

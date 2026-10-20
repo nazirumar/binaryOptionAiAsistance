@@ -1,73 +1,91 @@
 {% extends "dashboard/layout.html" %}
-{% block title %}Knowledge library · {{ app_name }}{% endblock %}
-{% block page_content %}
-<h1 class="text-2xl font-bold">Knowledge library</h1>
-<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-  Versioned course concepts from Phase 5. Unverified hypotheses are labelled.
-</p>
 
-<div class="mt-6 mb-3 flex items-center gap-3 text-sm">
-  <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">Version {{ catalogue.knowledge_version }}</span>
-  <span class="text-slate-500">{{ catalogue.note }}</span>
+{% block title %}Knowledge Library · {{ app_name }}{% endblock %}
+{% block page_title %}Knowledge Library{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Strategies</p>
+    <h1 class="page-title">Knowledge Library</h1>
+    <p class="page-description">Versioned course concepts. Unverified hypotheses are labelled so research ideas are never mistaken for validated rules.</p>
+  </div>
+  <div class="flex flex-wrap items-center gap-2">
+    <span class="badge badge-brand">Version {{ catalogue.knowledge_version }}</span>
+  </div>
 </div>
 
-<section class="space-y-4">
+{% if catalogue.note %}
+  <div class="notice notice-neutral mb-6" role="note">
+    <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-info"></use></svg>
+    <span>{{ catalogue.note }}</span>
+  </div>
+{% endif %}
+
+<section class="space-y-4 stagger">
   {% for c in catalogue.concepts %}
-    <article class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-      <div class="flex flex-wrap items-center gap-2">
-        <h2 class="font-semibold">{{ c.title }}</h2>
-        <code class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">{{ c.key }}</code>
-        {% if c.research_hypothesis %}
-          <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">Research hypothesis — unverified</span>
+    <article class="card">
+      <div class="card-header">
+        <div class="flex flex-wrap items-center gap-2">
+          <h2 class="card-title">{{ c.title }}</h2>
+          <code class="rounded bg-surface-light-sunken px-2 py-0.5 text-caption text-slate-600 dark:bg-surface-dark-overlay dark:text-slate-300">{{ c.key }}</code>
+          {% if c.research_hypothesis %}
+            <span class="badge badge-warning">Research hypothesis — unverified</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-body space-y-4">
+        <dl class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <dt class="metric-label">Course interpretation</dt>
+            <dd class="mt-1 text-sm text-slate-700 dark:text-slate-300">{{ c.course_interpretation }}</dd>
+          </div>
+          <div>
+            <dt class="metric-label">Objective implementation</dt>
+            <dd class="mt-1 text-sm text-slate-700 dark:text-slate-300">{{ c.implementation }}</dd>
+          </div>
+          <div>
+            <dt class="metric-label">Detection logic</dt>
+            <dd class="mt-1 text-sm text-slate-700 dark:text-slate-300">{{ c.detection_logic }}</dd>
+          </div>
+          <div>
+            <dt class="metric-label">Required inputs</dt>
+            <dd class="mt-1 text-sm text-slate-700 dark:text-slate-300">{{ c.required_inputs|join:", " }}</dd>
+          </div>
+        </dl>
+
+        {% if c.limitations %}
+          <div>
+            <h3 class="metric-label">Known limitations</h3>
+            <ul class="mt-1 space-y-1 text-caption text-slate-600 dark:text-slate-400">
+              {% for l in c.limitations %}
+                <li class="flex gap-2"><svg class="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true"><use href="#icon-minus"></use></svg><span>{{ l }}</span></li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        {% if c.thresholds %}
+          <div>
+            <h3 class="metric-label">Configurable thresholds</h3>
+            <ul class="mt-1 flex flex-wrap gap-1.5">
+              {% for t in c.thresholds %}
+                <li><code class="rounded bg-surface-light-sunken px-2 py-0.5 text-caption dark:bg-surface-dark-overlay">{{ t }}</code></li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        {% if c.test_case %}
+          <p class="text-caption text-slate-500 dark:text-slate-400">Test case: <code>{{ c.test_case }}</code></p>
         {% endif %}
       </div>
-
-      <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-        <div>
-          <dt class="text-xs font-medium text-slate-500">Course interpretation</dt>
-          <dd class="mt-1">{{ c.course_interpretation }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs font-medium text-slate-500">Objective implementation</dt>
-          <dd class="mt-1">{{ c.implementation }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs font-medium text-slate-500">Detection logic</dt>
-          <dd class="mt-1">{{ c.detection_logic }}</dd>
-        </div>
-        <div>
-          <dt class="text-xs font-medium text-slate-500">Required inputs</dt>
-          <dd class="mt-1">{{ c.required_inputs|join:", " }}</dd>
-        </div>
-      </dl>
-
-      {% if c.limitations %}
-        <div class="mt-3">
-          <p class="text-xs font-medium text-slate-500">Known limitations</p>
-          <ul class="mt-1 list-disc space-y-1 pl-5 text-xs text-slate-600 dark:text-slate-400">
-            {% for l in c.limitations %}<li>{{ l }}</li>{% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-
-      {% if c.thresholds %}
-        <div class="mt-3">
-          <p class="text-xs font-medium text-slate-500">Configurable thresholds</p>
-          <ul class="mt-1 flex flex-wrap gap-1">
-            {% for t in c.thresholds %}
-              <li><code class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">{{ t }}</code></li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endif %}
-
-      {% if c.test_case %}
-        <p class="mt-3 text-xs text-slate-500">Test case: <code>{{ c.test_case }}</code></p>
-      {% endif %}
     </article>
   {% empty %}
-    <div class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700">
-      No knowledge concepts available.
+    <div class="empty-state">
+      <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-brain"></use></svg></div>
+      <p class="empty-state-title">No knowledge concepts available</p>
+      <p class="empty-state-text">Seed the knowledge base to populate this library.</p>
     </div>
   {% endfor %}
 </section>

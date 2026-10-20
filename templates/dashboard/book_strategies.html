@@ -1,99 +1,121 @@
 {% extends "dashboard/layout.html" %}
-{% block title %}Book strategies · {{ app_name }}{% endblock %}
-{% block page_content %}
-<h1 class="text-2xl font-bold">Book strategies</h1>
-<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-  Binary Options Trading Bible catalog (Phase 13): 30 Sure Shot patterns + 2 Chapter 7 indicator strategies.
-  Contradictory or unimplemented entries are listed but labelled — recognition never predicts settlement,
-  and no toggle here approves a strategy for live decisions.
-</p>
 
-<form method="get" class="mt-4 flex flex-wrap items-center gap-2 text-sm">
-  <input type="search" name="q" value="{{ search }}" placeholder="Search book strategies…"
-         class="w-64 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900" />
-  <button type="submit" class="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-slate-100 dark:text-slate-900">Filter</button>
-  <span class="text-slate-500">{{ total }} entr{{ total|pluralize:"y,ies" }} · {{ implemented_total }} implemented · {{ approved_total }} approved for decision use</span>
-  <a class="ml-auto rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"
-     href="{% url 'dashboard:book-strategies-research' %}">Research metrics →</a>
+{% block title %}Book Strategies · {{ app_name }}{% endblock %}
+{% block page_title %}Book Strategies{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Strategies</p>
+    <h1 class="page-title">Book strategies</h1>
+    <p class="page-description">Binary Options Trading Bible catalog: 30 Sure Shot patterns + 2 Chapter 7 indicator strategies. Contradictory or unimplemented entries are listed but labelled — recognition never predicts settlement, and no toggle here approves a strategy for live decisions.</p>
+  </div>
+  <a href="{% url 'dashboard:book-strategies-research' %}" class="btn btn-secondary btn-sm">
+    <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chart"></use></svg>
+    Research metrics
+  </a>
+</div>
+
+<form method="get" class="card mb-6" role="search">
+  <div class="card-body flex flex-wrap items-end gap-3">
+    <div class="min-w-[12rem] flex-1">
+      <label for="book-search" class="form-label">Search</label>
+      <div class="relative">
+        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true"><use href="#icon-search"></use></svg>
+        <input id="book-search" type="search" name="q" value="{{ search }}" placeholder="Search book strategies…" class="form-control pl-9" />
+      </div>
+    </div>
+    <button type="submit" class="btn btn-secondary">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-filter"></use></svg>
+      Filter
+    </button>
+    <p class="text-caption text-slate-500 dark:text-slate-400">
+      {{ total }} entr{{ total|pluralize:"y,ies" }} · {{ implemented_total }} implemented · {{ approved_total }} approved for decision use
+    </p>
+  </div>
 </form>
 
-<section class="mt-6 space-y-8">
+<section class="space-y-8">
   {% for chapter_name, entries in grouped.items %}
     <div>
-      <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">{{ chapter_name }}</h2>
-      <div class="space-y-3">
+      <div class="section-header">
+        <h2 class="section-title">{{ chapter_name }}</h2>
+        <span class="text-caption text-slate-500 dark:text-slate-400">{{ entries|length }} entr{{ entries|length|pluralize:"y,ies" }}</span>
+      </div>
+      <div class="space-y-3 stagger">
         {% for s in entries %}
-          <article class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <div class="flex flex-wrap items-center gap-2">
-              <h3 class="font-semibold">
-                <a class="hover:underline" href="{% url 'dashboard:book-strategy-detail' s.key %}">
-                  {% if s.number %}SS{{ s.number }} — {% endif %}{{ s.name }}
-                </a>
-              </h3>
-              <code class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">{{ s.key }}</code>
-              {% if s.research_status == 'implemented' %}
-                <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">Detector implemented</span>
-              {% elif s.research_status == 'recognition_tested' %}
-                <span class="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-950 dark:text-sky-300">Recognition tested</span>
-              {% elif s.research_status == 'validated' %}
-                <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Validated</span>
-              {% elif s.research_status == 'rejected' %}
-                <span class="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-950 dark:text-rose-300">Rejected</span>
-              {% else %}
-                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">Extracted — not implemented</span>
-              {% endif %}
-              {% if s.contradictions %}
-                <span class="rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700 dark:bg-rose-950 dark:text-rose-300">Book contradiction recorded</span>
-              {% endif %}
-              {% if s.decision_use_approved %}
-                <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Decision use approved</span>
-              {% else %}
-                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">Not approved for decisions</span>
-              {% endif %}
-              {% if s.recognition_enabled %}
-                <span class="rounded bg-emerald-50 px-2 py-0.5 text-xs text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">recognition on</span>
-              {% else %}
-                <span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800">recognition off</span>
-              {% endif %}
-              {% if s.trade_type == 'binary' %}
-                <span class="text-xs text-slate-400">binary options</span>
-              {% endif %}
-              {% if 'otc' in s.market_types and s.market_types|length == 1 %}
-                <span class="text-xs text-amber-600">OTC only</span>
-              {% elif 'otc' in s.market_types %}
-                <span class="text-xs text-slate-400">real + OTC</span>
-              {% endif %}
-            </div>
-            <p class="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{{ s.confirmation_rule }}</p>
-            <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
-              {% if s.pdf_pages %}<span>PDF pp. {{ s.pdf_pages }}</span>{% endif %}
-              {% if s.version %}<span>version {{ s.version.version }}</span>{% endif %}
-              {% if s.detector_key %}<span>detector: {{ s.detector_key }}</span>{% else %}<span>catalog only</span>{% endif %}
-            </div>
-            {% if is_staff_user %}
-              <form method="post" action="{% url 'dashboard:book-strategy-toggle' s.key %}" class="mt-3">
-                {% csrf_token %}
-                {% if s.recognition_enabled %}
-                  <button type="submit" class="rounded-lg border border-rose-300 px-3 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300">Disable recognition</button>
+          <article class="card card-interactive">
+            <div class="card-body">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-heading font-semibold">
+                  <a class="hover:text-brand-600 dark:hover:text-brand-300" href="{% url 'dashboard:book-strategy-detail' s.key %}">
+                    {% if s.number %}SS{{ s.number }} — {% endif %}{{ s.name }}
+                  </a>
+                </h3>
+                <code class="rounded bg-surface-light-sunken px-2 py-0.5 text-caption text-slate-600 dark:bg-surface-dark-overlay dark:text-slate-300">{{ s.key }}</code>
+                {% if s.research_status == 'implemented' %}
+                  <span class="badge badge-brand">Detector implemented</span>
+                {% elif s.research_status == 'recognition_tested' %}
+                  <span class="badge badge-info">Recognition tested</span>
+                {% elif s.research_status == 'validated' %}
+                  <span class="badge badge-success">Validated</span>
+                {% elif s.research_status == 'rejected' %}
+                  <span class="badge badge-danger">Rejected</span>
                 {% else %}
-                  <button type="submit" class="rounded-lg border border-emerald-300 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-300">Enable recognition</button>
+                  <span class="badge badge-warning">Extracted — not implemented</span>
                 {% endif %}
-                <span class="ml-2 text-xs text-slate-400">admin only — never enables trading</span>
-              </form>
-            {% endif %}
+                {% if s.contradictions %}<span class="badge badge-danger">Book contradiction recorded</span>{% endif %}
+                {% if s.decision_use_approved %}
+                  <span class="badge badge-success">Decision use approved</span>
+                {% else %}
+                  <span class="badge badge-neutral">Not approved for decisions</span>
+                {% endif %}
+                {% if s.recognition_enabled %}
+                  <span class="badge badge-success">recognition on</span>
+                {% else %}
+                  <span class="badge badge-neutral">recognition off</span>
+                {% endif %}
+                {% if s.trade_type == 'binary' %}<span class="text-caption text-slate-400">binary options</span>{% endif %}
+                {% if 'otc' in s.market_types and s.market_types|length == 1 %}
+                  <span class="badge badge-warning">OTC only</span>
+                {% elif 'otc' in s.market_types %}
+                  <span class="text-caption text-slate-400">real + OTC</span>
+                {% endif %}
+              </div>
+              <p class="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{{ s.confirmation_rule }}</p>
+              <div class="mt-2 flex flex-wrap items-center gap-3 text-caption text-slate-400">
+                {% if s.pdf_pages %}<span>PDF pp. {{ s.pdf_pages }}</span>{% endif %}
+                {% if s.version %}<span>version {{ s.version.version }}</span>{% endif %}
+                {% if s.detector_key %}<span>detector: {{ s.detector_key }}</span>{% else %}<span>catalog only</span>{% endif %}
+                <a href="{% url 'dashboard:book-strategy-detail' s.key %}" class="btn-link text-caption">Details <svg class="h-3 w-3" aria-hidden="true"><use href="#icon-chevron-right"></use></svg></a>
+              </div>
+              {% if is_staff_user %}
+                <form method="post" action="{% url 'dashboard:book-strategy-toggle' s.key %}" class="mt-3 flex items-center gap-3" data-pending>
+                  {% csrf_token %}
+                  {% if s.recognition_enabled %}
+                    <button type="submit" class="btn btn-danger-subtle btn-sm">Disable recognition</button>
+                  {% else %}
+                    <button type="submit" class="btn btn-secondary btn-sm">Enable recognition</button>
+                  {% endif %}
+                  <span class="text-caption text-slate-400">admin only — never enables trading</span>
+                </form>
+              {% endif %}
+            </div>
           </article>
         {% endfor %}
       </div>
     </div>
   {% empty %}
-    <div class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700">
-      No book strategies seeded yet. Run <code>python manage.py seed_book_strategies</code> to populate the catalog.
+    <div class="empty-state">
+      <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-book"></use></svg></div>
+      <p class="empty-state-title">No book strategies seeded yet</p>
+      <p class="empty-state-text">Run <code>python manage.py seed_book_strategies</code> to populate the catalog.</p>
     </div>
   {% endfor %}
 </section>
 
-<p class="mt-8 rounded-lg bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-900">
-  Structured decision for every entry: NO TRADE · probability: unavailable (uncalibrated).
-  A recognised pattern is an observation, never a prediction; experimental or contradictory setups are never traded.
-</p>
+<div class="notice notice-warning mt-8 text-caption" role="note">
+  <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-alert"></use></svg>
+  <span>Structured decision for every entry: NO TRADE · probability: unavailable (uncalibrated). A recognised pattern is an observation, never a prediction; experimental or contradictory setups are never traded.</span>
+</div>
 {% endblock %}

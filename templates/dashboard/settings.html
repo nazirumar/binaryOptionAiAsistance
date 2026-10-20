@@ -1,42 +1,70 @@
 {% extends "dashboard/layout.html" %}
+
 {% block title %}Settings · {{ app_name }}{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
 {% block page_content %}
-<h1 class="text-2xl font-bold">Settings</h1>
-<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">Profile, preferences, security and account management.</p>
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Account</p>
+    <h1 class="page-title">Settings</h1>
+    <p class="page-description">Profile, preferences, security and account management.</p>
+  </div>
+</div>
 
-<!-- Profile + preferences -->
-<section class="mt-6 mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-  <h2 class="font-semibold">Profile &amp; analysis preferences</h2>
-  <form method="post" action="{% url 'dashboard:settings-profile' %}" class="mt-4 space-y-4">
-    {% csrf_token %}
-    {{ profile_form.as_p }}
-    {{ preference_form.as_p }}
-    <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">Save settings</button>
-  </form>
-</section>
+<div class="space-y-6">
+  {# ---- Profile & preferences ----------------------------------------- #}
+  <section class="card" aria-labelledby="profile-heading">
+    <div class="card-header"><h2 id="profile-heading" class="card-title">Profile &amp; analysis preferences</h2></div>
+    <form method="post" action="{% url 'dashboard:settings-profile' %}" data-pending>
+      {% csrf_token %}
+      <div class="card-body">
+        <div class="form-prose grid gap-6 lg:grid-cols-2">
+          <div>{{ profile_form.as_p }}</div>
+          <div>{{ preference_form.as_p }}</div>
+        </div>
+      </div>
+      <div class="card-header border-t border-b-0 justify-end">
+        <button type="submit" class="btn btn-primary">Save settings</button>
+      </div>
+    </form>
+  </section>
 
-<!-- Security -->
-<section class="mb-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-  <h2 class="font-semibold">Password</h2>
-  <p class="mt-1 text-sm text-slate-500">Update your account password.</p>
-  <a href="{% url 'dashboard:settings-password' %}"
-     class="mt-3 inline-block rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Change password</a>
-</section>
+  {# ---- Security ------------------------------------------------------- #}
+  <section class="card" aria-labelledby="security-heading">
+    <div class="card-header"><h2 id="security-heading" class="card-title">Password</h2></div>
+    <div class="card-body flex flex-wrap items-center justify-between gap-3">
+      <p class="text-sm text-slate-500 dark:text-slate-400">Update your account password.</p>
+      <a href="{% url 'dashboard:settings-password' %}" class="btn btn-secondary btn-sm">
+        <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-lock"></use></svg>
+        Change password
+      </a>
+    </div>
+  </section>
 
-<!-- Account deletion -->
-<section class="rounded-xl border border-red-300 bg-red-50 p-5 dark:border-red-800 dark:bg-red-950/40">
-  <h2 class="font-semibold text-red-700 dark:text-red-300">Delete account</h2>
-  <p class="mt-1 text-sm text-red-700 dark:text-red-300">
-    This permanently deletes your account and all associated data. It cannot be undone.
-  </p>
-  <form method="post" action="{% url 'dashboard:settings-delete' %}" class="mt-3 flex flex-wrap items-center gap-3"
-        onsubmit="return confirm('Permanently delete your account and all data?');">
-    {% csrf_token %}
-    <label class="text-sm">Confirm password
-      <input type="password" name="password" required
-             class="ml-2 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-red-500 focus:outline-none dark:border-red-700 dark:bg-slate-800 dark:text-slate-100" />
-    </label>
-    <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500">Delete account</button>
-  </form>
-</section>
+  {# ---- Account deletion ----------------------------------------------- #}
+  <section class="card border-status-danger/40 bg-status-danger-soft dark:border-status-danger/30 dark:bg-status-danger-dark-soft" aria-labelledby="delete-heading">
+    <div class="card-header border-status-danger/30 dark:border-status-danger/20">
+      <h2 id="delete-heading" class="card-title text-status-danger-fg dark:text-status-danger-dark">Delete account</h2>
+    </div>
+    <div class="card-body">
+      <p class="text-sm text-status-danger-fg dark:text-status-danger-dark">
+        This permanently deletes your account and all associated data. It cannot be undone.
+      </p>
+      <form method="post" action="{% url 'dashboard:settings-delete' %}"
+            class="mt-4 flex flex-wrap items-end gap-3"
+            onsubmit="return confirm('Permanently delete your account and all data?');">
+        {% csrf_token %}
+        <div>
+          <label for="delete-password" class="form-label">Confirm password</label>
+          <input id="delete-password" type="password" name="password" required class="form-control" />
+        </div>
+        <button type="submit" class="btn btn-danger">
+          <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-trash"></use></svg>
+          Delete account
+        </button>
+      </form>
+    </div>
+  </section>
+</div>
 {% endblock %}

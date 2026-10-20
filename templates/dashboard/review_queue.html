@@ -1,69 +1,95 @@
 {% extends "dashboard/layout.html" %}
-{% block title %}Review queue · {{ app_name }}{% endblock %}
+
+{% block title %}Review Queue · {{ app_name }}{% endblock %}
+{% block page_title %}Review queue{% endblock %}
+
 {% block page_content %}
-<div class="flex items-center justify-between">
-  <h1 class="text-2xl font-bold">Review queue</h1>
-  <form method="post" action="{% url 'dashboard:review-queue-scan' %}">
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Research</p>
+    <h1 class="page-title">Review queue</h1>
+    <p class="page-description">Error review. Correcting a label here stores the correction on the queue item only — the original recognition and prediction records are never rewritten.</p>
+  </div>
+  <form method="post" action="{% url 'dashboard:review-queue-scan' %}" data-pending>
     {% csrf_token %}
-    <button type="submit" class="rounded-lg bg-slate-800 px-3 py-1.5 text-sm text-white hover:bg-slate-700 dark:bg-slate-700">Scan for new items</button>
+    <button type="submit" class="btn btn-secondary btn-sm">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-refresh"></use></svg>
+      Scan for new items
+    </button>
   </form>
 </div>
-<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-  Phase 14 error review. Correcting a label here stores the correction on the queue item only -
-  the original recognition and prediction records are never rewritten.
-</p>
 
-<div class="mt-4 flex flex-wrap gap-2 text-xs">
-  <a class="rounded-lg px-3 py-1 {% if state == 'open' %}bg-slate-800 text-white{% else %}bg-slate-100 dark:bg-slate-800{% endif %}" href="?state=open">Open ({{ counts.open }})</a>
-  <a class="rounded-lg px-3 py-1 {% if state == 'in_review' %}bg-slate-800 text-white{% else %}bg-slate-100 dark:bg-slate-800{% endif %}" href="?state=in_review">In review ({{ counts.in_review }})</a>
-  <a class="rounded-lg px-3 py-1 {% if state == 'resolved' %}bg-slate-800 text-white{% else %}bg-slate-100 dark:bg-slate-800{% endif %}" href="?state=resolved">Resolved ({{ counts.resolved }})</a>
-  <a class="rounded-lg px-3 py-1 {% if state == 'dismissed' %}bg-slate-800 text-white{% else %}bg-slate-100 dark:bg-slate-800{% endif %}" href="?state=dismissed">Dismissed ({{ counts.dismissed }})</a>
-  <a class="rounded-lg px-3 py-1 {% if state == 'all' %}bg-slate-800 text-white{% else %}bg-slate-100 dark:bg-slate-800{% endif %}" href="?state=all">All</a>
-</div>
+{# ---- State filter (tabs) --------------------------------------------- #}
+<nav class="tabs mb-4" aria-label="Filter by review state">
+  <a class="tab" href="?state=open" {% if state == 'open' %}aria-selected="true"{% else %}aria-selected="false"{% endif %}>Open ({{ counts.open }})</a>
+  <a class="tab" href="?state=in_review" {% if state == 'in_review' %}aria-selected="true"{% else %}aria-selected="false"{% endif %}>In review ({{ counts.in_review }})</a>
+  <a class="tab" href="?state=resolved" {% if state == 'resolved' %}aria-selected="true"{% else %}aria-selected="false"{% endif %}>Resolved ({{ counts.resolved }})</a>
+  <a class="tab" href="?state=dismissed" {% if state == 'dismissed' %}aria-selected="true"{% else %}aria-selected="false"{% endif %}>Dismissed ({{ counts.dismissed }})</a>
+  <a class="tab" href="?state=all" {% if state == 'all' %}aria-selected="true"{% else %}aria-selected="false"{% endif %}>All</a>
+</nav>
 
 {% if items %}
-  <div class="mt-4 space-y-3">
+  <div class="space-y-3 stagger">
     {% for item in items %}
-    <div class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-      <div class="flex items-start justify-between">
-        <div>
-          <span class="rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium dark:bg-slate-800">{{ item.get_kind_display }}</span>
-          <span class="ml-2 text-xs text-slate-400">{{ item.state }} · {{ item.created_at|date:"Y-m-d H:i" }}</span>
-          <p class="mt-1 text-sm">{{ item.summary }}</p>
-          {% if item.case %}<p class="text-xs text-slate-500">Case: {{ item.case.label }}</p>{% endif %}
+      <article class="card">
+        <div class="card-body">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="badge badge-neutral">{{ item.get_kind_display }}</span>
+            <span class="text-caption text-slate-400">{{ item.state }} · {{ item.created_at|date:"Y-m-d H:i" }}</span>
+          </div>
+          <p class="mt-2 text-sm text-slate-800 dark:text-slate-200">{{ item.summary }}</p>
+          {% if item.case %}<p class="mt-1 text-caption text-slate-500 dark:text-slate-400">Case: {{ item.case.label }}</p>{% endif %}
+
+          {% if item.state == 'open' or item.state == 'in_review' %}
+            <form method="post" action="{% url 'dashboard:review-resolve' item.pk %}" class="mt-3 flex flex-wrap items-end gap-3" data-pending>
+              {% csrf_token %}
+              <div class="min-w-[12rem] flex-1">
+                <label class="form-label" for="correction-{{ item.pk }}">Correction (optional)</label>
+                <input id="correction-{{ item.pk }}" name="correction" class="form-control" placeholder="e.g. label should be SS2, not SS1" />
+              </div>
+              <div class="min-w-[12rem] flex-1">
+                <label class="form-label" for="note-{{ item.pk }}">Note</label>
+                <input id="note-{{ item.pk }}" name="note" class="form-control" />
+              </div>
+              <div class="flex items-center gap-2">
+                <button name="action" value="resolve" class="btn btn-primary btn-sm">Resolve</button>
+                <button name="action" value="dismiss" class="btn btn-secondary btn-sm">Dismiss</button>
+              </div>
+            </form>
+          {% else %}
+            {% if item.correction %}<p class="mt-2 text-caption text-slate-500 dark:text-slate-400">Correction: {{ item.correction }}</p>{% endif %}
+            {% if item.resolution_note %}<p class="text-caption text-slate-500 dark:text-slate-400">Note: {{ item.resolution_note }}</p>{% endif %}
+          {% endif %}
         </div>
-      </div>
-      {% if item.state == 'open' or item.state == 'in_review' %}
-      <form method="post" action="{% url 'dashboard:review-resolve' item.pk %}" class="mt-3 flex flex-wrap items-end gap-2">
-        {% csrf_token %}
-        <div class="flex-1">
-          <label class="block text-xs text-slate-500" for="correction-{{ item.pk }}">Correction (optional)</label>
-          <input id="correction-{{ item.pk }}" name="correction" class="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-800" placeholder="e.g. label should be SS2, not SS1" />
-        </div>
-        <div class="flex-1">
-          <label class="block text-xs text-slate-500" for="note-{{ item.pk }}">Note</label>
-          <input id="note-{{ item.pk }}" name="note" class="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1 text-sm dark:border-slate-700 dark:bg-slate-800" />
-        </div>
-        <button name="action" value="resolve" class="rounded-lg bg-emerald-700 px-3 py-1.5 text-sm text-white hover:bg-emerald-600">Resolve</button>
-        <button name="action" value="dismiss" class="rounded-lg bg-slate-200 px-3 py-1.5 text-sm hover:bg-slate-300 dark:bg-slate-700">Dismiss</button>
-      </form>
-      {% else %}
-        {% if item.correction %}<p class="mt-2 text-xs text-slate-500">Correction: {{ item.correction }}</p>{% endif %}
-        {% if item.resolution_note %}<p class="text-xs text-slate-500">Note: {{ item.resolution_note }}</p>{% endif %}
-      {% endif %}
-    </div>
+      </article>
     {% endfor %}
   </div>
   {% if page_obj.has_other_pages %}
-  <div class="mt-4 text-sm">
-    {% if page_obj.has_previous %}<a class="hover:underline" href="?state={{ state }}&page={{ page_obj.previous_page_number }}">← Newer</a>{% endif %}
-    <span class="mx-2 text-slate-400">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}<a class="hover:underline" href="?state={{ state }}&page={{ page_obj.next_page_number }}">Older →</a>{% endif %}
-  </div>
+    <nav class="pagination" aria-label="Pagination">
+      <p class="pagination-meta">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+      <div class="pagination-controls">
+        {% if page_obj.has_previous %}
+          <a class="page-link" href="?state={{ state }}&page={{ page_obj.previous_page_number }}" rel="prev">
+            <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-left"></use></svg> Newer
+          </a>
+        {% else %}
+          <span class="page-link" aria-disabled="true"><svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-left"></use></svg> Newer</span>
+        {% endif %}
+        {% if page_obj.has_next %}
+          <a class="page-link" href="?state={{ state }}&page={{ page_obj.next_page_number }}" rel="next">
+            Older <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+          </a>
+        {% else %}
+          <span class="page-link" aria-disabled="true">Older <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-right"></use></svg></span>
+        {% endif %}
+      </div>
+    </nav>
   {% endif %}
 {% else %}
-  <div class="mt-4 rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 dark:border-slate-700">
-    No review items in this state. Use "Scan for new items" to raise them from stored records.
+  <div class="empty-state">
+    <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-inbox"></use></svg></div>
+    <p class="empty-state-title">No review items in this state</p>
+    <p class="empty-state-text">Use “Scan for new items” to raise them from stored records.</p>
   </div>
 {% endif %}
 {% endblock %}

@@ -34,6 +34,17 @@
       hover:border-brand-300 hover:shadow-raised dark:hover:border-brand-700;
   }
 
+  /* Hover lift only (card contains a link but is not itself clickable). */
+  .card-hover {
+    @apply transition-all duration-fast ease-standard hover:-translate-y-0.5 hover:shadow-raised;
+  }
+
+  /* Small leading glyph inside a card header or list row. */
+  .icon-badge {
+    @apply grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-50 text-brand-600
+      dark:bg-brand-950 dark:text-brand-300;
+  }
+
   /* --- Page header ------------------------------------------------------ */
   .page-header {
     @apply mb-6 flex flex-wrap items-end justify-between gap-4;
@@ -72,6 +83,11 @@
 
   .metric-value {
     @apply text-2xl font-bold tabular-nums text-slate-900 dark:text-slate-50;
+  }
+
+  /* Smaller metric value — for text-shaped values (states, servers). */
+  .metric-value-sm {
+    @apply text-lg font-semibold tabular-nums text-slate-900 dark:text-slate-50;
   }
 
   .metric-caption {
@@ -125,6 +141,59 @@
     @apply animate-pulse-soft;
   }
 
+  /* Larger, labelled status chip with a leading dot. */
+  .status-pill {
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-caption font-medium;
+  }
+  .status-pill .status-dot {
+    @apply h-2 w-2;
+  }
+  .status-pill-success {
+    @apply bg-status-success-soft text-status-success-fg dark:bg-status-success-dark-soft dark:text-status-success-dark;
+  }
+  .status-pill-success .status-dot {
+    @apply bg-status-success;
+  }
+  .status-pill-warning {
+    @apply bg-status-warning-soft text-status-warning-fg dark:bg-status-warning-dark-soft dark:text-status-warning-dark;
+  }
+  .status-pill-warning .status-dot {
+    @apply bg-status-warning;
+  }
+  .status-pill-danger {
+    @apply bg-status-danger-soft text-status-danger-fg dark:bg-status-danger-dark-soft dark:text-status-danger-dark;
+  }
+  .status-pill-danger .status-dot {
+    @apply bg-status-danger;
+  }
+  .status-pill-info {
+    @apply bg-status-info-soft text-status-info-fg dark:bg-status-info-dark-soft dark:text-status-info-dark;
+  }
+  .status-pill-info .status-dot {
+    @apply bg-status-info;
+  }
+  .status-pill-neutral {
+    @apply bg-status-neutral-soft text-status-neutral-fg dark:bg-status-neutral-dark-soft dark:text-status-neutral-dark;
+  }
+  .status-pill-neutral .status-dot {
+    @apply bg-status-neutral;
+  }
+
+  /* --- Meta strip — inline definition list for page-level context ------- */
+  .meta-strip {
+    @apply flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-surface-light-border bg-surface-light-muted
+      px-4 py-3 text-sm dark:border-surface-dark-border dark:bg-surface-dark;
+  }
+  .meta-item {
+    @apply flex flex-col gap-0.5;
+  }
+  .meta-key {
+    @apply text-caption font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400;
+  }
+  .meta-value {
+    @apply font-medium text-slate-800 dark:text-slate-200;
+  }
+
   /* --- Breadcrumbs ------------------------------------------------------ */
   .breadcrumbs {
     @apply flex flex-wrap items-center gap-1.5 text-caption text-slate-500 dark:text-slate-400;
@@ -171,6 +240,10 @@
     @apply border-status-info/30 bg-status-info-soft text-status-info-fg
       dark:bg-status-info-dark-soft dark:text-status-info-dark;
   }
+  .notice-success {
+    @apply border-status-success/30 bg-status-success-soft text-status-success-fg
+      dark:bg-status-success-dark-soft dark:text-status-success-dark;
+  }
   .notice-warning {
     @apply border-status-warning/30 bg-status-warning-soft text-status-warning-fg
       dark:bg-status-warning-dark-soft dark:text-status-warning-dark;
@@ -185,5 +258,12 @@
   .notice-neutral {
     @apply border-surface-light-border bg-white text-slate-600
       dark:border-surface-dark-border dark:bg-surface-dark-raised dark:text-slate-300;
+  }
+
+  /* --- Hero backdrop ---------------------------------------------------- */
+  /* A soft radial brand glow behind hero content. Purely decorative. */
+  .hero-glow {
+    @apply pointer-events-none absolute inset-x-0 -top-24 mx-auto h-72 max-w-3xl opacity-60 blur-3xl;
+    background: radial-gradient(50% 60% at 50% 40%, rgba(109, 60, 235, 0.35), transparent 70%);
   }
 }

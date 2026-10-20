@@ -1,30 +1,44 @@
 {% extends "dashboard/layout.html" %}
+
 {% block title %}{% if mode == "edit" %}Edit trade{% else %}New trade{% endif %} · {{ app_name }}{% endblock %}
+{% block page_title %}{% if mode == "edit" %}Edit journal entry{% else %}New journal entry{% endif %}{% endblock %}
+
 {% block page_content %}
-<h1 class="text-2xl font-bold">{% if mode == "edit" %}Edit journal entry{% else %}New journal entry{% endif %}</h1>
-<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-  Record a manual trade. Never label a hypothetical or backtested example as a real executed trade.
-</p>
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Research · Trading Journal</p>
+    <h1 class="page-title">{% if mode == "edit" %}Edit journal entry{% else %}New journal entry{% endif %}</h1>
+    <p class="page-description">Record a manual trade. Never label a hypothetical or backtested example as a real executed trade.</p>
+  </div>
+  <a href="{% url 'dashboard:journal' %}" class="btn btn-secondary btn-sm">
+    <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+    Journal
+  </a>
+</div>
 
 {% if errors %}
-  <div class="mt-4 rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
-    <p class="font-medium">Please correct the errors below.</p>
+  <div class="error-state mb-4" role="alert">
+    <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-alert-circle"></use></svg>
+    <span>Please correct the errors below.</span>
   </div>
 {% endif %}
 
-<section class="mt-6 rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+<section class="card" aria-labelledby="form-heading">
+  <div class="card-header"><h2 id="form-heading" class="card-title">Trade details</h2></div>
   <form method="post"
         action="{% if mode == 'edit' %}{% url 'dashboard:journal-edit-post' trade.pk %}{% else %}{% url 'dashboard:journal-create-post' %}{% endif %}"
-        class="space-y-4">
+        data-pending>
     {% csrf_token %}
-    <div class="grid gap-4 sm:grid-cols-2">
-      {{ form.as_p }}
+    <div class="card-body">
+      <div class="form-prose grid gap-4 sm:grid-cols-2">
+        {{ form.as_p }}
+      </div>
     </div>
-    <div class="flex items-center gap-3">
-      <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500">
+    <div class="card-header border-t border-b-0 justify-end">
+      <button type="submit" class="btn btn-primary">
         {% if mode == "edit" %}Save changes{% else %}Create entry{% endif %}
       </button>
-      <a href="{% url 'dashboard:journal' %}" class="text-sm text-slate-500 hover:underline">Cancel</a>
+      <a href="{% url 'dashboard:journal' %}" class="btn btn-ghost">Cancel</a>
     </div>
   </form>
 </section>

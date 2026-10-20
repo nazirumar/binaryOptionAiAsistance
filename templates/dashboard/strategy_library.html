@@ -1,77 +1,105 @@
 {% extends "dashboard/layout.html" %}
-{% block title %}Strategy library · {{ app_name }}{% endblock %}
-{% block page_content %}
-<h1 class="text-2xl font-bold">Strategy library</h1>
-<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-  Versioned strategy definitions (Phase 12). Experimental and draft definitions are listed but labelled —
-  they never influence trade decisions.
-</p>
 
-<form method="get" class="mt-4 flex flex-wrap items-center gap-2 text-sm">
-  <input type="search" name="q" value="{{ search }}" placeholder="Search strategies…"
-         class="w-64 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900" />
-  <select name="category" class="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-900">
-    <option value="">All categories</option>
-    {% for c in categories %}
-      <option value="{{ c.slug }}" {% if active_category == c.slug %}selected{% endif %}>{{ c.name }}</option>
-    {% endfor %}
-  </select>
-  <button type="submit" class="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white dark:bg-slate-100 dark:text-slate-900">Filter</button>
-  <span class="text-slate-500">{{ total }} definition{{ total|pluralize }}</span>
+{% block title %}Strategy Library · {{ app_name }}{% endblock %}
+{% block page_title %}Strategy Library{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Strategies</p>
+    <h1 class="page-title">Strategy Library</h1>
+    <p class="page-description">Versioned strategy definitions. Experimental and draft definitions are listed but clearly labelled — they never influence trade decisions.</p>
+  </div>
+</div>
+
+{# ---- Search & filters ------------------------------------------------ #}
+<form method="get" class="card mb-6" role="search">
+  <div class="card-body flex flex-wrap items-end gap-3">
+    <div class="min-w-[12rem] flex-1">
+      <label for="strategy-search" class="form-label">Search</label>
+      <div class="relative">
+        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true"><use href="#icon-search"></use></svg>
+        <input id="strategy-search" type="search" name="q" value="{{ search }}" placeholder="Search strategies…"
+               class="form-control pl-9" />
+      </div>
+    </div>
+    <div class="min-w-[10rem]">
+      <label for="strategy-category" class="form-label">Category</label>
+      <select id="strategy-category" name="category" class="form-select">
+        <option value="">All categories</option>
+        {% for c in categories %}
+          <option value="{{ c.slug }}" {% if active_category == c.slug %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-secondary">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-filter"></use></svg>
+      Filter
+    </button>
+    <span class="text-caption text-slate-500 dark:text-slate-400">{{ total }} definition{{ total|pluralize }}</span>
+  </div>
 </form>
 
-<section class="mt-6 space-y-8">
+<section class="space-y-8">
   {% for category_name, definitions in grouped.items %}
     <div>
-      <h2 class="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">{{ category_name }}</h2>
-      <div class="space-y-3">
+      <div class="section-header">
+        <h2 class="section-title">{{ category_name }}</h2>
+        <span class="text-caption text-slate-500 dark:text-slate-400">{{ definitions|length }} definition{{ definitions|length|pluralize }}</span>
+      </div>
+      <div class="space-y-3 stagger">
         {% for d in definitions %}
-          <article class="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-            <div class="flex flex-wrap items-center gap-2">
-              <h3 class="font-semibold">
-                <a class="hover:underline" href="{% url 'dashboard:strategy-detail' d.strategy_id %}">{{ d.name }}</a>
-              </h3>
-              <code class="rounded bg-slate-100 px-2 py-0.5 text-xs dark:bg-slate-800">{{ d.strategy_id }}</code>
-              {% if d.validation_status == 'approved' %}
-                <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Approved</span>
-              {% elif d.validation_status == 'reviewed' %}
-                <span class="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-950 dark:text-sky-300">Reviewed</span>
-              {% elif d.validation_status == 'experimental' %}
-                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">Experimental — not validated</span>
-              {% elif d.validation_status == 'retired' %}
-                <span class="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800 dark:bg-rose-950 dark:text-rose-300">Retired</span>
-              {% else %}
-                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">Draft</span>
-              {% endif %}
-              {% if not d.enabled %}
-                <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500 dark:bg-slate-800">Disabled</span>
-              {% endif %}
-              {% if d.variant == 'bullish' %}
-                <span class="text-xs text-emerald-600">▲ bullish</span>
-              {% elif d.variant == 'bearish' %}
-                <span class="text-xs text-rose-600">▼ bearish</span>
-              {% endif %}
-              {% if d.detector_key %}
-                <span class="rounded bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">detector: {{ d.detector_key }}</span>
-              {% else %}
-                <span class="text-xs text-slate-400">knowledge only (no detector)</span>
+          <article class="card card-interactive">
+            <div class="card-body">
+              <div class="flex flex-wrap items-center gap-2">
+                <h3 class="text-heading font-semibold">
+                  <a class="hover:text-brand-600 dark:hover:text-brand-300" href="{% url 'dashboard:strategy-detail' d.strategy_id %}">{{ d.name }}</a>
+                </h3>
+                <code class="rounded bg-surface-light-sunken px-2 py-0.5 text-caption text-slate-600 dark:bg-surface-dark-overlay dark:text-slate-300">{{ d.strategy_id }}</code>
+                {% if d.validation_status == 'approved' %}
+                  <span class="badge badge-success">Approved</span>
+                {% elif d.validation_status == 'reviewed' %}
+                  <span class="badge badge-info">Reviewed</span>
+                {% elif d.validation_status == 'experimental' %}
+                  <span class="badge badge-warning">Experimental — not validated</span>
+                {% elif d.validation_status == 'retired' %}
+                  <span class="badge badge-danger">Retired</span>
+                {% else %}
+                  <span class="badge badge-neutral">Draft</span>
+                {% endif %}
+                {% if not d.enabled %}<span class="badge badge-neutral">Disabled</span>{% endif %}
+                {% if d.variant == 'bullish' %}
+                  <span class="badge badge-success"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#icon-trend-up"></use></svg>bullish</span>
+                {% elif d.variant == 'bearish' %}
+                  <span class="badge badge-danger"><svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#icon-trend-down"></use></svg>bearish</span>
+                {% endif %}
+                {% if d.detector_key %}
+                  <span class="badge badge-brand">detector: {{ d.detector_key }}</span>
+                {% else %}
+                  <span class="text-caption text-slate-400">knowledge only (no detector)</span>
+                {% endif %}
+              </div>
+              <p class="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{{ d.description }}</p>
+              <div class="mt-1 flex flex-wrap items-center gap-3 text-caption text-slate-400">
+                {% if d.version %}<span>KB version {{ d.version.version }}</span>{% endif %}
+                <a href="{% url 'dashboard:strategy-detail' d.strategy_id %}" class="btn-link text-caption">Details <svg class="h-3 w-3" aria-hidden="true"><use href="#icon-chevron-right"></use></svg></a>
+              </div>
+              {% if d.validation_notes %}
+                <p class="mt-1 text-caption text-status-warning-fg dark:text-status-warning-dark">{{ d.validation_notes }}</p>
               {% endif %}
             </div>
-            <p class="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-slate-400">{{ d.description }}</p>
-            {% if d.version %}<p class="mt-1 text-xs text-slate-400">KB version {{ d.version.version }}</p>{% endif %}
-            {% if d.validation_notes %}
-              <p class="mt-1 text-xs text-amber-700 dark:text-amber-400">{{ d.validation_notes }}</p>
-            {% endif %}
           </article>
         {% endfor %}
       </div>
     </div>
   {% empty %}
-    <div class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700">
-      No strategy definitions yet. Seed the knowledge base to populate this library.
+    <div class="empty-state">
+      <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-library"></use></svg></div>
+      <p class="empty-state-title">No strategy definitions yet</p>
+      <p class="empty-state-text">Seed the knowledge base to populate this library.</p>
     </div>
   {% endfor %}
 </section>
 
-<p class="mt-8 rounded-lg bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-900">{{ metrics_disclaimer }}</p>
+<p class="notice notice-neutral mt-8 text-caption">{{ metrics_disclaimer }}</p>
 {% endblock %}

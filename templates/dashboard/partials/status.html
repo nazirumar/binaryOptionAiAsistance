@@ -1,35 +1,46 @@
-<div class="flex items-center justify-between">
-  <div>
-    <h2 class="font-semibold">System status</h2>
-    <p class="mt-0.5 text-xs text-slate-500">Last checked: {% now "H:i:s" %} UTC</p>
+{% comment %}HTMX fragment: system status card, polled every 30s.{% endcomment %}
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h2 class="card-title">System status</h2>
+      <p class="card-subtitle">Last checked: {% now "H:i:s" %} UTC</p>
+    </div>
+    <span class="badge badge-success"><span class="status-dot status-dot-success status-dot-pulse" aria-hidden="true"></span> Foundation online</span>
   </div>
-  <span class="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-    <span class="h-2 w-2 rounded-full bg-emerald-500"></span> Foundation online
-  </span>
+  <div class="card-body">
+    <dl class="grid gap-3 sm:grid-cols-3">
+      <div class="rounded-md bg-surface-light-muted p-3 dark:bg-surface-dark">
+        <dt class="metric-label">Web / API</dt>
+        <dd class="mt-1 font-semibold text-slate-900 dark:text-slate-100">Ready</dd>
+      </div>
+      <div class="rounded-md bg-surface-light-muted p-3 dark:bg-surface-dark">
+        <dt class="metric-label">MetaTrader 5 feed</dt>
+        {% if mt5_state == 'connected' %}
+          <dd class="mt-1 flex items-center gap-2 font-semibold text-status-success-fg dark:text-status-success-dark">
+            <span class="status-dot status-dot-success" aria-hidden="true"></span>Connected
+          </dd>
+        {% elif mt5_state == 'error' %}
+          <dd class="mt-1 flex items-center gap-2 font-semibold text-status-danger-fg dark:text-status-danger-dark">
+            <span class="status-dot status-dot-danger" aria-hidden="true"></span>Error
+          </dd>
+        {% elif mt5_state == 'disconnected' %}
+          <dd class="mt-1 flex items-center gap-2 font-semibold text-status-warning-fg dark:text-status-warning-dark">
+            <span class="status-dot status-dot-warning" aria-hidden="true"></span>Disconnected
+          </dd>
+        {% else %}
+          <dd class="mt-1 flex items-center gap-2 font-semibold text-slate-400">
+            <span class="status-dot status-dot-neutral" aria-hidden="true"></span>Not verified
+          </dd>
+        {% endif %}
+      </div>
+      <div class="rounded-md bg-surface-light-muted p-3 dark:bg-surface-dark">
+        <dt class="metric-label">Vision model</dt>
+        {% if vision.ready %}
+          <dd class="mt-1 font-semibold text-status-success-fg dark:text-status-success-dark">{{ vision.label }}</dd>
+        {% else %}
+          <dd class="mt-1 font-semibold text-slate-500 dark:text-slate-400">{{ vision.label }}</dd>
+        {% endif %}
+      </div>
+    </dl>
+  </div>
 </div>
-<dl class="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-  <div class="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-    <dt class="text-xs text-slate-500">Web / API</dt>
-    <dd class="mt-1 font-medium">Ready</dd>
-  </div>
-  <div class="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-    <dt class="text-xs text-slate-500">MetaTrader 5 feed</dt>
-    {% if mt5_state == 'connected' %}
-      <dd class="mt-1 font-medium text-emerald-600 dark:text-emerald-400">Connected</dd>
-    {% elif mt5_state == 'error' %}
-      <dd class="mt-1 font-medium text-red-600 dark:text-red-400">Error</dd>
-    {% elif mt5_state == 'disconnected' %}
-      <dd class="mt-1 font-medium text-amber-600 dark:text-amber-400">Disconnected</dd>
-    {% else %}
-      <dd class="mt-1 font-medium text-slate-400">Not verified</dd>
-    {% endif %}
-  </div>
-  <div class="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/50">
-    <dt class="text-xs text-slate-500">Vision model</dt>
-    {% if vision.ready %}
-      <dd class="mt-1 font-medium text-emerald-600 dark:text-emerald-400">{{ vision.label }}</dd>
-    {% else %}
-      <dd class="mt-1 font-medium text-slate-400">{{ vision.label }}</dd>
-    {% endif %}
-  </div>
-</dl>

@@ -1,15 +1,33 @@
+{% comment %}
+Shared pagination control. Uses the semantic `.pagination` component so every
+paginated list looks and behaves identically.
+{% endcomment %}
 {% if page_obj.has_other_pages %}
-<nav class="flex items-center justify-between border-t border-slate-200 px-4 py-3 text-sm dark:border-slate-800" aria-label="Pagination">
-  {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}" class="rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Previous</a>
-  {% else %}
-    <span></span>
-  {% endif %}
-  <span class="text-slate-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-  {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}" class="rounded-lg border border-slate-300 px-3 py-1.5 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800">Next</a>
-  {% else %}
-    <span></span>
-  {% endif %}
+<nav class="pagination" aria-label="Pagination">
+  <p class="pagination-meta">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+  <div class="pagination-controls">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}" class="page-link" rel="prev">
+        <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+        Previous
+      </a>
+    {% else %}
+      <span class="page-link" aria-disabled="true">
+        <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+        Previous
+      </span>
+    {% endif %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="page-link" rel="next">
+        Next
+        <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+      </a>
+    {% else %}
+      <span class="page-link" aria-disabled="true">
+        Next
+        <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+      </span>
+    {% endif %}
+  </div>
 </nav>
 {% endif %}

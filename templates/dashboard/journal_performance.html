@@ -1,74 +1,89 @@
 {% extends "dashboard/layout.html" %}
-{% block title %}Journal performance · {{ app_name }}{% endblock %}
-{% block page_content %}
-<h1 class="text-2xl font-bold">Journal performance</h1>
-<p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
-  Calculated from your recorded journal entries, segmented by provenance so real
-  and simulated results are never blended.
-</p>
 
-<section class="mt-6 space-y-6">
+{% block title %}Journal performance · {{ app_name }}{% endblock %}
+{% block page_title %}Journal performance{% endblock %}
+
+{% block page_content %}
+<div class="page-header">
+  <div class="min-w-0">
+    <p class="page-eyebrow">Research · Trading Journal</p>
+    <h1 class="page-title">Journal performance</h1>
+    <p class="page-description">Calculated from your recorded journal entries, segmented by provenance so real and simulated results are never blended.</p>
+  </div>
+  <a href="{% url 'dashboard:journal' %}" class="btn btn-secondary btn-sm">
+    <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+    Journal
+  </a>
+</div>
+
+<section class="space-y-6">
   {% for trade_type, s in performance.items %}
-    <article class="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="font-semibold">{{ trade_type|capfirst }} performance</h2>
+    <article class="card">
+      <div class="card-header">
+        <h2 class="card-title">{{ trade_type|capfirst }} performance</h2>
         {% if s.insufficient_data %}
-          <span class="text-sm text-slate-500">{{ s.win_rate_display }}</span>
+          <span class="badge badge-neutral">{{ s.win_rate_display }}</span>
+        {% elif s.settled %}
+          <span class="badge badge-info">Settled</span>
         {% endif %}
       </div>
+      <div class="card-body">
+        {% if s.settled %}
+          <dl class="grid gap-4 xs:grid-cols-2 lg:grid-cols-4">
+            <div><dt class="metric-label">Recorded</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ s.total_recorded }}</dd></div>
+            <div><dt class="metric-label">Wins / Losses / Ties</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ s.wins }} / {{ s.losses }} / {{ s.ties }}</dd></div>
+            <div><dt class="metric-label">Win rate</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ s.win_rate_display }}</dd></div>
+            <div><dt class="metric-label">Net P/L</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ s.net_profit_loss }}</dd></div>
+            <div><dt class="metric-label">Total staked</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ s.total_staked }}</dd></div>
+            <div><dt class="metric-label">Average payout</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ s.average_payout|default:"n/a" }}</dd></div>
+            <div><dt class="metric-label">Max drawdown</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ s.max_drawdown }}</dd></div>
+            <div><dt class="metric-label">Streaks (win/loss)</dt><dd class="mt-1 text-lg font-semibold tabular-nums">{{ s.max_winning_streak }} / {{ s.max_losing_streak }}</dd></div>
+          </dl>
 
-      {% if s.settled %}
-        <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-4">
-          <div><dt class="text-xs text-slate-500">Recorded</dt><dd class="mt-1 font-medium">{{ s.total_recorded }}</dd></div>
-          <div><dt class="text-xs text-slate-500">Wins / Losses / Ties</dt><dd class="mt-1 font-medium">{{ s.wins }} / {{ s.losses }} / {{ s.ties }}</dd></div>
-          <div><dt class="text-xs text-slate-500">Win rate</dt><dd class="mt-1 font-medium">{{ s.win_rate_display }}</dd></div>
-          <div><dt class="text-xs text-slate-500">Net P/L</dt><dd class="mt-1 font-medium">{{ s.net_profit_loss }}</dd></div>
-          <div><dt class="text-xs text-slate-500">Total staked</dt><dd class="mt-1 font-medium">{{ s.total_staked }}</dd></div>
-          <div><dt class="text-xs text-slate-500">Average payout</dt><dd class="mt-1 font-medium">{{ s.average_payout|default:"n/a" }}</dd></div>
-          <div><dt class="text-xs text-slate-500">Max drawdown</dt><dd class="mt-1 font-medium">{{ s.max_drawdown }}</dd></div>
-          <div><dt class="text-xs text-slate-500">Streaks (win/loss)</dt><dd class="mt-1 font-medium">{{ s.max_winning_streak }} / {{ s.max_losing_streak }}</dd></div>
-        </dl>
+          <div class="mt-6 grid gap-6 lg:grid-cols-3">
+            <div>
+              <h3 class="section-title text-sm">By strategy</h3>
+              <table class="table mt-2">
+                <caption class="sr-only">Performance by strategy</caption>
+                <thead><tr><th scope="col">Family</th><th scope="col" class="table-numeric">Trades</th><th scope="col" class="table-numeric">Win rate</th><th scope="col" class="table-numeric">Net</th></tr></thead>
+                <tbody>
+                  {% for b in s.by_strategy %}
+                    <tr><td>{{ b.key }}</td><td class="table-numeric">{{ b.total }}</td><td class="table-numeric">{{ b.win_rate|default:"n/a" }}</td><td class="table-numeric">{{ b.net_profit_loss }}</td></tr>
+                  {% empty %}<tr><td colspan="4" class="py-4 text-center text-slate-500 dark:text-slate-400">No settled trades.</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
 
-        <div class="mt-5 grid gap-5 lg:grid-cols-3">
-          <div>
-            <h3 class="text-sm font-medium">By strategy</h3>
-            <table class="mt-2 w-full text-xs">
-              <thead><tr><th class="text-left">Family</th><th class="text-right">Trades</th><th class="text-right">Win rate</th><th class="text-right">Net</th></tr></thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                {% for b in s.by_strategy %}
-                  <tr><td class="py-1">{{ b.key }}</td><td class="py-1 text-right">{{ b.total }}</td><td class="py-1 text-right">{{ b.win_rate|default:"n/a" }}</td><td class="py-1 text-right">{{ b.net_profit_loss }}</td></tr>
-                {% empty %}<tr><td colspan="4" class="py-2 text-center text-slate-500">No settled trades.</td></tr>{% endfor %}
-              </tbody>
-            </table>
+            <div>
+              <h3 class="section-title text-sm">By instrument</h3>
+              <table class="table mt-2">
+                <caption class="sr-only">Performance by instrument</caption>
+                <thead><tr><th scope="col">Instrument</th><th scope="col" class="table-numeric">Trades</th><th scope="col" class="table-numeric">Win rate</th><th scope="col" class="table-numeric">Net</th></tr></thead>
+                <tbody>
+                  {% for b in s.by_instrument %}
+                    <tr><td>{{ b.key }}</td><td class="table-numeric">{{ b.total }}</td><td class="table-numeric">{{ b.win_rate|default:"n/a" }}</td><td class="table-numeric">{{ b.net_profit_loss }}</td></tr>
+                  {% empty %}<tr><td colspan="4" class="py-4 text-center text-slate-500 dark:text-slate-400">No settled trades.</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            <div>
+              <h3 class="section-title text-sm">By session</h3>
+              <table class="table mt-2">
+                <caption class="sr-only">Performance by session</caption>
+                <thead><tr><th scope="col">Session</th><th scope="col" class="table-numeric">Trades</th><th scope="col" class="table-numeric">Win rate</th><th scope="col" class="table-numeric">Net</th></tr></thead>
+                <tbody>
+                  {% for b in s.by_session %}
+                    <tr><td>{{ b.key }}</td><td class="table-numeric">{{ b.total }}</td><td class="table-numeric">{{ b.win_rate|default:"n/a" }}</td><td class="table-numeric">{{ b.net_profit_loss }}</td></tr>
+                  {% empty %}<tr><td colspan="4" class="py-4 text-center text-slate-500 dark:text-slate-400">No settled trades.</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
           </div>
-
-          <div>
-            <h3 class="text-sm font-medium">By instrument</h3>
-            <table class="mt-2 w-full text-xs">
-              <thead><tr><th class="text-left">Instrument</th><th class="text-right">Trades</th><th class="text-right">Win rate</th><th class="text-right">Net</th></tr></thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                {% for b in s.by_instrument %}
-                  <tr><td class="py-1">{{ b.key }}</td><td class="py-1 text-right">{{ b.total }}</td><td class="py-1 text-right">{{ b.win_rate|default:"n/a" }}</td><td class="py-1 text-right">{{ b.net_profit_loss }}</td></tr>
-                {% empty %}<tr><td colspan="4" class="py-2 text-center text-slate-500">No settled trades.</td></tr>{% endfor %}
-              </tbody>
-            </table>
-          </div>
-
-          <div>
-            <h3 class="text-sm font-medium">By session</h3>
-            <table class="mt-2 w-full text-xs">
-              <thead><tr><th class="text-left">Session</th><th class="text-right">Trades</th><th class="text-right">Win rate</th><th class="text-right">Net</th></tr></thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                {% for b in s.by_session %}
-                  <tr><td class="py-1">{{ b.key }}</td><td class="py-1 text-right">{{ b.total }}</td><td class="py-1 text-right">{{ b.win_rate|default:"n/a" }}</td><td class="py-1 text-right">{{ b.net_profit_loss }}</td></tr>
-                {% empty %}<tr><td colspan="4" class="py-2 text-center text-slate-500">No settled trades.</td></tr>{% endfor %}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      {% else %}
-        <p class="mt-2 text-sm text-slate-500">{{ s.win_rate_display }}</p>
-      {% endif %}
+        {% else %}
+          <p class="text-sm text-slate-500 dark:text-slate-400">{{ s.win_rate_display }}</p>
+        {% endif %}
+      </div>
     </article>
   {% endfor %}
 </section>

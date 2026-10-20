@@ -1,0 +1,22 @@
+{% comment %}
+Status badge for an analysis outcome. Maps every AnalysisStatus value to a
+semantic badge variant. Pass `status` (the raw value) and `label` (the display
+label); both come straight from the model, so nothing is invented.
+
+  {% include "dashboard/partials/analysis_status_badge.html" with status=analysis.status label=analysis.get_status_display %}
+{% endcomment %}
+{% if status == 'completed' %}
+  <span class="badge badge-success"><span class="status-dot status-dot-success" aria-hidden="true"></span>{{ label }}</span>
+{% elif status == 'partial' %}
+  <span class="badge badge-warning"><span class="status-dot status-dot-warning" aria-hidden="true"></span>{{ label }}</span>
+{% elif status == 'insufficient_evidence' %}
+  <span class="badge badge-neutral"><span class="status-dot status-dot-neutral" aria-hidden="true"></span>{{ label }}</span>
+{% elif status == 'failed' %}
+  <span class="badge badge-danger"><span class="status-dot status-dot-danger" aria-hidden="true"></span>{{ label }}</span>
+{% elif status == 'running' %}
+  <span class="badge badge-info"><span class="status-dot status-dot-info status-dot-pulse" aria-hidden="true"></span>{{ label }}</span>
+{% elif status == 'queued' %}
+  <span class="badge badge-brand"><span class="status-dot status-dot-info" aria-hidden="true"></span>{{ label }}</span>
+{% else %}
+  <span class="badge badge-neutral"><span class="status-dot status-dot-neutral" aria-hidden="true"></span>{{ label|default:"Unknown" }}</span>
+{% endif %}
