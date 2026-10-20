@@ -150,3 +150,32 @@ Progressive disclosure: within **Research**, group into collapsible sub-sections
   and the terminal-state reset in `vision_status.html`).
 - Every page listed above is a redesign target. None may be left on the old
   visual system, and none may lose a feature it currently exposes.
+
+---
+
+## 10. Addendum — Live Signals pages (Phase 15)
+
+Phase 15 added the Live Signals monitor after this audit was written. These
+pages follow the same design system and shell as the rest of the dashboard:
+
+| URL | URL name | Template | Shell | Key content / contracts |
+|---|---|---|---|---|
+| `/dashboard/live-signals/` | `dashboard:live-signals` | `dashboard/live_signals.html` | dash | Monitor/feed status card (HTMX `#live-signals-status`), filtered signal feed (HTMX `#live-signals-feed`), on-demand detail panel. Research/paper only; no probability. |
+| `/dashboard/live-signals/feed/` | `dashboard:live-signals-feed` | `dashboard/partials/live_signals_feed.html` | partial | HTMX feed fragment; preserves filters via querystring. |
+| `/dashboard/live-signals/status/` | `dashboard:live-signals-status` | `dashboard/partials/live_signals_status.html` | partial | HTMX monitor/feed-health fragment. |
+| `/dashboard/live-signals/outcomes/` | `dashboard:live-signals-outcomes` | `dashboard/live_signals_outcomes.html` | dash | Paper outcome tracking; recognition vs directional metrics kept separate. |
+| `/dashboard/live-signals/settings/` | `dashboard:live-signals-settings` | `dashboard/live_signals_settings.html` | dash | Owner-scoped preferences (alerts, browser notification opt-in, view filters). |
+| `/dashboard/live-signals/<pk>/` | `dashboard:live-signal-detail` | `dashboard/partials/live_signal_detail.html` | partial | On-demand signal detail fragment. |
+| `/dashboard/live-signals/alerts/<pk>/read/` | `dashboard:live-signal-alert-read` | — (POST → redirect) | — | Marks one in-app alert read. |
+
+## 11. Current state
+
+The redesign is complete (see `docs/FRONTEND-REDESIGN-COMPLETION.md`):
+
+- **50 templates** now share the design system (up from the 39 audited here).
+- The **5 pages that bypassed the dashboard shell** are all folded into it.
+- Navigation is **data-driven** from `apps/core/navigation.py`; the Workspace
+  group gained **Live Signals**.
+- HTMX is vendored locally and used for the status/feed/vision fragments.
+- The Tailwind CDN is gone; styling comes from the committed compiled
+  `static/css/app.css`.
