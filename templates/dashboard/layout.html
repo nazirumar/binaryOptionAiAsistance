@@ -103,45 +103,58 @@ the breadcrumbs can never disagree.
         <svg class="hidden h-5 w-5 lg:block" aria-hidden="true"><use href="#icon-sidebar-collapse"></use></svg>
       </button>
 
-      {# Breadcrumbs (small) + current page title #}
-      <div class="min-w-0 flex-1">
+      {# Current page identity: title + breadcrumb trail #}
+      <div class="topbar-heading">
+        <h1 class="topbar-title">{{ page_label|default:"Dashboard" }}</h1>
         {% if breadcrumbs %}
           <nav class="breadcrumbs" aria-label="Breadcrumb">
             <a href="{% url 'dashboard:index' %}">Dashboard</a>
             {% for crumb in breadcrumbs %}
               <span class="sep" aria-hidden="true">/</span>
               {% if crumb.url_name %}
-                <a href="{% url crumb.url_name %}">{{ crumb.label }}</a>
+                <a href="{% url crumb.url_name %}" class="crumb-mid">{{ crumb.label }}</a>
               {% else %}
-                <span aria-current="page">{{ crumb.label }}</span>
+                <span class="crumb-mid" aria-current="page">{{ crumb.label }}</span>
               {% endif %}
             {% endfor %}
           </nav>
         {% endif %}
       </div>
 
-      {# Top-bar actions: notifications + profile menu + theme #}
-      <div class="flex items-center gap-1.5">
-        <button type="button" class="btn btn-ghost btn-icon tooltip" data-tooltip="Notifications"
-                aria-label="Notifications" disabled>
+      {# Top-bar actions: primary task + alerts + theme + profile #}
+      <div class="topbar-actions">
+        <a href="{% url 'dashboard:vision' %}" class="btn btn-primary btn-sm hidden md:inline-flex">
+          <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-plus"></use></svg>
+          <span>New analysis</span>
+        </a>
+
+        <a href="{% url 'dashboard:live-signals' %}" class="btn btn-ghost btn-icon tooltip"
+           data-tooltip="Signal alerts" aria-label="Signal alerts">
           <svg class="h-5 w-5" aria-hidden="true"><use href="#icon-bell"></use></svg>
-        </button>
+        </a>
 
         {% include "partials/theme_toggle.html" %}
 
+        <span class="topbar-divider" aria-hidden="true"></span>
+
         <div class="relative">
-          <button type="button" class="btn btn-ghost gap-2 pl-1.5 pr-2.5" data-menu-toggle
+          <button type="button" class="profile-chip" data-menu-toggle
                   aria-controls="profile-menu" aria-expanded="false" aria-haspopup="true">
-            <span class="grid h-7 w-7 place-items-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-200">
+            <span class="profile-avatar">
               {{ user.name|default:user.username|slice:":1"|upper }}
             </span>
             <span class="hidden max-w-[9rem] truncate sm:inline">{{ user.name|default:user.username }}</span>
-            <svg class="hidden h-4 w-4 sm:block" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
+            <svg class="hidden h-4 w-4 shrink-0 text-slate-400 sm:block" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
           </button>
           <div class="menu" id="profile-menu" data-menu hidden>
-            <div class="px-3 py-2">
-              <p class="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{{ user.name|default:user.username }}</p>
-              <p class="truncate text-caption text-slate-500 dark:text-slate-400">{{ user.email }}</p>
+            <div class="flex items-center gap-3 px-3 py-2.5">
+              <span class="profile-avatar h-9 w-9 text-sm">
+                {{ user.name|default:user.username|slice:":1"|upper }}
+              </span>
+              <div class="min-w-0">
+                <p class="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{{ user.name|default:user.username }}</p>
+                <p class="truncate text-caption text-slate-500 dark:text-slate-400">{{ user.email }}</p>
+              </div>
             </div>
             <div class="menu-divider"></div>
             {% for item in account_entries %}

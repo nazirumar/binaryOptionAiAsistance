@@ -169,6 +169,25 @@ def test_settings_profile_post_saves_and_redirects(client):
 
 
 @pytest.mark.django_db
+def test_topbar_shows_page_identity_and_actions(client):
+    """The shell top bar carries the page title, a working alerts link and the
+    profile chip — no dead/disabled controls."""
+    client.force_login(UserFactory(display_name="Topbar Tester"))
+    response = client.get("/dashboard/settings/")
+    assert response.status_code == 200
+    content = response.content
+    # Page identity (title from the breadcrumb registry).
+    assert b"topbar-title" in content
+    assert b"Settings" in content
+    # A real alerts link to Live Signals (not a disabled button).
+    assert 'href="/dashboard/live-signals/"' in content.decode()
+    assert b"Signal alerts" in content
+    # Profile chip + menu.
+    assert b"profile-chip" in content
+    assert b"Topbar Tester" in content
+
+
+@pytest.mark.django_db
 def test_theme_cookie_controls_initial_theme(client):
     default = client.get("/")
     assert b'class="dark"' in default.content  # default theme is dark

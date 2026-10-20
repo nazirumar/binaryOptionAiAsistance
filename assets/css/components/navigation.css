@@ -68,9 +68,46 @@
 
   /* --- Top bar ---------------------------------------------------------- */
   .topbar {
-    @apply sticky top-0 z-30 flex h-[var(--topbar-height)] items-center gap-3 border-b
-      border-surface-light-border bg-white/80 px-4 backdrop-blur
+    @apply sticky top-0 z-30 flex h-[var(--topbar-height)] items-center gap-2 border-b
+      border-surface-light-border bg-white/80 px-3 backdrop-blur
+      sm:gap-3 sm:px-4
       dark:border-surface-dark-border dark:bg-surface-dark/80;
+  }
+
+  /* Icon-only action cluster at the right of the top bar. */
+  .topbar-actions {
+    @apply flex shrink-0 items-center gap-1 sm:gap-1.5;
+  }
+
+  /* Vertical hairline separating top-bar action groups. */
+  .topbar-divider {
+    @apply mx-0.5 hidden h-6 w-px bg-surface-light-border sm:block dark:bg-surface-dark-border;
+  }
+
+  /* The current page identity: title + (desktop) breadcrumb trail. */
+  .topbar-heading {
+    @apply min-w-0 flex-1;
+  }
+  .topbar-title {
+    @apply truncate text-sm font-semibold leading-tight text-slate-900
+      sm:text-base dark:text-white;
+  }
+  .topbar-subtitle {
+    @apply hidden truncate text-caption leading-tight text-slate-500 sm:block dark:text-slate-400;
+  }
+
+  /* Profile chip: avatar + name, tightens to avatar-only on small screens. */
+  .profile-chip {
+    @apply flex max-w-[12rem] items-center gap-2 rounded-full py-1 pl-1 pr-2
+      text-sm font-medium text-slate-700
+      transition-colors duration-fast ease-standard
+      hover:bg-slate-100
+      dark:text-slate-200 dark:hover:bg-surface-dark-overlay;
+  }
+  .profile-avatar {
+    @apply grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-100 text-xs
+      font-bold text-brand-700
+      dark:bg-brand-950 dark:text-brand-200;
   }
 
   .main-content {
