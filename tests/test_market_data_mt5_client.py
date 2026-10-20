@@ -136,3 +136,62 @@ def test_client_copy_ticks_from(monkeypatch):
     client = MetaTrader5Client(module=_fake_module())
     ticks = client.copy_ticks_from("EURUSD", datetime(2026, 1, 1, tzinfo=UTC), 1)
     assert len(ticks) == 1
+
+
+# ---------------------------------------------------------------------------
+# Server-clock offset: MT5 timestamps are broker wall-clock, not UTC.
+# ---------------------------------------------------------------------------
+def test_rate_to_candle_applies_server_offset():
+    row = {"time": 1700000000, "open": 1.1, "high": 1.2, "low": 1.0, "close": 1.1}
+    candle = _rate_to_candle(row, offset_seconds=3 * 3600)
+    assert candle.open_time == datetime.fromtimestamp(1700000000 - 3 * 3600, tz=UTC)
+
+
+def test_tick_to_dto_applies_server_offset_and_keeps_milliseconds():
+    row = {"time_msc": 1700000000500, "bid": 1.1, "ask": 1.2}
+    tick = _tick_to_dto(row, offset_seconds=3600)
+    assert tick.time == datetime.fromtimestamp(1700000000.5 - 3600, tz=UTC)
+
+
+def test_offset_defaults_to_zero_when_unset():
+    """No offset configured/detected must never shift a timestamp."""
+    row = {"time": 1700000000, "open": 1.1, "high": 1.2, "low": 1.0, "close": 1.1}
+    assert _rate_to_candle(row).open_time == datetime.fromtimestamp(1700000000, tz=UTC)
+
+
+def test_explicit_offset_is_respected_and_not_detected():
+    client = MetaTrader5Client(module=_fake_module(), server_offset_seconds=7200)
+    assert client._offset() == 7200  # never re-detects when given explicitly
+
+
+def test_detected_offset_from_live_tick(monkeypatch):
+    """The offset is derived from a fresh tick's server epoch vs true UTC."""
+    real_now = datetime.now(tz=UTC)
+    server_epoch = int(real_now.timestamp()) + 3 * 3600  # server runs UTC+3
+    module = _fake_module()
+    module.symbol_info_tick = lambda symbol: {
+        "time": server_epoch,
+        "time_msc": server_epoch * 1000,
+        "bid": 1.1,
+        "ask": 1.2,
+    }
+    client = MetaTrader5Client(module=module)
+    # Rounded to the nearest minute, so a few seconds of latency is absorbed.
+    assert client.detect_server_offset() == 3 * 3600
+
+
+def test_configured_offset_overrides_detection(monkeypatch):
+    from django.test import override_settings
+
+    with override_settings(MT5_SERVER_TZ_OFFSET_MINUTES=180):
+        client = MetaTrader5Client(module=_fake_module())
+        assert client.detect_server_offset() == 180 * 60
+
+
+def test_unmeasurable_offset_falls_back_to_zero(monkeypatch):
+    """A terminal that cannot be sampled yields 0 - never a guessed shift."""
+    module = _fake_module()
+    module.symbol_info_tick = lambda symbol: None
+    client = MetaTrader5Client(module=module)
+    assert client.detect_server_offset() == 0
+

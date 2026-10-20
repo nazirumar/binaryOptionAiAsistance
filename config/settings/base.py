@@ -57,6 +57,10 @@ env = environ.Env(
     MT5_FEED_DELAY_SECONDS=(int, 5),
     MT5_MAX_CANDLE_RANGE=(int, 5000),
     MT5_MAX_TICK_RANGE=(int, 10000),
+    # Broker server clock offset. MT5 timestamps are server wall-clock, not
+    # UTC. Leave unset to auto-detect from the terminal; set to pin it
+    # explicitly (e.g. 180 for a UTC+3 server) when auto-detection is unwanted.
+    MT5_SERVER_TZ_OFFSET_MINUTES=(int, None),
     MT5_STALE_TICK_SECONDS=(int, 120),
     MT5_TICK_RETENTION_DAYS=(int, 7),
     MT5_WORKER_TOKEN=(str, ""),
@@ -400,6 +404,7 @@ MT5_RETRY_BACKOFF_MAX_SECONDS = env("MT5_RETRY_BACKOFF_MAX_SECONDS")
 MT5_FEED_DELAY_SECONDS = env("MT5_FEED_DELAY_SECONDS")
 MT5_MAX_CANDLE_RANGE = env("MT5_MAX_CANDLE_RANGE")
 MT5_MAX_TICK_RANGE = env("MT5_MAX_TICK_RANGE")
+MT5_SERVER_TZ_OFFSET_MINUTES = env("MT5_SERVER_TZ_OFFSET_MINUTES")
 MT5_STALE_TICK_SECONDS = env("MT5_STALE_TICK_SECONDS")
 MT5_TICK_RETENTION_DAYS = env("MT5_TICK_RETENTION_DAYS")
 
