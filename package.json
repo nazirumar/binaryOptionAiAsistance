@@ -1,0 +1,14 @@
+{
+  "name": "nazbeen-academy-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Compiled Tailwind build for the Nazbeen Academy Binary Ai Asisstance frontend.",
+  "scripts": {
+    "build:css": "tailwindcss -i ./assets/css/tailwind.source.css -o ./static/css/app.css --minify",
+    "build:css:dev": "tailwindcss -i ./assets/css/tailwind.source.css -o ./static/css/app.css",
+    "watch:css": "tailwindcss -i ./assets/css/tailwind.source.css -o ./static/css/app.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}

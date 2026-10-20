@@ -1,0 +1,74 @@
+/*
+ * Buttons — one primary action, one quiet secondary, plus danger + ghost.
+ *
+ * Every button variant shares size + focus behaviour so actions read
+ * consistently across the whole application.
+ */
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md
+      px-4 py-2 text-sm font-semibold leading-none
+      transition-colors duration-fast ease-standard
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn:focus-visible {
+    @apply ring-2 ring-brand-500 ring-offset-2 ring-offset-surface-light-muted dark:ring-offset-surface-dark;
+  }
+
+  /* Primary — the single most important action on a view. */
+  .btn-primary {
+    @apply bg-brand-600 text-white shadow-xs hover:bg-brand-500 active:bg-brand-700;
+  }
+
+  /* Secondary — quiet, borders only. */
+  .btn-secondary {
+    @apply border border-surface-light-border bg-white text-slate-700
+      hover:bg-slate-50 active:bg-slate-100
+      dark:border-surface-dark-border dark:bg-surface-dark-raised dark:text-slate-200
+      dark:hover:bg-surface-dark-overlay;
+  }
+
+  /* Ghost — inline / toolbar actions. */
+  .btn-ghost {
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900
+      dark:text-slate-400 dark:hover:bg-surface-dark-overlay dark:hover:text-slate-100;
+  }
+
+  /* Danger — destructive actions. Always pair with a confirmation dialog. */
+  .btn-danger {
+    @apply bg-status-danger text-white shadow-xs hover:brightness-110 active:brightness-95;
+  }
+
+  /* Subtle danger — destructive but not the page's primary focus. */
+  .btn-danger-subtle {
+    @apply border border-status-danger/40 text-status-danger-fg
+      hover:bg-status-danger-soft
+      dark:text-status-danger-dark dark:hover:bg-status-danger-dark-soft;
+  }
+
+  /* Sizes. */
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-lg {
+    @apply px-5 py-2.5 text-base;
+  }
+  .btn-icon {
+    @apply h-9 w-9 p-0;
+  }
+
+  /* A button that renders as a link (keeps semantics + focus ring). */
+  .btn-link {
+    @apply inline-flex items-center gap-1 font-semibold text-brand-600 underline-offset-2
+      hover:text-brand-500 hover:underline
+      dark:text-brand-300 dark:hover:text-brand-200;
+  }
+
+  /* Pending state — buttons swap their label for this while a request is in
+   * flight (driven by tiny JS, or by HTMX via .htmx-request). */
+  .btn[aria-busy="true"],
+  .htmx-request .btn {
+    @apply cursor-progress opacity-80;
+  }
+}

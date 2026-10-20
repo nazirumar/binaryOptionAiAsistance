@@ -53,3 +53,13 @@ celerybeat.pid
 
 # Generated validation artifacts (regenerable via manage.py commands)
 docs/artifacts/
+
+# Frontend build tooling — dependencies are NOT committed; the compiled
+# stylesheet (static/css/app.css) IS committed so production collectstatic
+# works with no Node at deploy time.
+node_modules/
+npm-debug.log*
+.npm/
+
+# Source reference material that must never be published.
+ilide.info-*.pdf

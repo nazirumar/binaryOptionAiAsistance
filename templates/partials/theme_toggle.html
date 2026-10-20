@@ -1,15 +1,15 @@
+{% comment %}
+Theme toggle — flips between light and dark. The button carries an aria-pressed
+state (dark = pressed) that static/js/theme.js keeps in sync.
+{% endcomment %}
 <button
   type="button"
   id="theme-toggle"
-  class="grid h-9 w-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-  aria-label="Toggle color theme"
-  title="Toggle light/dark theme"
+  class="btn btn-ghost btn-icon tooltip"
+  data-tooltip="Toggle theme"
+  aria-label="Toggle dark mode"
+  aria-pressed="{{ theme|yesno:'false,false' }}"
 >
-  <svg class="h-4 w-4 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-  </svg>
-  <svg class="hidden h-4 w-4 dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-    <circle cx="12" cy="12" r="4" />
-    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-  </svg>
+  <svg class="h-5 w-5 dark:hidden" aria-hidden="true"><use href="#icon-moon"></use></svg>
+  <svg class="hidden h-5 w-5 dark:block" aria-hidden="true"><use href="#icon-sun"></use></svg>
 </button>

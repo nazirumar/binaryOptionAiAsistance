@@ -1,0 +1,131 @@
+/*
+ * Feedback — toasts, skeleton loaders, spinners, tooltips, dialogs and
+ * accessible live regions.
+ */
+@layer components {
+  /* --- Toast notifications --------------------------------------------- */
+  .toast-region {
+    @apply pointer-events-none fixed inset-x-0 top-4 z-[90] flex flex-col items-center gap-2 px-4 sm:items-end sm:pr-6;
+  }
+  .toast {
+    @apply pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border p-4 shadow-overlay
+      animate-slide-up;
+  }
+  .toast-success {
+    @apply border-status-success/30 bg-white text-slate-700 dark:border-status-success/30 dark:bg-surface-dark-overlay dark:text-slate-200;
+  }
+  .toast-error {
+    @apply border-status-danger/40 bg-white text-slate-700 dark:border-status-danger/40 dark:bg-surface-dark-overlay dark:text-slate-200;
+  }
+  .toast-info {
+    @apply border-brand-200 bg-white text-slate-700 dark:border-brand-900 dark:bg-surface-dark-overlay dark:text-slate-200;
+  }
+  .toast-title {
+    @apply text-sm font-semibold text-slate-900 dark:text-slate-50;
+  }
+  .toast-text {
+    @apply mt-0.5 text-caption text-slate-500 dark:text-slate-400;
+  }
+  .toast-close {
+    @apply ml-auto rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700
+      dark:hover:bg-surface-dark-raised dark:hover:text-slate-200;
+  }
+
+  /* --- Skeleton loaders ------------------------------------------------- */
+  .skeleton {
+    @apply relative overflow-hidden rounded bg-slate-200/80 dark:bg-surface-dark-overlay;
+  }
+  .skeleton::after {
+    @apply absolute inset-0 block;
+    content: "";
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.35),
+      transparent
+    );
+    transform: translateX(-100%);
+    animation: shimmer 1.6s infinite;
+  }
+  .dark .skeleton::after {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.06),
+      transparent
+    );
+  }
+  .skeleton-text {
+    @apply skeleton h-3 w-full;
+  }
+  .skeleton-title {
+    @apply skeleton h-5 w-1/3;
+  }
+
+  /* --- Spinner ---------------------------------------------------------- */
+  .spinner {
+    @apply inline-block h-4 w-4 animate-spin-slow rounded-full border-2 border-current border-r-transparent align-[-0.125em];
+    border-top-color: transparent;
+  }
+  .spinner-lg {
+    @apply h-6 w-6 border-[3px];
+  }
+
+  /* --- Tooltip (CSS-only, driven by data-tooltip) ----------------------- */
+  .tooltip {
+    @apply relative;
+  }
+  .tooltip::after {
+    content: attr(data-tooltip);
+    @apply pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-max max-w-xs -translate-x-1/2
+      scale-95 rounded-md bg-slate-900 px-2.5 py-1.5 text-caption font-medium text-white opacity-0
+      shadow-lg transition-all duration-fast ease-standard;
+  }
+  .tooltip:hover::after,
+  .tooltip:focus-visible::after {
+    @apply scale-100 opacity-100;
+  }
+
+  /* --- Dialog ----------------------------------------------------------- */
+  .dialog {
+    @apply m-auto w-full max-w-lg rounded-xl border border-surface-light-border bg-white p-6 shadow-overlay
+      dark:border-surface-dark-border dark:bg-surface-dark-overlay;
+  }
+  .dialog::backdrop {
+    background-color: rgb(2 6 23 / 0.5);
+    backdrop-filter: blur(2px);
+  }
+  .dialog-title {
+    @apply text-heading font-semibold text-slate-900 dark:text-slate-50;
+  }
+  .dialog-text {
+    @apply mt-2 text-sm text-slate-500 dark:text-slate-400;
+  }
+  .dialog-actions {
+    @apply mt-6 flex flex-wrap justify-end gap-3;
+  }
+
+  /* --- Expandable section (accessible <details>) ------------------------ */
+  .disclosure {
+    @apply rounded-lg border border-surface-light-border bg-white dark:border-surface-dark-border dark:bg-surface-dark-raised;
+  }
+  .disclosure > summary {
+    @apply flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold
+      text-slate-700 transition-colors hover:bg-slate-50
+      dark:text-slate-200 dark:hover:bg-surface-dark-overlay;
+  }
+  .disclosure > summary::-webkit-details-marker {
+    display: none;
+  }
+  .disclosure[open] > summary {
+    @apply border-b border-surface-light-border dark:border-surface-dark-border;
+  }
+  .disclosure-body {
+    @apply p-4;
+  }
+
+  /* --- Live region (visually hidden but announced) ---------------------- */
+  .live-region {
+    @apply sr-only;
+  }
+}

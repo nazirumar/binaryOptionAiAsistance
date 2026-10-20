@@ -1,0 +1,189 @@
+/*
+ * Surfaces — cards, panels, metric cards, section headers, badges,
+ * breadcrumbs, dialogs and empty/error states.
+ *
+ * One card recipe is used everywhere so spacing and borders never drift.
+ */
+@layer components {
+  /* --- Card / panel ---------------------------------------------------- */
+  .card {
+    @apply rounded-lg border border-surface-light-border bg-white shadow-card
+      dark:border-surface-dark-border dark:bg-surface-dark-raised dark:shadow-dark-card;
+  }
+
+  .card-body {
+    @apply p-5;
+  }
+
+  .card-header {
+    @apply flex flex-wrap items-center justify-between gap-3 border-b border-surface-light-border px-5 py-4
+      dark:border-surface-dark-border;
+  }
+
+  .card-title {
+    @apply text-heading font-semibold text-slate-900 dark:text-slate-50;
+  }
+
+  .card-subtitle {
+    @apply mt-0.5 text-sm text-slate-500 dark:text-slate-400;
+  }
+
+  /* Interactive card — used when the whole card is a link/target. */
+  .card-interactive {
+    @apply transition-all duration-fast ease-standard hover:-translate-y-0.5
+      hover:border-brand-300 hover:shadow-raised dark:hover:border-brand-700;
+  }
+
+  /* --- Page header ------------------------------------------------------ */
+  .page-header {
+    @apply mb-6 flex flex-wrap items-end justify-between gap-4;
+  }
+
+  .page-eyebrow {
+    @apply text-eyebrow uppercase text-brand-600 dark:text-brand-300;
+  }
+
+  .page-title {
+    @apply mt-1 text-title font-bold text-slate-900 dark:text-slate-50;
+  }
+
+  .page-description {
+    @apply mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400;
+  }
+
+  /* --- Section header --------------------------------------------------- */
+  .section-header {
+    @apply mb-3 flex flex-wrap items-center justify-between gap-2;
+  }
+
+  .section-title {
+    @apply text-heading font-semibold text-slate-900 dark:text-slate-100;
+  }
+
+  /* --- Metric card ------------------------------------------------------ */
+  .metric {
+    @apply flex flex-col gap-1 rounded-lg border border-surface-light-border bg-white p-4 shadow-card
+      dark:border-surface-dark-border dark:bg-surface-dark-raised dark:shadow-dark-card;
+  }
+
+  .metric-label {
+    @apply text-caption font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400;
+  }
+
+  .metric-value {
+    @apply text-2xl font-bold tabular-nums text-slate-900 dark:text-slate-50;
+  }
+
+  .metric-caption {
+    @apply text-caption text-slate-500 dark:text-slate-400;
+  }
+
+  /* --- Status badges ---------------------------------------------------- */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-caption font-semibold;
+  }
+  .badge-success {
+    @apply bg-status-success-soft text-status-success-fg dark:bg-status-success-dark-soft dark:text-status-success-dark;
+  }
+  .badge-warning {
+    @apply bg-status-warning-soft text-status-warning-fg dark:bg-status-warning-dark-soft dark:text-status-warning-dark;
+  }
+  .badge-danger {
+    @apply bg-status-danger-soft text-status-danger-fg dark:bg-status-danger-dark-soft dark:text-status-danger-dark;
+  }
+  .badge-info {
+    @apply bg-status-info-soft text-status-info-fg dark:bg-status-info-dark-soft dark:text-status-info-dark;
+  }
+  .badge-neutral {
+    @apply bg-status-neutral-soft text-status-neutral-fg dark:bg-status-neutral-dark-soft dark:text-status-neutral-dark;
+  }
+  .badge-brand {
+    @apply bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300;
+  }
+
+  /* A leading dot for status indicators. */
+  .status-dot {
+    @apply inline-block h-2 w-2 shrink-0 rounded-full;
+  }
+  .status-dot-success {
+    @apply bg-status-success;
+  }
+  .status-dot-warning {
+    @apply bg-status-warning;
+  }
+  .status-dot-danger {
+    @apply bg-status-danger;
+  }
+  .status-dot-info {
+    @apply bg-status-info;
+  }
+  .status-dot-neutral {
+    @apply bg-status-neutral;
+  }
+  /* Only animate "live"/in-progress dots; static states stay still. */
+  .status-dot-pulse {
+    @apply animate-pulse-soft;
+  }
+
+  /* --- Breadcrumbs ------------------------------------------------------ */
+  .breadcrumbs {
+    @apply flex flex-wrap items-center gap-1.5 text-caption text-slate-500 dark:text-slate-400;
+  }
+  .breadcrumbs a {
+    @apply rounded px-1 py-0.5 font-medium text-slate-600 hover:text-brand-600 hover:underline
+      dark:text-slate-400 dark:hover:text-brand-300;
+  }
+  .breadcrumbs [aria-current="page"] {
+    @apply font-semibold text-slate-900 dark:text-slate-100;
+  }
+  .breadcrumbs .sep {
+    @apply select-none text-slate-400 dark:text-slate-600;
+  }
+
+  /* --- Empty & error states --------------------------------------------- */
+  .empty-state {
+    @apply flex flex-col items-center gap-3 rounded-lg border border-dashed border-surface-light-border
+      bg-white/50 px-6 py-12 text-center
+      dark:border-surface-dark-border dark:bg-surface-dark-raised/50;
+  }
+  .empty-state-icon {
+    @apply grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400
+      dark:bg-surface-dark-overlay dark:text-slate-500;
+  }
+  .empty-state-title {
+    @apply text-base font-semibold text-slate-900 dark:text-slate-100;
+  }
+  .empty-state-text {
+    @apply max-w-md text-sm text-slate-500 dark:text-slate-400;
+  }
+
+  .error-state {
+    @apply flex items-start gap-3 rounded-lg border border-status-danger/40
+      bg-status-danger-soft p-4 text-sm text-status-danger-fg
+      dark:border-status-danger/30 dark:bg-status-danger-dark-soft dark:text-status-danger-dark;
+  }
+
+  /* --- Info / notice banners -------------------------------------------- */
+  .notice {
+    @apply flex items-start gap-3 rounded-lg border p-4 text-sm;
+  }
+  .notice-info {
+    @apply border-status-info/30 bg-status-info-soft text-status-info-fg
+      dark:bg-status-info-dark-soft dark:text-status-info-dark;
+  }
+  .notice-warning {
+    @apply border-status-warning/30 bg-status-warning-soft text-status-warning-fg
+      dark:bg-status-warning-dark-soft dark:text-status-warning-dark;
+  }
+  .notice-danger {
+    @apply border-status-danger/30 bg-status-danger-soft text-status-danger-fg
+      dark:bg-status-danger-dark-soft dark:text-status-danger-dark;
+  }
+  .notice-brand {
+    @apply border-brand-200 bg-brand-50 text-brand-800 dark:border-brand-900 dark:bg-brand-950 dark:text-brand-200;
+  }
+  .notice-neutral {
+    @apply border-surface-light-border bg-white text-slate-600
+      dark:border-surface-dark-border dark:bg-surface-dark-raised dark:text-slate-300;
+  }
+}

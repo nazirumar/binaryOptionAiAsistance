@@ -21,6 +21,14 @@
   function apply(theme) {
     root.classList.toggle("dark", theme === "dark");
     persist(theme);
+    syncToggle(theme === "dark");
+  }
+
+  function syncToggle(isDark) {
+    var button = document.getElementById("theme-toggle");
+    if (button) {
+      button.setAttribute("aria-pressed", isDark ? "true" : "false");
+    }
   }
 
   // Apply the locally remembered theme before the toggle is even used, to
@@ -35,6 +43,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    syncToggle(root.classList.contains("dark"));
     var button = document.getElementById("theme-toggle");
     if (!button) {
       return;

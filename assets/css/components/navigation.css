@@ -1,0 +1,151 @@
+/*
+ * Navigation — the application shell (sidebar + top bar), nav items, tabs,
+ * dropdown menus, the mobile drawer and the public header.
+ */
+@layer components {
+  /* --- App shell -------------------------------------------------------- */
+  .app-shell {
+    @apply min-h-screen;
+  }
+
+  /* Sidebar: fixed on desktop, off-canvas drawer on mobile. */
+  .sidebar {
+    @apply fixed inset-y-0 left-0 z-40 flex w-[var(--sidebar-width)] flex-col
+      border-r border-surface-light-border bg-white
+      transition-[transform,width] duration-slow ease-standard
+      dark:border-surface-dark-border dark:bg-surface-dark-raised;
+    transform: translateX(-100%);
+  }
+  .sidebar.is-open {
+    transform: translateX(0);
+  }
+  @screen lg {
+    .sidebar {
+      transform: translateX(0);
+    }
+    /* Collapsed (icon-only) rail on desktop. */
+    .app-shell[data-sidebar="collapsed"] .sidebar {
+      width: var(--sidebar-width-collapsed);
+    }
+  }
+
+  .sidebar-brand {
+    @apply flex h-[var(--topbar-height)] shrink-0 items-center gap-2.5 border-b
+      border-surface-light-border px-4 dark:border-surface-dark-border;
+  }
+
+  .sidebar-nav {
+    @apply flex-1 space-y-1 overflow-y-auto px-3 py-4;
+  }
+
+  .nav-group-label {
+    @apply px-3 pb-1 pt-4 text-eyebrow uppercase text-slate-400 first:pt-0 dark:text-slate-500;
+  }
+
+  .nav-item {
+    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-600
+      transition-colors duration-fast ease-standard
+      hover:bg-slate-100 hover:text-slate-900
+      dark:text-slate-400 dark:hover:bg-surface-dark-overlay dark:hover:text-slate-100;
+  }
+  .nav-item svg {
+    @apply h-5 w-5 shrink-0;
+  }
+  .nav-item[aria-current="page"] {
+    @apply bg-brand-50 font-semibold text-brand-700
+      dark:bg-brand-950/60 dark:text-brand-200;
+  }
+  .nav-item[aria-current="page"] svg {
+    @apply text-brand-600 dark:text-brand-300;
+  }
+
+  /* Collapsed rail hides labels but keeps icons + tooltips. */
+  .app-shell[data-sidebar="collapsed"] .nav-item-label,
+  .app-shell[data-sidebar="collapsed"] .nav-group-label,
+  .app-shell[data-sidebar="collapsed"] .sidebar-brand-text {
+    @apply sr-only;
+  }
+
+  /* --- Top bar ---------------------------------------------------------- */
+  .topbar {
+    @apply sticky top-0 z-30 flex h-[var(--topbar-height)] items-center gap-3 border-b
+      border-surface-light-border bg-white/80 px-4 backdrop-blur
+      dark:border-surface-dark-border dark:bg-surface-dark/80;
+  }
+
+  .main-content {
+    @apply px-4 py-6 sm:px-6 lg:px-8;
+  }
+
+  /* On mobile the content sits under the (closed) drawer; on desktop it is
+   * offset by the sidebar width. */
+  .shell-body {
+    @apply flex min-h-screen flex-col transition-[padding] duration-slow ease-standard;
+  }
+  @screen lg {
+    .shell-body {
+      padding-left: var(--sidebar-width);
+    }
+    .app-shell[data-sidebar="collapsed"] .shell-body {
+      padding-left: var(--sidebar-width-collapsed);
+    }
+  }
+
+  /* Scrim behind the mobile drawer. */
+  .drawer-scrim {
+    @apply fixed inset-0 z-30 bg-slate-900/50 opacity-0 transition-opacity duration-base ease-standard lg:hidden;
+    pointer-events: none;
+  }
+  .drawer-scrim.is-visible {
+    @apply opacity-100;
+    pointer-events: auto;
+  }
+
+  /* --- Tabs ------------------------------------------------------------- */
+  .tabs {
+    @apply flex flex-wrap items-center gap-1 border-b border-surface-light-border dark:border-surface-dark-border;
+  }
+  .tab {
+    @apply -mb-px border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-slate-500
+      transition-colors duration-fast ease-standard
+      hover:border-slate-300 hover:text-slate-800
+      dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-100;
+  }
+  .tab[aria-selected="true"],
+  .tab.is-active {
+    @apply border-brand-500 text-brand-700 dark:border-brand-400 dark:text-brand-200;
+  }
+
+  /* --- Dropdown / profile menu ------------------------------------------ */
+  .menu {
+    @apply absolute right-0 top-full z-50 mt-2 w-56 origin-top-right rounded-lg border
+      border-surface-light-border bg-white p-1 shadow-overlay
+      dark:border-surface-dark-border dark:bg-surface-dark-overlay;
+  }
+  .menu[hidden] {
+    display: none;
+  }
+  .menu-item {
+    @apply flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-slate-600
+      transition-colors duration-fast ease-standard
+      hover:bg-slate-100 hover:text-slate-900
+      dark:text-slate-300 dark:hover:bg-surface-dark-raised dark:hover:text-white;
+  }
+  .menu-divider {
+    @apply my-1 border-t border-surface-light-border dark:border-surface-dark-border;
+  }
+
+  /* --- Public header ---------------------------------------------------- */
+  .site-header {
+    @apply sticky top-0 z-30 border-b border-surface-light-border bg-white/80 backdrop-blur
+      dark:border-surface-dark-border dark:bg-surface-dark/80;
+  }
+  .site-nav-link {
+    @apply rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors
+      duration-fast ease-standard hover:bg-slate-100 hover:text-slate-900
+      dark:text-slate-300 dark:hover:bg-surface-dark-overlay dark:hover:text-white;
+  }
+  .site-nav-link[aria-current="page"] {
+    @apply text-brand-700 dark:text-brand-200;
+  }
+}

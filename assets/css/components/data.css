@@ -1,0 +1,108 @@
+/*
+ * Data display — tables, pagination, chart containers and definition lists.
+ */
+@layer components {
+  /* --- Tables ----------------------------------------------------------- */
+  .table {
+    @apply w-full border-collapse text-left text-sm;
+  }
+  .table thead th {
+    @apply whitespace-nowrap border-b border-surface-light-border px-4 py-3
+      text-caption font-semibold uppercase tracking-wide text-slate-500
+      dark:border-surface-dark-border dark:text-slate-400;
+  }
+  .table tbody td {
+    @apply border-b border-surface-light-border px-4 py-3 text-slate-700
+      dark:border-surface-dark-border dark:text-slate-300;
+  }
+  .table tbody tr {
+    @apply transition-colors duration-fast ease-standard hover:bg-slate-50
+      dark:hover:bg-surface-dark-overlay/60;
+  }
+  .table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+  .table-numeric {
+    @apply text-right tabular-nums;
+  }
+
+  /* Card-wrapped table with horizontal scroll fallback. */
+  .table-card {
+    @apply card overflow-hidden;
+  }
+  .table-wrapper {
+    @apply -mx-px overflow-x-auto;
+  }
+
+  /* Mobile behaviour: stack each row into a labelled card. Apply
+   * `data-label` to each <td> so the label renders on small screens. */
+  @media (max-width: 639px) {
+    .table-responsive thead {
+      @apply sr-only;
+    }
+    .table-responsive tbody tr {
+      @apply mb-3 block rounded-lg border border-surface-light-border p-3
+        dark:border-surface-dark-border;
+    }
+    .table-responsive tbody td {
+      @apply flex items-center justify-between gap-4 border-b-0 px-0 py-1.5;
+    }
+    .table-responsive tbody td::before {
+      content: attr(data-label);
+      @apply text-caption font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400;
+    }
+  }
+
+  /* --- Pagination ------------------------------------------------------- */
+  .pagination {
+    @apply flex items-center justify-between gap-3 border-t border-surface-light-border px-4 py-3
+      dark:border-surface-dark-border;
+  }
+  .pagination-meta {
+    @apply text-caption text-slate-500 dark:text-slate-400;
+  }
+  .pagination-controls {
+    @apply flex items-center gap-1.5;
+  }
+  .page-link {
+    @apply inline-flex items-center gap-1 rounded-md border border-surface-light-border px-3 py-1.5
+      text-sm font-medium text-slate-600 transition-colors duration-fast ease-standard
+      hover:bg-slate-50 hover:text-slate-900
+      dark:border-surface-dark-border dark:text-slate-300 dark:hover:bg-surface-dark-overlay;
+  }
+  .page-link[aria-disabled="true"],
+  .page-link.is-disabled {
+    @apply pointer-events-none opacity-40;
+  }
+
+  /* --- Charts ----------------------------------------------------------- */
+  .chart-container {
+    @apply relative w-full rounded-lg border border-surface-light-border bg-white p-4
+      dark:border-surface-dark-border dark:bg-surface-dark-raised;
+  }
+  .chart-title {
+    @apply mb-3 text-sm font-semibold text-slate-700 dark:text-slate-200;
+  }
+  .chart-canvas {
+    @apply block w-full;
+  }
+  .chart-empty {
+    @apply flex h-40 items-center justify-center rounded-md border border-dashed
+      border-surface-light-border text-sm text-slate-400
+      dark:border-surface-dark-border dark:text-slate-500;
+  }
+
+  /* --- Definition list / key-value rows --------------------------------- */
+  .kv-list {
+    @apply divide-y divide-surface-light-border dark:divide-surface-dark-border;
+  }
+  .kv-row {
+    @apply flex flex-wrap items-baseline justify-between gap-2 py-2.5;
+  }
+  .kv-key {
+    @apply text-sm text-slate-500 dark:text-slate-400;
+  }
+  .kv-value {
+    @apply text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100;
+  }
+}

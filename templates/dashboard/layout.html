@@ -1,46 +1,175 @@
 {% extends "base.html" %}
-{% block content %}
-<div class="flex flex-col gap-6 lg:flex-row lg:items-start">
-  <!-- Sidebar navigation -->
-  <aside class="w-full shrink-0 lg:w-60">
-    <nav aria-label="Dashboard sections"
-         class="rounded-xl border border-slate-200 bg-white p-2 dark:border-slate-800 dark:bg-slate-900">
-      <p class="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Analytics</p>
-      <a href="{% url 'dashboard:overview' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Overview</a>
-      <a href="{% url 'dashboard:analyses' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Analysis history</a>
-      <a href="{% url 'dashboard:assistant' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">AI assistant</a>
-      <a href="{% url 'dashboard:analytics' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Strategy analytics</a>
-      <a href="{% url 'dashboard:probability' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Probability &amp; calibration</a>
 
-      <p class="mt-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Trading</p>
-      <a href="{% url 'dashboard:journal' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Trading journal</a>
-      <a href="{% url 'dashboard:journal-performance' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Journal performance</a>
+{% comment %}
+The authenticated application shell: collapsible sidebar, compact top bar with
+breadcrumbs, a profile menu and a theme switcher. Pages extend this template and
+fill `{% block page_content %}`. The shell also exposes optional blocks:
+`page_actions`, `page_tabs` and `extra_js` (from base).
 
-      <p class="mt-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Data</p>
-      <a href="{% url 'dashboard:market-health' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Market data health</a>
-      <a href="{% url 'dashboard:backtests' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Backtests</a>
-      <a href="{% url 'dashboard:knowledge' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Knowledge library</a>
-      <a href="{% url 'dashboard:strategy-library' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Strategy library</a>
-      <a href="{% url 'dashboard:book-strategies' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Book strategies</a>
-      <a href="{% url 'dashboard:forward-testing' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Forward testing</a>
-      <a href="{% url 'dashboard:screenshot-cases' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Screenshot cases</a>
-      <a href="{% url 'dashboard:review-queue' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Review queue</a>
+Navigation comes from `nav_groups` (apps/core/navigation.py), so the sidebar and
+the breadcrumbs can never disagree.
+{% endcomment %}
 
-      <p class="mt-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Reports</p>
-      <a href="{% url 'dashboard:reports' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Exports &amp; reports</a>
-      <a href="{% url 'dashboard:settings' %}" class="block rounded-lg px-3 py-2 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Settings</a>
+{% block title %}{% block page_title %}{{ page_label|default:"Dashboard" }}{% endblock %} · {{ app_name }}{% endblock %}
 
-      <hr class="my-2 border-slate-200 dark:border-slate-800" />
-      <a href="{% url 'dashboard:index' %}" class="block rounded-lg px-3 py-2 text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">← Main dashboard</a>
+{% block body %}
+<div class="app-shell" data-app-shell data-sidebar="expanded">
+
+  {# ---- Sidebar (desktop rail + mobile drawer) ------------------------- #}
+  <aside class="sidebar" id="app-sidebar" aria-label="Application navigation">
+    <div class="sidebar-brand">
+      <a href="{% url 'dashboard:index' %}" class="flex items-center gap-2.5 font-semibold text-slate-900 dark:text-white">
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white shadow-xs">NA</span>
+        <span class="sidebar-brand-text truncate">Nazbeen Academy <span class="text-brand-500">AI</span></span>
+      </a>
+      <button type="button" class="btn btn-ghost btn-icon ml-auto lg:hidden" data-sidebar-toggle
+              aria-controls="app-sidebar" aria-expanded="false" aria-label="Close navigation">
+        <svg class="h-5 w-5" aria-hidden="true"><use href="#icon-close"></use></svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      {% for group in nav_groups %}
+        {% if group.collapsible %}
+          <details class="group/disclosure" {% if page_group == group.label %}open{% endif %}>
+            <summary class="nav-group-label flex cursor-pointer list-none items-center gap-2 marker:hidden">
+              <svg class="h-3.5 w-3.5 transition-transform duration-fast group-open/disclosure:rotate-90" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+              <span>{{ group.label }}</span>
+            </summary>
+            <div class="mt-1 space-y-1">
+              {% for item in group.entries %}
+                <a href="{% url item.url_name %}" class="nav-item"
+                   {% if current_url_name == item.url_name or current_url_name in item.match %}aria-current="page"{% endif %}
+                   {% if current_url_name == item.url_name or current_url_name in item.match %}data-active="true"{% endif %}
+                   title="{{ item.label }}">
+                  <svg aria-hidden="true"><use href="#{{ item.icon }}"></use></svg>
+                  <span class="nav-item-label truncate">{{ item.label }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </details>
+        {% else %}
+          <p class="nav-group-label">{{ group.label }}</p>
+          <div class="space-y-1">
+            {% for item in group.entries %}
+              <a href="{% url item.url_name %}" class="nav-item"
+                 {% if current_url_name == item.url_name or current_url_name in item.match %}aria-current="page"{% endif %}
+                 title="{{ item.label }}">
+                <svg aria-hidden="true"><use href="#{{ item.icon }}"></use></svg>
+                <span class="nav-item-label truncate">{{ item.label }}</span>
+              </a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endfor %}
+
+      {# Account group (inline in the sidebar; also in the profile menu). #}
+      <p class="nav-group-label">Account</p>
+      <div class="space-y-1">
+        {% for item in account_entries %}
+          <a href="{% url item.url_name %}" class="nav-item"
+             {% if current_url_name == item.url_name %}aria-current="page"{% endif %}
+             title="{{ item.label }}">
+            <svg aria-hidden="true"><use href="#{{ item.icon }}"></use></svg>
+            <span class="nav-item-label truncate">{{ item.label }}</span>
+          </a>
+        {% endfor %}
+        <form method="post" action="{% url 'accounts:logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="nav-item w-full text-left" title="Sign out">
+            <svg aria-hidden="true"><use href="#icon-logout"></use></svg>
+            <span class="nav-item-label truncate">Sign Out</span>
+          </button>
+        </form>
+      </div>
     </nav>
-    <div class="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900">
+
+    <div class="sidebar-brand-text border-t border-surface-light-border p-3 text-caption text-slate-500 dark:border-surface-dark-border dark:text-slate-400">
       Analysis and research only. This application never places trades.
     </div>
   </aside>
 
-  <!-- Page content -->
-  <div class="min-w-0 flex-1">
-    {% block page_content %}{% endblock %}
+  {# Scrim behind the mobile drawer #}
+  <div class="drawer-scrim" data-drawer-scrim aria-hidden="true"></div>
+
+  {# ---- Body: topbar + content ---------------------------------------- #}
+  <div class="shell-body">
+    <header class="topbar" role="banner">
+      {# Drawer / collapse toggle #}
+      <button type="button" class="btn btn-ghost btn-icon" data-sidebar-toggle
+              aria-controls="app-sidebar" aria-expanded="false"
+              aria-label="Toggle navigation">
+        <svg class="h-5 w-5 lg:hidden" aria-hidden="true"><use href="#icon-menu"></use></svg>
+        <svg class="hidden h-5 w-5 lg:block" aria-hidden="true"><use href="#icon-sidebar-collapse"></use></svg>
+      </button>
+
+      {# Breadcrumbs (small) + current page title #}
+      <div class="min-w-0 flex-1">
+        {% if breadcrumbs %}
+          <nav class="breadcrumbs" aria-label="Breadcrumb">
+            <a href="{% url 'dashboard:index' %}">Dashboard</a>
+            {% for crumb in breadcrumbs %}
+              <span class="sep" aria-hidden="true">/</span>
+              {% if crumb.url_name %}
+                <a href="{% url crumb.url_name %}">{{ crumb.label }}</a>
+              {% else %}
+                <span aria-current="page">{{ crumb.label }}</span>
+              {% endif %}
+            {% endfor %}
+          </nav>
+        {% endif %}
+      </div>
+
+      {# Top-bar actions: notifications + profile menu + theme #}
+      <div class="flex items-center gap-1.5">
+        <button type="button" class="btn btn-ghost btn-icon tooltip" data-tooltip="Notifications"
+                aria-label="Notifications" disabled>
+          <svg class="h-5 w-5" aria-hidden="true"><use href="#icon-bell"></use></svg>
+        </button>
+
+        {% include "partials/theme_toggle.html" %}
+
+        <div class="relative">
+          <button type="button" class="btn btn-ghost gap-2 pl-1.5 pr-2.5" data-menu-toggle
+                  aria-controls="profile-menu" aria-expanded="false" aria-haspopup="true">
+            <span class="grid h-7 w-7 place-items-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-200">
+              {{ user.name|default:user.username|slice:":1"|upper }}
+            </span>
+            <span class="hidden max-w-[9rem] truncate sm:inline">{{ user.name|default:user.username }}</span>
+            <svg class="hidden h-4 w-4 sm:block" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
+          </button>
+          <div class="menu" id="profile-menu" data-menu hidden>
+            <div class="px-3 py-2">
+              <p class="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{{ user.name|default:user.username }}</p>
+              <p class="truncate text-caption text-slate-500 dark:text-slate-400">{{ user.email }}</p>
+            </div>
+            <div class="menu-divider"></div>
+            {% for item in account_entries %}
+              <a href="{% url item.url_name %}" class="menu-item">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#{{ item.icon }}"></use></svg>
+                {{ item.label }}
+              </a>
+            {% endfor %}
+            <div class="menu-divider"></div>
+            <form method="post" action="{% url 'accounts:logout' %}">
+              {% csrf_token %}
+              <button type="submit" class="menu-item w-full text-left">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-logout"></use></svg>
+                Sign Out
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main-content" class="main-content mx-auto w-full max-w-workspace flex-1">
+      {% block page_content %}{% endblock %}
+    </main>
+
+    <footer class="border-t border-surface-light-border px-6 py-5 text-caption text-slate-500 dark:border-surface-dark-border dark:text-slate-500">
+      <p>{{ app_name }} · v{{ app_version }} · Analysis and research tool only — it never places trades.</p>
+    </footer>
   </div>
 </div>
 {% endblock %}

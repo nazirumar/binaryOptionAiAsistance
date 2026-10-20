@@ -1,75 +1,79 @@
 {% load static %}<!doctype html>
-<html lang="en" class="{% if theme == 'dark' %}dark{% endif %}">
+<html lang="en"{% if theme == 'dark' %} class="dark"{% endif %}>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="AI-powered binary-option chart analysis and research assistant. Analysis only — never places trades." />
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
 
-  <!-- Tailwind (CDN build for the foundation phase; replaced by a compiled
-       pipeline in a later phase). Dark mode is class-based. -->
-  <script>
-    tailwind = { config: { darkMode: "class" } };
-  </script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  {% comment %}
+    Compiled, versioned Tailwind build (static/css/app.css). The CDN build was
+    removed so the stylesheet works under a strict Content-Security-Policy and
+    ships as a committed static asset. Rebuild with `npm run build:css`.
+  {% endcomment %}
   <link rel="stylesheet" href="{% static 'css/app.css' %}" />
 
-  <!-- HTMX for progressive enhancement -->
-  <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
+  {% comment %} HTMX is vendored locally (static/vendor/htmx.min.js) — no CDN. {% endcomment %}
+  <script src="{% static 'vendor/htmx.min.js' %}" defer></script>
 </head>
-<body
-  class="min-h-screen bg-slate-50 text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100"
-  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
->
-  <div class="flex min-h-screen flex-col">
-    <header class="border-b border-slate-200 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
-      <nav class="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <a href="{% url 'home' %}" class="flex items-center gap-2 font-semibold">
-          <span class="grid h-8 w-8 place-items-center rounded-lg bg-indigo-600 text-sm font-bold text-white">NA</span>
-          <span class="hidden sm:inline">Nazbeen Academy <span class="text-indigo-500">AI</span></span>
-        </a>
-        <div class="flex items-center gap-2">
-          {% if user.is_authenticated %}
-            <a href="{% url 'dashboard:index' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Dashboard</a>
-            <a href="{% url 'dashboard:vision' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Screenshots</a>
-            <a href="{% url 'dashboard:sync' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Sync</a>
-            <a href="{% url 'dashboard:journal' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Journal</a>
-            <a href="{% url 'dashboard:reports' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Reports</a>
-            <a href="{% url 'dashboard:settings' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Settings</a>
-            <form method="post" action="{% url 'accounts:logout' %}">
-              {% csrf_token %}
-              <button type="submit" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Sign out</button>
-            </form>
-          {% else %}
-            <a href="{% url 'accounts:login' %}" class="rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800">Sign in</a>
-            <a href="{% url 'accounts:signup' %}" class="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500">Create account</a>
-          {% endif %}
-          {% include "partials/theme_toggle.html" %}
-        </div>
-      </nav>
-    </header>
+<body class="min-h-screen" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
 
+  {% include "partials/icons.html" %}
+
+  <div class="flex min-h-screen flex-col">
+    {% block shell_header %}
+      <header class="site-header">
+        <nav class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4" aria-label="Primary">
+          <a href="{% url 'home' %}" class="flex items-center gap-2.5 font-semibold text-slate-900 dark:text-white">
+            <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white shadow-xs">NA</span>
+            <span class="hidden sm:inline">Nazbeen Academy <span class="text-brand-500">AI</span></span>
+          </a>
+
+          <div class="flex items-center gap-1.5">
+            {% if user.is_authenticated %}
+              <a href="{% url 'dashboard:index' %}" class="site-nav-link">Open dashboard</a>
+            {% else %}
+              <a href="{% url 'accounts:login' %}" class="site-nav-link">Sign in</a>
+              <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-sm">Create account</a>
+            {% endif %}
+            {% include "partials/theme_toggle.html" %}
+          </div>
+        </nav>
+      </header>
+    {% endblock %}
+
+    {% comment %}
+      Flash messages are rendered as accessible, theme-aware notices. They also
+      feed the toast region so transient confirmations surface consistently.
+    {% endcomment %}
     {% if messages %}
-      <div class="mx-auto mt-4 w-full max-w-6xl px-4">
+      <div class="mx-auto mt-4 w-full max-w-6xl px-4" role="status" aria-live="polite">
         {% for message in messages %}
-          <div class="mb-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            {{ message }}
+          <div class="notice {% if message.tags == 'error' %}notice-danger{% elif message.tags == 'warning' %}notice-warning{% elif message.tags == 'success' %}notice-info{% else %}notice-neutral{% endif %} mb-2 animate-slide-up">
+            <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#{% if message.tags == 'error' %}icon-alert-circle{% elif message.tags == 'success' %}icon-check-circle{% else %}icon-info{% endif %}"></use></svg>
+            <span>{{ message }}</span>
           </div>
         {% endfor %}
       </div>
     {% endif %}
 
-    <main class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
-      {% block content %}{% endblock %}
-    </main>
+    {% block body %}
+      <main id="main-content" class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+        {% block content %}{% endblock %}
+      </main>
 
-    <footer class="border-t border-slate-200 py-6 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-500">
-      <p>{{ app_name }} · v{{ app_version }}</p>
-      <p class="mt-1">Analysis and research tool only. It does not place trades and does not guarantee outcomes.</p>
-    </footer>
+      <footer class="border-t border-surface-light-border py-6 text-center text-caption text-slate-500 dark:border-surface-dark-border dark:text-slate-500">
+        <p>{{ app_name }} · v{{ app_version }}</p>
+        <p class="mt-1">Analysis and research tool only. It does not place trades and does not guarantee outcomes.</p>
+      </footer>
+    {% endblock %}
   </div>
 
+  {% include "partials/toast_region.html" %}
+
   <script src="{% static 'js/theme.js' %}" defer></script>
+  <script src="{% static 'js/ui.js' %}" defer></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>
