@@ -48,5 +48,8 @@ Thumbs.db
 celerybeat-schedule
 celerybeat.pid
 
+# Local stack launcher (scripts/run_all.ps1) runtime logs + beat schedule
+.run-logs/
+
 # Generated validation artifacts (regenerable via manage.py commands)
 docs/artifacts/
