@@ -29,7 +29,11 @@ from apps.market_data.services.connection_manager import (
     mask_account,
 )
 from apps.market_data.services.exceptions import MarketDataError, SymbolMappingError
-from apps.market_data.services.health import record_health_event, upsert_heartbeat
+from apps.market_data.services.health import (
+    record_connection_event,
+    record_health_event,
+    upsert_heartbeat,
+)
 from apps.market_data.services.mt5_client import MetaTrader5Client
 from apps.market_data.services.remote_ingest import RemoteIngestClient, RemoteIngestError
 from apps.market_data.services.symbol_mapper import SymbolMapper
@@ -223,7 +227,23 @@ class Command(BaseCommand):
             )
             raise CommandError(f"Could not connect to MT5: {exc}") from exc
 
+        # Record the successful handshake. The dashboard derives its connection
+        # state from the most recent CONNECTION/DISCONNECT event ("last event
+        # wins"), so without this a worker that connects cleanly after an earlier
+        # disconnect would leave the status card stuck on "error" forever even
+        # though the feed is healthy.
+        record_connection_event(
+            connected=True,
+            message=f"Worker connected to MT5 ({getattr(config, 'server', '') or 'server'}).",
+            profile=profile,
+            collector=collector,
+        )
+
         service = MarketDataSyncService(client, profile=profile, collector=collector)
+        # Tracks whether the most recent recorded connection event was a
+        # disconnect. A successful reconnect must record a CONNECTION event so
+        # the dashboard's "last event wins" state stops reporting "error".
+        recorded_disconnect = False
         try:
             while not stop["flag"]:
                 try:
@@ -236,6 +256,7 @@ class Command(BaseCommand):
                         profile=profile,
                         collector=collector,
                     )
+                    recorded_disconnect = True
                     upsert_heartbeat(
                         worker_id=collector, status=WorkerStatus.ERROR, detail={"error": str(exc)}
                     )
@@ -243,6 +264,15 @@ class Command(BaseCommand):
                         break
                     self._sleep(interval, stop)
                     continue
+
+                if recorded_disconnect:
+                    record_connection_event(
+                        connected=True,
+                        message="Worker reconnected to MT5.",
+                        profile=profile,
+                        collector=collector,
+                    )
+                    recorded_disconnect = False
 
                 if remote is not None:
                     ok = self._run_cycle_push(

@@ -73,6 +73,102 @@ def test_worker_records_health_on_connection_failure(monkeypatch):
     assert MarketDataHealthEvent.objects.filter(kind=HealthKind.CONNECTION).exists()
 
 
+def test_worker_records_connection_event_on_success(monkeypatch):
+    """A clean connect must record a CONNECTION event so the dashboard does not
+    stay stuck on a previous disconnect ("last event wins")."""
+    from apps.market_data.constants import ConnectionState
+    from apps.market_data.dashboard import derived_connection_state
+
+    make_symbol(canonical="EURUSD", broker_symbol="EURUSD")
+    gateway = FakeMT5Gateway(
+        connect=True,
+        rates={("EURUSD", "M1"): _recent_series(5)},
+        ticks={"EURUSD": [make_tick(timezone.now() - timedelta(seconds=2))]},
+    )
+    monkeypatch.setattr(worker_module, "MetaTrader5Client", lambda: gateway)
+
+    call_command(
+        "mt5_worker",
+        "--once",
+        "--symbols",
+        "EURUSD",
+        "--timeframes",
+        "M1",
+        "--collector",
+        "success-worker",
+    )
+
+    assert MarketDataHealthEvent.objects.filter(kind=HealthKind.CONNECTION).exists()
+    assert derived_connection_state() == ConnectionState.CONNECTED
+
+
+def test_worker_records_connection_event_after_reconnect(monkeypatch):
+    """After a disconnect, the next successful cycle records a CONNECTION event
+    so the dashboard stops reporting a stale "error"."""
+    from apps.market_data.constants import ConnectionState
+    from apps.market_data.dashboard import derived_connection_state
+    from apps.market_data.services.exceptions import MarketDataError
+
+    make_symbol(canonical="EURUSD", broker_symbol="EURUSD")
+    gateway = FakeMT5Gateway(
+        connect=True,
+        rates={("EURUSD", "M1"): _recent_series(5)},
+        ticks={"EURUSD": [make_tick(timezone.now() - timedelta(seconds=2))]},
+    )
+    monkeypatch.setattr(worker_module, "MetaTrader5Client", lambda: gateway)
+
+    class _Stop(Exception):
+        pass
+
+    class FlakyManager:
+        """First ensure_connected() raises, the second succeeds, then stop."""
+
+        def __init__(self, *args, **kwargs):
+            self.calls = 0
+
+        def connect(self):
+            return True
+
+        def ensure_connected(self):
+            self.calls += 1
+            if self.calls == 1:
+                raise MarketDataError("lost the terminal")
+            return True
+
+        def disconnect(self):
+            return None
+
+    monkeypatch.setattr(worker_module, "MT5ConnectionManager", FlakyManager)
+    monkeypatch.setattr(worker_module.Command, "_sleep", lambda self, interval, stop: None)
+
+    original_cycle = worker_module.Command._run_cycle_direct
+
+    def _cycle_then_stop(self, *args, **kwargs):
+        original_cycle(self, *args, **kwargs)
+        # Both cycles have run (disconnect then reconnect): stop the loop.
+        raise _Stop()
+
+    monkeypatch.setattr(worker_module.Command, "_run_cycle_direct", _cycle_then_stop)
+
+    with pytest.raises(_Stop):
+        call_command(
+            "mt5_worker",
+            "--symbols",
+            "EURUSD",
+            "--timeframes",
+            "M1",
+            "--collector",
+            "reconnect-worker",
+        )
+
+    kinds = list(
+        MarketDataHealthEvent.objects.order_by("occurred_at").values_list("kind", flat=True)
+    )
+    assert HealthKind.DISCONNECT in kinds
+    assert kinds[-1] == HealthKind.CONNECTION  # reconnect is the most recent event
+    assert derived_connection_state() == ConnectionState.CONNECTED
+
+
 def test_worker_skips_unknown_symbol_mapping(monkeypatch):
     gateway = FakeMT5Gateway(connect=True)
     monkeypatch.setattr(worker_module, "MetaTrader5Client", lambda: gateway)
