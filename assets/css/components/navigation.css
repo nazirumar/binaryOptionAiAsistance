@@ -5,15 +5,15 @@
 @layer components {
   /* --- App shell -------------------------------------------------------- */
   .app-shell {
-    @apply min-h-screen;
+    @apply min-h-screen bg-surface-light-muted dark:bg-surface-dark;
   }
 
   /* Sidebar: fixed on desktop, off-canvas drawer on mobile. */
   .sidebar {
     @apply fixed inset-y-0 left-0 z-40 flex w-[var(--sidebar-width)] flex-col
-      border-r border-surface-light-border bg-white
+      border-r border-surface-light-border bg-white shadow-xs
       transition-[transform,width] duration-slow ease-standard
-      dark:border-surface-dark-border dark:bg-surface-dark-raised;
+      dark:border-surface-dark-border dark:bg-surface-dark-raised/95 dark:backdrop-blur-md;
     transform: translateX(-100%);
   }
   .sidebar.is-open {
@@ -31,29 +31,29 @@
 
   .sidebar-brand {
     @apply flex h-[var(--topbar-height)] shrink-0 items-center gap-2.5 border-b
-      border-surface-light-border px-4 dark:border-surface-dark-border;
+      border-surface-light-border px-4 dark:border-surface-dark-border/80;
   }
 
   .sidebar-nav {
-    @apply flex-1 space-y-1 overflow-y-auto px-3 py-4;
+    @apply flex-1 space-y-1.5 overflow-y-auto px-3 py-4;
   }
 
   .nav-group-label {
-    @apply px-3 pb-1 pt-4 text-eyebrow uppercase text-slate-400 first:pt-0 dark:text-slate-500;
+    @apply px-3 pb-1.5 pt-4 text-eyebrow uppercase font-semibold tracking-wider text-slate-400 first:pt-0 dark:text-slate-500;
   }
 
   .nav-item {
-    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-slate-600
-      transition-colors duration-fast ease-standard
-      hover:bg-slate-100 hover:text-slate-900
+    @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-600
+      transition-all duration-fast ease-standard
+      hover:bg-slate-100/90 hover:text-slate-900
       dark:text-slate-400 dark:hover:bg-surface-dark-overlay dark:hover:text-slate-100;
   }
   .nav-item svg {
     @apply h-5 w-5 shrink-0;
   }
   .nav-item[aria-current="page"] {
-    @apply bg-brand-50 font-semibold text-brand-700
-      dark:bg-brand-950/60 dark:text-brand-200;
+    @apply bg-brand-50/90 font-semibold text-brand-700 shadow-xs border-l-2 border-brand-600
+      dark:bg-brand-950/70 dark:text-brand-200 dark:border-brand-400;
   }
   .nav-item[aria-current="page"] svg {
     @apply text-brand-600 dark:text-brand-300;
@@ -69,19 +69,19 @@
   /* --- Top bar ---------------------------------------------------------- */
   .topbar {
     @apply sticky top-0 z-30 flex h-[var(--topbar-height)] items-center gap-2 border-b
-      border-surface-light-border bg-white/80 px-3 backdrop-blur
-      sm:gap-3 sm:px-4
-      dark:border-surface-dark-border dark:bg-surface-dark/80;
+      border-surface-light-border bg-white/85 px-3 backdrop-blur-md
+      sm:gap-3 sm:px-5
+      dark:border-surface-dark-border/80 dark:bg-surface-dark/85;
   }
 
   /* Icon-only action cluster at the right of the top bar. */
   .topbar-actions {
-    @apply flex shrink-0 items-center gap-1 sm:gap-1.5;
+    @apply flex shrink-0 items-center gap-1.5 sm:gap-2;
   }
 
   /* Vertical hairline separating top-bar action groups. */
   .topbar-divider {
-    @apply mx-0.5 hidden h-6 w-px bg-surface-light-border sm:block dark:bg-surface-dark-border;
+    @apply mx-1 hidden h-6 w-px bg-surface-light-border sm:block dark:bg-surface-dark-border;
   }
 
   /* The current page identity: title + (desktop) breadcrumb trail. */
@@ -89,7 +89,7 @@
     @apply min-w-0 flex-1;
   }
   .topbar-title {
-    @apply truncate text-sm font-semibold leading-tight text-slate-900
+    @apply truncate text-sm font-bold tracking-tight text-slate-900
       sm:text-base dark:text-white;
   }
   .topbar-subtitle {
@@ -98,16 +98,15 @@
 
   /* Profile chip: avatar + name, tightens to avatar-only on small screens. */
   .profile-chip {
-    @apply flex max-w-[12rem] items-center gap-2 rounded-full py-1 pl-1 pr-2
-      text-sm font-medium text-slate-700
-      transition-colors duration-fast ease-standard
-      hover:bg-slate-100
-      dark:text-slate-200 dark:hover:bg-surface-dark-overlay;
+    @apply flex max-w-[12rem] items-center gap-2 rounded-full py-1 pl-1 pr-2.5
+      text-sm font-medium text-slate-700 border border-transparent
+      transition-all duration-fast ease-standard
+      hover:border-surface-light-border hover:bg-slate-100
+      dark:text-slate-200 dark:hover:border-surface-dark-border dark:hover:bg-surface-dark-overlay;
   }
   .profile-avatar {
-    @apply grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand-100 text-xs
-      font-bold text-brand-700
-      dark:bg-brand-950 dark:text-brand-200;
+    @apply grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gradient-to-tr from-brand-600 to-indigo-500 text-xs
+      font-bold text-white shadow-xs;
   }
 
   .main-content {
@@ -130,7 +129,7 @@
 
   /* Scrim behind the mobile drawer. */
   .drawer-scrim {
-    @apply fixed inset-0 z-30 bg-slate-900/50 opacity-0 transition-opacity duration-base ease-standard lg:hidden;
+    @apply fixed inset-0 z-30 bg-slate-950/60 backdrop-blur-sm opacity-0 transition-opacity duration-base ease-standard lg:hidden;
     pointer-events: none;
   }
   .drawer-scrim.is-visible {
@@ -144,26 +143,26 @@
   }
   .tab {
     @apply -mb-px border-b-2 border-transparent px-4 py-2.5 text-sm font-medium text-slate-500
-      transition-colors duration-fast ease-standard
+      transition-all duration-fast ease-standard
       hover:border-slate-300 hover:text-slate-800
       dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-slate-100;
   }
   .tab[aria-selected="true"],
   .tab.is-active {
-    @apply border-brand-500 text-brand-700 dark:border-brand-400 dark:text-brand-200;
+    @apply border-brand-500 text-brand-700 font-semibold dark:border-brand-400 dark:text-brand-200;
   }
 
   /* --- Dropdown / profile menu ------------------------------------------ */
   .menu {
-    @apply absolute right-0 top-full z-50 mt-2 w-56 origin-top-right rounded-lg border
-      border-surface-light-border bg-white p-1 shadow-overlay
-      dark:border-surface-dark-border dark:bg-surface-dark-overlay;
+    @apply absolute right-0 top-full z-50 mt-2 w-56 origin-top-right rounded-xl border
+      border-surface-light-border bg-white/95 p-1.5 shadow-overlay backdrop-blur-md
+      dark:border-surface-dark-border dark:bg-surface-dark-overlay/95 animate-scale-in;
   }
   .menu[hidden] {
     display: none;
   }
   .menu-item {
-    @apply flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium text-slate-600
+    @apply flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-600
       transition-colors duration-fast ease-standard
       hover:bg-slate-100 hover:text-slate-900
       dark:text-slate-300 dark:hover:bg-surface-dark-raised dark:hover:text-white;
@@ -174,15 +173,15 @@
 
   /* --- Public header ---------------------------------------------------- */
   .site-header {
-    @apply sticky top-0 z-30 border-b border-surface-light-border bg-white/80 backdrop-blur
-      dark:border-surface-dark-border dark:bg-surface-dark/80;
+    @apply sticky top-0 z-30 border-b border-surface-light-border bg-white/85 backdrop-blur-md
+      dark:border-surface-dark-border/80 dark:bg-surface-dark/85;
   }
   .site-nav-link {
-    @apply rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors
+    @apply rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors
       duration-fast ease-standard hover:bg-slate-100 hover:text-slate-900
       dark:text-slate-300 dark:hover:bg-surface-dark-overlay dark:hover:text-white;
   }
   .site-nav-link[aria-current="page"] {
-    @apply text-brand-700 dark:text-brand-200;
+    @apply text-brand-700 font-semibold dark:text-brand-200;
   }
 }

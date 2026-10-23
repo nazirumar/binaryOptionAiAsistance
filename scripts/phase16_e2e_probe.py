@@ -122,7 +122,8 @@ def main() -> int:
     print(
         f"[{ts()}] step4 monitor run: evaluated={result.evaluated} "
         f"new={result.new_signals} expired={result.expired} resolved={result.resolved} "
-        f"feed={result.feed_state} msg={result.message!r} latency={elapsed_ms:.0f}ms"
+        f"feed={result.feed_state} msg={result.message!r} latency={elapsed_ms:.0f}ms "
+        f"signals={before_signals}->{after_signals} alerts={before_alerts}->{after_alerts}"
     )
 
     # --- Step 5: detector evaluation evidence -------------------------------

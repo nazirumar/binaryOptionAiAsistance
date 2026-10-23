@@ -5,35 +5,35 @@
 @layer components {
   /* --- Toast notifications --------------------------------------------- */
   .toast-region {
-    @apply pointer-events-none fixed inset-x-0 top-4 z-[90] flex flex-col items-center gap-2 px-4 sm:items-end sm:pr-6;
+    @apply pointer-events-none fixed inset-x-0 top-4 z-[90] flex flex-col items-center gap-2.5 px-4 sm:items-end sm:pr-6;
   }
   .toast {
-    @apply pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border p-4 shadow-overlay
-      animate-slide-up;
+    @apply pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border p-4 shadow-overlay
+      backdrop-blur-md animate-slide-up;
   }
   .toast-success {
-    @apply border-status-success/30 bg-white text-slate-700 dark:border-status-success/30 dark:bg-surface-dark-overlay dark:text-slate-200;
+    @apply border-status-success/30 bg-white/95 text-slate-700 dark:border-status-success/30 dark:bg-surface-dark-overlay/95 dark:text-slate-200;
   }
   .toast-error {
-    @apply border-status-danger/40 bg-white text-slate-700 dark:border-status-danger/40 dark:bg-surface-dark-overlay dark:text-slate-200;
+    @apply border-status-danger/40 bg-white/95 text-slate-700 dark:border-status-danger/40 dark:bg-surface-dark-overlay/95 dark:text-slate-200;
   }
   .toast-info {
-    @apply border-brand-200 bg-white text-slate-700 dark:border-brand-900 dark:bg-surface-dark-overlay dark:text-slate-200;
+    @apply border-brand-200/80 bg-white/95 text-slate-700 dark:border-brand-900/80 dark:bg-surface-dark-overlay/95 dark:text-slate-200;
   }
   .toast-title {
-    @apply text-sm font-semibold text-slate-900 dark:text-slate-50;
+    @apply text-sm font-semibold tracking-tight text-slate-900 dark:text-slate-50;
   }
   .toast-text {
-    @apply mt-0.5 text-caption text-slate-500 dark:text-slate-400;
+    @apply mt-0.5 text-caption leading-relaxed text-slate-500 dark:text-slate-400;
   }
   .toast-close {
-    @apply ml-auto rounded p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700
+    @apply ml-auto rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700
       dark:hover:bg-surface-dark-raised dark:hover:text-slate-200;
   }
 
   /* --- Skeleton loaders ------------------------------------------------- */
   .skeleton {
-    @apply relative overflow-hidden rounded bg-slate-200/80 dark:bg-surface-dark-overlay;
+    @apply relative overflow-hidden rounded-lg bg-slate-200/80 dark:bg-surface-dark-overlay;
   }
   .skeleton::after {
     @apply absolute inset-0 block;
@@ -56,7 +56,7 @@
     );
   }
   .skeleton-text {
-    @apply skeleton h-3 w-full;
+    @apply skeleton h-3.5 w-full;
   }
   .skeleton-title {
     @apply skeleton h-5 w-1/3;
@@ -78,8 +78,8 @@
   .tooltip::after {
     content: attr(data-tooltip);
     @apply pointer-events-none absolute left-1/2 top-full z-50 mt-2 w-max max-w-xs -translate-x-1/2
-      scale-95 rounded-md bg-slate-900 px-2.5 py-1.5 text-caption font-medium text-white opacity-0
-      shadow-lg transition-all duration-fast ease-standard;
+      scale-95 rounded-lg bg-slate-900 px-2.5 py-1.5 text-caption font-medium text-white opacity-0
+      shadow-lg transition-all duration-fast ease-standard dark:bg-slate-800 dark:border dark:border-slate-700;
   }
   .tooltip:hover::after,
   .tooltip:focus-visible::after {
@@ -88,18 +88,18 @@
 
   /* --- Dialog ----------------------------------------------------------- */
   .dialog {
-    @apply m-auto w-full max-w-lg rounded-xl border border-surface-light-border bg-white p-6 shadow-overlay
+    @apply m-auto w-full max-w-lg rounded-2xl border border-surface-light-border bg-white p-6 shadow-overlay
       dark:border-surface-dark-border dark:bg-surface-dark-overlay;
   }
   .dialog::backdrop {
-    background-color: rgb(2 6 23 / 0.5);
-    backdrop-filter: blur(2px);
+    background-color: rgb(2 6 23 / 0.6);
+    backdrop-filter: blur(4px);
   }
   .dialog-title {
-    @apply text-heading font-semibold text-slate-900 dark:text-slate-50;
+    @apply text-heading font-semibold tracking-tight text-slate-900 dark:text-slate-50;
   }
   .dialog-text {
-    @apply mt-2 text-sm text-slate-500 dark:text-slate-400;
+    @apply mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400;
   }
   .dialog-actions {
     @apply mt-6 flex flex-wrap justify-end gap-3;
@@ -107,11 +107,11 @@
 
   /* --- Expandable section (accessible <details>) ------------------------ */
   .disclosure {
-    @apply rounded-lg border border-surface-light-border bg-white dark:border-surface-dark-border dark:bg-surface-dark-raised;
+    @apply rounded-xl border border-surface-light-border bg-white dark:border-surface-dark-border dark:bg-surface-dark-raised;
   }
   .disclosure > summary {
     @apply flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-semibold
-      text-slate-700 transition-colors hover:bg-slate-50
+      text-slate-700 transition-colors hover:bg-slate-50/80
       dark:text-slate-200 dark:hover:bg-surface-dark-overlay;
   }
   .disclosure > summary::-webkit-details-marker {

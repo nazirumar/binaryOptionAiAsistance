@@ -6,25 +6,37 @@
 {% block page_content %}
 <div class="page-header">
   <div class="min-w-0">
-    <p class="page-eyebrow">Account</p>
-    <h1 class="page-title">Settings</h1>
+    <div class="flex items-center gap-2 mb-1.5">
+      <span class="inline-flex items-center gap-1.5 text-eyebrow uppercase font-mono tracking-wider text-brand-600 dark:text-brand-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+        Account Control
+      </span>
+      <span class="text-slate-400 dark:text-slate-600">/</span>
+      <span class="text-caption font-mono text-slate-500 dark:text-slate-400">Preferences</span>
+    </div>
     <p class="page-description">Profile, preferences, security and account management.</p>
   </div>
 </div>
 
-<div class="space-y-6">
+<div class="space-y-6 max-w-4xl">
   {# ---- Profile & preferences ----------------------------------------- #}
-  <section class="card" aria-labelledby="profile-heading">
-    <div class="card-header"><h2 id="profile-heading" class="card-title">Profile &amp; analysis preferences</h2></div>
+  <section class="card overflow-hidden" aria-labelledby="profile-heading">
+    <div class="card-header flex items-center justify-between">
+      <h2 id="profile-heading" class="card-title flex items-center gap-2">
+        <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-user"></use></svg>
+        Profile &amp; analysis preferences
+      </h2>
+      <span class="text-caption font-mono text-slate-400">general</span>
+    </div>
     <form method="post" action="{% url 'dashboard:settings-profile' %}" data-pending>
       {% csrf_token %}
       <div class="card-body">
         <div class="form-prose grid gap-6 lg:grid-cols-2">
-          <div>{{ profile_form.as_p }}</div>
-          <div>{{ preference_form.as_p }}</div>
+          <div class="space-y-4">{{ profile_form.as_p }}</div>
+          <div class="space-y-4">{{ preference_form.as_p }}</div>
         </div>
       </div>
-      <div class="card-header border-t border-b-0 justify-end">
+      <div class="card-header border-t border-b-0 justify-end py-3 bg-surface-light-muted/30 dark:bg-surface-dark-muted/20">
         <button type="submit" class="btn btn-primary">Save settings</button>
       </div>
     </form>
@@ -32,9 +44,18 @@
 
   {# ---- Security ------------------------------------------------------- #}
   <section class="card" aria-labelledby="security-heading">
-    <div class="card-header"><h2 id="security-heading" class="card-title">Password</h2></div>
-    <div class="card-body flex flex-wrap items-center justify-between gap-3">
-      <p class="text-sm text-slate-500 dark:text-slate-400">Update your account password.</p>
+    <div class="card-header flex items-center justify-between">
+      <h2 id="security-heading" class="card-title flex items-center gap-2">
+        <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-lock"></use></svg>
+        Password
+      </h2>
+      <span class="text-caption font-mono text-slate-400">credentials</span>
+    </div>
+    <div class="card-body flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p class="text-sm font-medium text-slate-800 dark:text-slate-200">Account password</p>
+        <p class="text-caption text-slate-500 dark:text-slate-400 mt-0.5">Update your account password regularly to ensure security.</p>
+      </div>
       <a href="{% url 'dashboard:settings-password' %}" class="btn btn-secondary btn-sm">
         <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-lock"></use></svg>
         Change password
@@ -43,21 +64,25 @@
   </section>
 
   {# ---- Account deletion ----------------------------------------------- #}
-  <section class="card border-status-danger/40 bg-status-danger-soft dark:border-status-danger/30 dark:bg-status-danger-dark-soft" aria-labelledby="delete-heading">
-    <div class="card-header border-status-danger/30 dark:border-status-danger/20">
-      <h2 id="delete-heading" class="card-title text-status-danger-fg dark:text-status-danger-dark">Delete account</h2>
+  <section class="card border-rose-500/30 bg-rose-500/5 dark:border-rose-500/20 dark:bg-rose-500/5" aria-labelledby="delete-heading">
+    <div class="card-header border-b border-rose-500/20 flex items-center justify-between">
+      <h2 id="delete-heading" class="card-title text-rose-700 dark:text-rose-400 flex items-center gap-2">
+        <svg class="h-4 w-4 text-rose-500" aria-hidden="true"><use href="#icon-alert-triangle"></use></svg>
+        Delete account
+      </h2>
+      <span class="badge badge-danger text-xs">Danger Zone</span>
     </div>
     <div class="card-body">
-      <p class="text-sm text-status-danger-fg dark:text-status-danger-dark">
+      <p class="text-sm text-rose-800 dark:text-rose-300">
         This permanently deletes your account and all associated data. It cannot be undone.
       </p>
       <form method="post" action="{% url 'dashboard:settings-delete' %}"
-            class="mt-4 flex flex-wrap items-end gap-3"
+            class="mt-5 flex flex-wrap items-end gap-3"
             onsubmit="return confirm('Permanently delete your account and all data?');">
         {% csrf_token %}
-        <div>
-          <label for="delete-password" class="form-label">Confirm password</label>
-          <input id="delete-password" type="password" name="password" required class="form-control" />
+        <div class="min-w-[240px]">
+          <label for="delete-password" class="form-label text-rose-900 dark:text-rose-200">Confirm password</label>
+          <input id="delete-password" type="password" name="password" required class="form-control focus:border-rose-500 focus:ring-rose-500" placeholder="Enter password to confirm" />
         </div>
         <button type="submit" class="btn btn-danger">
           <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-trash"></use></svg>

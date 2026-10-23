@@ -5,12 +5,15 @@ Progress is derived strictly from the real backend state: `analysis.status`
 plus the recorded `events`. Nothing is fabricated — if the backend has not
 reported a stage, it is shown as still "waiting".
 {% endcomment %}
-<div class="space-y-4">
+<div class="space-y-5">
 
   {# ---- Status + processing ------------------------------------------ #}
-  <div class="card">
-    <div class="card-header">
-      <h2 class="card-title">Analysis</h2>
+  <div class="card overflow-hidden">
+    <div class="card-header flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="h-2 w-2 rounded-full bg-brand-500"></div>
+        <h2 class="card-title">Analysis</h2>
+      </div>
       {% if analysis %}
         {% include "dashboard/partials/analysis_status_badge.html" with status=analysis.status label=analysis.get_status_display %}
       {% else %}
@@ -21,13 +24,13 @@ reported a stage, it is shown as still "waiting".
       {% if analysis %}
         {% if in_flight %}
           {# Real, honest progress: an indeterminate bar plus the current stage. #}
-          <div class="mb-4">
-            <div class="mb-2 flex items-center justify-between text-caption text-slate-500 dark:text-slate-400">
-              <span class="inline-flex items-center gap-2">
-                <span class="spinner" aria-hidden="true"></span>
+          <div class="mb-5 rounded-lg border border-brand-500/20 bg-brand-500/5 p-4">
+            <div class="mb-2.5 flex items-center justify-between text-caption text-slate-600 dark:text-slate-300">
+              <span class="inline-flex items-center gap-2 font-medium">
+                <span class="spinner h-3.5 w-3.5 text-brand-500" aria-hidden="true"></span>
                 Processing — this page updates automatically.
               </span>
-              <span>Attempt {{ analysis.attempts }}</span>
+              <span class="font-mono text-xs text-slate-500 dark:text-slate-400">Attempt {{ analysis.attempts }}</span>
             </div>
             <div class="progress" role="progressbar" aria-label="Analysis in progress" aria-valuetext="In progress">
               <div class="progress-bar-indeterminate"></div>
@@ -36,13 +39,13 @@ reported a stage, it is shown as still "waiting".
 
           {# Current stage list, driven by the latest recorded event. #}
           {% if events %}
-            <ol class="mb-4 space-y-1.5 text-sm">
+            <ol class="mb-5 space-y-2 rounded-lg border border-surface-light-border bg-surface-light-muted/50 p-3 dark:border-surface-dark-border dark:bg-surface-dark-muted/30 text-sm">
               {% for event in events %}
-                <li class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                <li class="flex items-center gap-2.5 text-slate-700 dark:text-slate-200">
                   {% if forloop.first %}
-                    <span class="spinner h-3 w-3" aria-hidden="true"></span>
+                    <span class="spinner h-3.5 w-3.5 text-brand-500 shrink-0" aria-hidden="true"></span>
                   {% else %}
-                    <svg class="h-3.5 w-3.5 text-status-success" aria-hidden="true"><use href="#icon-check"></use></svg>
+                    <svg class="h-4 w-4 text-emerald-500 shrink-0" aria-hidden="true"><use href="#icon-check"></use></svg>
                   {% endif %}
                   <span class="font-medium">{{ event.get_kind_display }}</span>
                   {% if event.message %}<span class="text-caption text-slate-500 dark:text-slate-400">— {{ event.message }}</span>{% endif %}
@@ -53,45 +56,47 @@ reported a stage, it is shown as still "waiting".
         {% endif %}
 
         <dl class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-          <div>
+          <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
             <dt class="metric-label">Provider / model</dt>
-            <dd class="mt-1 font-medium text-slate-900 dark:text-slate-100">{{ analysis.provider|default:"—" }} · {{ analysis.model_name|default:"—" }}</dd>
+            <dd class="mt-1 font-semibold text-slate-900 dark:text-slate-100 truncate">{{ analysis.provider|default:"—" }} · {{ analysis.model_name|default:"—" }}</dd>
           </div>
-          <div>
+          <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
             <dt class="metric-label">Prompt / schema</dt>
-            <dd class="mt-1 font-medium text-slate-900 dark:text-slate-100">{{ analysis.prompt_version|default:"—" }} / {{ analysis.schema_version|default:"—" }}</dd>
+            <dd class="mt-1 font-mono text-xs font-semibold text-slate-900 dark:text-slate-100">{{ analysis.prompt_version|default:"—" }} / {{ analysis.schema_version|default:"—" }}</dd>
           </div>
-          <div>
+          <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
             <dt class="metric-label">Candles observed</dt>
-            <dd class="mt-1 font-medium tabular-nums text-slate-900 dark:text-slate-100">{{ analysis.candle_count }}</dd>
+            <dd class="mt-1 font-mono text-base font-semibold tabular-nums text-slate-900 dark:text-slate-100">{{ analysis.candle_count }}</dd>
           </div>
-          <div>
+          <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
             <dt class="metric-label">Observation confidence</dt>
-            <dd class="mt-1 font-medium tabular-nums text-slate-900 dark:text-slate-100">{% if observation_confidence is not None %}{{ observation_confidence|floatformat:2 }}{% else %}—{% endif %}</dd>
+            <dd class="mt-1 font-mono text-base font-semibold tabular-nums text-slate-900 dark:text-slate-100">{% if observation_confidence is not None %}{{ observation_confidence|floatformat:2 }}{% else %}—{% endif %}</dd>
           </div>
-          <div>
+          <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
             <dt class="metric-label">Tokens (total)</dt>
-            <dd class="mt-1 font-medium tabular-nums text-slate-900 dark:text-slate-100">{{ analysis.total_tokens }}</dd>
+            <dd class="mt-1 font-mono text-base font-semibold tabular-nums text-slate-900 dark:text-slate-100">{{ analysis.total_tokens }}</dd>
           </div>
-          <div>
+          <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
             <dt class="metric-label">Attempts</dt>
-            <dd class="mt-1 font-medium tabular-nums text-slate-900 dark:text-slate-100">{{ analysis.attempts }}</dd>
+            <dd class="mt-1 font-mono text-base font-semibold tabular-nums text-slate-900 dark:text-slate-100">{{ analysis.attempts }}</dd>
           </div>
         </dl>
 
         {% if analysis.status == 'failed' %}
-          <div class="error-state mt-4" role="alert">
-            <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-alert-circle"></use></svg>
-            <div>
-              <p class="font-semibold">Analysis failed: {{ analysis.error_code|default:"error" }}</p>
-              {% if analysis.error_message %}<p class="mt-1">{{ analysis.error_message }}</p>{% endif %}
-              <p class="mt-1 text-caption">You can safely retry — a retry re-runs the same screenshot.</p>
+          <div class="error-state mt-5 rounded-lg border border-rose-500/30 bg-rose-500/10 p-4 text-rose-700 dark:text-rose-300" role="alert">
+            <div class="flex items-start gap-3">
+              <svg class="h-5 w-5 shrink-0 text-rose-500 mt-0.5" aria-hidden="true"><use href="#icon-alert-circle"></use></svg>
+              <div>
+                <p class="font-semibold">Analysis failed: {{ analysis.error_code|default:"error" }}</p>
+                {% if analysis.error_message %}<p class="mt-1 text-sm">{{ analysis.error_message }}</p>{% endif %}
+                <p class="mt-1.5 text-caption text-rose-600 dark:text-rose-400">You can safely retry — a retry re-runs the same screenshot.</p>
+              </div>
             </div>
           </div>
         {% endif %}
 
         {% if can_analyze %}
-          <form method="post" action="{% url 'dashboard:vision-analyze' screenshot.pk %}" class="mt-4" data-pending>
+          <form method="post" action="{% url 'dashboard:vision-analyze' screenshot.pk %}" class="mt-5" data-pending>
             {% csrf_token %}
             <button type="submit" class="btn btn-primary">
               <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-refresh"></use></svg>
@@ -100,7 +105,7 @@ reported a stage, it is shown as still "waiting".
           </form>
         {% endif %}
       {% else %}
-        <div class="empty-state">
+        <div class="empty-state py-8">
           <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-clock"></use></svg></div>
           <p class="empty-state-title">Analysis not started</p>
           <p class="empty-state-text">No analysis has been queued for this screenshot yet.</p>
@@ -118,21 +123,51 @@ reported a stage, it is shown as still "waiting".
   {% if analysis %}
     {# ---- Chart metadata --------------------------------------------- #}
     <div class="card">
-      <div class="card-header"><h3 class="card-title">Chart metadata</h3></div>
+      <div class="card-header flex items-center justify-between">
+        <h3 class="card-title flex items-center gap-2">
+          <svg class="h-4 w-4 text-slate-400" aria-hidden="true"><use href="#icon-cpu"></use></svg>
+          Chart metadata
+        </h3>
+        <span class="text-caption font-mono text-slate-400">telemetry</span>
+      </div>
       <div class="card-body">
         <dl class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
-          <div><dt class="metric-label">Platform</dt><dd class="mt-1 font-medium">{{ metadata.platform|default:"UNKNOWN" }}</dd></div>
-          <div><dt class="metric-label">Instrument</dt><dd class="mt-1 font-medium">{{ metadata.instrument|default:"UNKNOWN" }}</dd></div>
-          <div><dt class="metric-label">Timeframe</dt><dd class="mt-1 font-medium">{{ metadata.timeframe|default:"UNKNOWN" }}</dd></div>
-          <div><dt class="metric-label">Market</dt><dd class="mt-1 font-medium">{{ metadata.otc_status|default:"unknown" }}</dd></div>
-          <div><dt class="metric-label">Orientation</dt><dd class="mt-1 font-medium">{{ metadata.orientation|default:"unknown" }}</dd></div>
-          <div><dt class="metric-label">Screenshot timestamp</dt><dd class="mt-1 font-medium">{{ metadata.screenshot_timestamp|default:"—" }}</dd></div>
+          <div class="p-2.5 rounded-lg border border-surface-light-border/50 dark:border-surface-dark-border/50">
+            <dt class="metric-label">Platform</dt>
+            <dd class="mt-1 font-semibold text-slate-900 dark:text-slate-100">{{ metadata.platform|default:"UNKNOWN" }}</dd>
+          </div>
+          <div class="p-2.5 rounded-lg border border-surface-light-border/50 dark:border-surface-dark-border/50">
+            <dt class="metric-label">Instrument</dt>
+            <dd class="mt-1 font-semibold font-mono text-brand-600 dark:text-brand-400">{{ metadata.instrument|default:"UNKNOWN" }}</dd>
+          </div>
+          <div class="p-2.5 rounded-lg border border-surface-light-border/50 dark:border-surface-dark-border/50">
+            <dt class="metric-label">Timeframe</dt>
+            <dd class="mt-1 font-semibold font-mono text-slate-900 dark:text-slate-100">{{ metadata.timeframe|default:"UNKNOWN" }}</dd>
+          </div>
+          <div class="p-2.5 rounded-lg border border-surface-light-border/50 dark:border-surface-dark-border/50">
+            <dt class="metric-label">Market</dt>
+            <dd class="mt-1 font-medium capitalize text-slate-800 dark:text-slate-200">{{ metadata.otc_status|default:"unknown" }}</dd>
+          </div>
+          <div class="p-2.5 rounded-lg border border-surface-light-border/50 dark:border-surface-dark-border/50">
+            <dt class="metric-label">Orientation</dt>
+            <dd class="mt-1 font-medium capitalize text-slate-800 dark:text-slate-200">{{ metadata.orientation|default:"unknown" }}</dd>
+          </div>
+          <div class="p-2.5 rounded-lg border border-surface-light-border/50 dark:border-surface-dark-border/50">
+            <dt class="metric-label">Screenshot timestamp</dt>
+            <dd class="mt-1 font-mono text-xs text-slate-800 dark:text-slate-200 truncate">{{ metadata.screenshot_timestamp|default:"—" }}</dd>
+          </div>
         </dl>
         {% if metadata.visible_price_labels %}
-          <p class="mt-3 text-caption text-slate-500 dark:text-slate-400">Visible price labels: {{ metadata.visible_price_labels|join:", " }}</p>
+          <div class="mt-4 flex items-center gap-2 text-caption text-slate-500 dark:text-slate-400">
+            <span class="font-medium text-slate-600 dark:text-slate-300">Visible price labels:</span>
+            <span class="font-mono">{{ metadata.visible_price_labels|join:", " }}</span>
+          </div>
         {% endif %}
         {% if metadata.technical_indicators %}
-          <p class="mt-1 text-caption text-slate-500 dark:text-slate-400">Indicators: {{ metadata.technical_indicators|join:", " }}</p>
+          <div class="mt-2 flex items-center gap-2 text-caption text-slate-500 dark:text-slate-400">
+            <span class="font-medium text-slate-600 dark:text-slate-300">Indicators:</span>
+            <span>{{ metadata.technical_indicators|join:", " }}</span>
+          </div>
         {% endif %}
       </div>
     </div>
@@ -140,37 +175,72 @@ reported a stage, it is shown as still "waiting".
     {# ---- Market structure ------------------------------------------- #}
     {% if result.market_structure %}
       <div class="card">
-        <div class="card-header"><h3 class="card-title">Market structure</h3></div>
+        <div class="card-header flex items-center justify-between">
+          <h3 class="card-title flex items-center gap-2">
+            <svg class="h-4 w-4 text-slate-400" aria-hidden="true"><use href="#icon-chart"></use></svg>
+            Market structure
+          </h3>
+          <span class="badge badge-brand">{{ result.market_structure.trend|default:"unclear"|upper }}</span>
+        </div>
         <div class="card-body">
           <dl class="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-            <div><dt class="metric-label">Trend</dt><dd class="mt-1 font-medium">{{ result.market_structure.trend|default:"unclear" }}</dd></div>
-            <div><dt class="metric-label">Consolidation</dt><dd class="mt-1 font-medium">{{ result.market_structure.consolidation|default:"unknown" }}</dd></div>
-            <div><dt class="metric-label">Higher highs / lows</dt><dd class="mt-1 font-medium">{{ result.market_structure.higher_highs|default:"?" }} / {{ result.market_structure.higher_lows|default:"?" }}</dd></div>
-            <div><dt class="metric-label">Lower highs / lows</dt><dd class="mt-1 font-medium">{{ result.market_structure.lower_highs|default:"?" }} / {{ result.market_structure.lower_lows|default:"?" }}</dd></div>
+            <div class="p-2.5 rounded-lg border border-surface-light-border/50 dark:border-surface-dark-border/50">
+              <dt class="metric-label">Trend</dt>
+              <dd class="mt-1 font-semibold capitalize text-slate-900 dark:text-slate-100">{{ result.market_structure.trend|default:"unclear" }}</dd>
+            </div>
+            <div class="p-2.5 rounded-lg border border-surface-light-border/50 dark:border-surface-dark-border/50">
+              <dt class="metric-label">Consolidation</dt>
+              <dd class="mt-1 font-semibold capitalize text-slate-900 dark:text-slate-100">{{ result.market_structure.consolidation|default:"unknown" }}</dd>
+            </div>
+            <div class="p-2.5 rounded-lg border border-surface-light-border/50 dark:border-surface-dark-border/50">
+              <dt class="metric-label">Higher highs / lows</dt>
+              <dd class="mt-1 font-mono font-medium text-slate-900 dark:text-slate-100">{{ result.market_structure.higher_highs|default:"?" }} / {{ result.market_structure.higher_lows|default:"?" }}</dd>
+            </div>
+            <div class="p-2.5 rounded-lg border border-surface-light-border/50 dark:border-surface-dark-border/50">
+              <dt class="metric-label">Lower highs / lows</dt>
+              <dd class="mt-1 font-mono font-medium text-slate-900 dark:text-slate-100">{{ result.market_structure.lower_highs|default:"?" }} / {{ result.market_structure.lower_lows|default:"?" }}</dd>
+            </div>
           </dl>
-          {% if result.market_structure.notes %}<p class="mt-3 text-caption text-slate-500 dark:text-slate-400">{{ result.market_structure.notes }}</p>{% endif %}
+          {% if result.market_structure.notes %}
+            <p class="mt-3.5 text-caption text-slate-600 dark:text-slate-400 bg-surface-light-muted/60 dark:bg-surface-dark-muted/40 p-2.5 rounded-lg border border-surface-light-border/50 dark:border-surface-dark-border/50">
+              {{ result.market_structure.notes }}
+            </p>
+          {% endif %}
         </div>
       </div>
     {% endif %}
 
     {# ---- Candidate patterns ----------------------------------------- #}
     <div class="card">
-      <div class="card-header"><h3 class="card-title">Candidate patterns</h3></div>
+      <div class="card-header flex items-center justify-between">
+        <h3 class="card-title flex items-center gap-2">
+          <svg class="h-4 w-4 text-slate-400" aria-hidden="true"><use href="#icon-sparkles"></use></svg>
+          Candidate patterns
+        </h3>
+        <span class="text-caption font-mono text-slate-400">{{ patterns|length }} detected</span>
+      </div>
       <div class="card-body">
         {% if patterns %}
-          <ul class="space-y-2">
+          <ul class="space-y-2.5">
             {% for pattern in patterns %}
-              <li class="rounded-md border border-surface-light-border bg-surface-light-muted px-3 py-2 dark:border-surface-dark-border dark:bg-surface-dark">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="font-medium text-slate-900 dark:text-slate-100">{{ pattern.name }}</span>
-                  {% if pattern.confirmed %}
-                    <span class="badge badge-success">Confirmed</span>
-                  {% else %}
-                    <span class="badge badge-warning">Uncertain</span>
-                  {% endif %}
+              <li class="rounded-lg border border-surface-light-border bg-surface-light-muted/40 p-3.5 transition-colors hover:border-brand-500/30 dark:border-surface-dark-border dark:bg-surface-dark/50">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="font-semibold text-slate-900 dark:text-slate-100">{{ pattern.name }}</span>
+                    {% if pattern.confirmed %}
+                      <span class="badge badge-success"><span class="status-dot status-dot-success" aria-hidden="true"></span>Confirmed</span>
+                    {% else %}
+                      <span class="badge badge-warning"><span class="status-dot status-dot-warning" aria-hidden="true"></span>Uncertain</span>
+                    {% endif %}
+                  </div>
+                  <span class="text-xs font-mono uppercase px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">{{ pattern.direction }}</span>
                 </div>
-                <p class="mt-1 text-caption text-slate-500 dark:text-slate-400">
-                  {{ pattern.get_category_display }} · {{ pattern.direction }} · candles {{ pattern.candle_refs|join:", " }}
+                <p class="mt-2 text-caption text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-2">
+                  <span>{{ pattern.get_category_display }}</span>
+                  <span>·</span>
+                  <span>direction: {{ pattern.direction }}</span>
+                  <span>·</span>
+                  <span class="font-mono">candles {{ pattern.candle_refs|join:", " }}</span>
                 </p>
               </li>
             {% endfor %}
@@ -183,19 +253,30 @@ reported a stage, it is shown as still "waiting".
 
     {# ---- Support / resistance --------------------------------------- #}
     <div class="card">
-      <div class="card-header"><h3 class="card-title">Support / resistance zones</h3></div>
+      <div class="card-header flex items-center justify-between">
+        <h3 class="card-title flex items-center gap-2">
+          <svg class="h-4 w-4 text-slate-400" aria-hidden="true"><use href="#icon-layers"></use></svg>
+          Support / resistance zones
+        </h3>
+        <span class="text-caption font-mono text-slate-400">{{ price_zones|length }} zones</span>
+      </div>
       <div class="card-body">
         {% if price_zones %}
-          <ul class="space-y-2">
+          <ul class="space-y-2.5">
             {% for zone in price_zones %}
-              <li class="rounded-md border border-surface-light-border bg-surface-light-muted px-3 py-2 dark:border-surface-dark-border dark:bg-surface-dark">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="font-medium text-slate-900 dark:text-slate-100">{{ zone.get_zone_type_display }}</span>
-                  {% if zone.repeated_rejection %}<span class="badge badge-info">Repeated rejection</span>{% endif %}
-                  {% if zone.broken %}<span class="badge badge-neutral">Broken</span>{% endif %}
+              <li class="rounded-lg border border-surface-light-border bg-surface-light-muted/40 p-3.5 transition-colors hover:border-brand-500/30 dark:border-surface-dark-border dark:bg-surface-dark/50">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="font-semibold text-slate-900 dark:text-slate-100">{{ zone.get_zone_type_display }}</span>
+                  <div class="flex items-center gap-1.5">
+                    {% if zone.repeated_rejection %}<span class="badge badge-info">Repeated rejection</span>{% endif %}
+                    {% if zone.broken %}<span class="badge badge-neutral">Broken</span>{% endif %}
+                  </div>
                 </div>
-                <p class="mt-1 text-caption text-slate-500 dark:text-slate-400">
-                  {{ zone.approx_location|default:"location n/a" }}{% if zone.price_hint %} · {{ zone.price_hint }}{% endif %} · candles {{ zone.supporting_candles|join:", " }}
+                <p class="mt-2 text-caption text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-2">
+                  <span class="font-medium text-slate-700 dark:text-slate-300">{{ zone.approx_location|default:"location n/a" }}</span>
+                  {% if zone.price_hint %}<span>· <span class="font-mono text-brand-600 dark:text-brand-400">{{ zone.price_hint }}</span></span>{% endif %}
+                  <span>·</span>
+                  <span class="font-mono">candles {{ zone.supporting_candles|join:", " }}</span>
                 </p>
               </li>
             {% endfor %}
@@ -208,14 +289,20 @@ reported a stage, it is shown as still "waiting".
 
     {# ---- Observations ----------------------------------------------- #}
     <div class="card">
-      <div class="card-header"><h3 class="card-title">Observations</h3></div>
+      <div class="card-header flex items-center justify-between">
+        <h3 class="card-title flex items-center gap-2">
+          <svg class="h-4 w-4 text-slate-400" aria-hidden="true"><use href="#icon-eye"></use></svg>
+          Observations
+        </h3>
+        <span class="text-caption font-mono text-slate-400">{{ observations|length }} notes</span>
+      </div>
       <div class="card-body">
         {% if observations %}
-          <ul class="space-y-2">
+          <ul class="space-y-2.5">
             {% for observation in observations %}
-              <li class="rounded-md border border-surface-light-border bg-surface-light-muted px-3 py-2 dark:border-surface-dark-border dark:bg-surface-dark">
-                <p class="text-eyebrow uppercase text-slate-500 dark:text-slate-400">{{ observation.get_kind_display }}</p>
-                <p class="mt-0.5 text-sm text-slate-800 dark:text-slate-200">{{ observation.label }}{% if observation.summary %} — {{ observation.summary }}{% endif %}</p>
+              <li class="rounded-lg border border-surface-light-border bg-surface-light-muted/40 p-3.5 dark:border-surface-dark-border dark:bg-surface-dark/50">
+                <p class="text-eyebrow font-mono text-xs uppercase tracking-wider text-brand-600 dark:text-brand-400">{{ observation.get_kind_display }}</p>
+                <p class="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">{{ observation.label }}{% if observation.summary %} — <span class="font-normal text-slate-600 dark:text-slate-400">{{ observation.summary }}</span>{% endif %}</p>
               </li>
             {% endfor %}
           </ul>
@@ -226,14 +313,23 @@ reported a stage, it is shown as still "waiting".
     </div>
 
     {# ---- Warnings / missing information ----------------------------- #}
-    <div class="grid gap-4 sm:grid-cols-2">
-      <div class="card">
-        <div class="card-header"><h3 class="card-title">Warnings</h3></div>
+    <div class="grid gap-5 sm:grid-cols-2">
+      <div class="card border-amber-500/20 bg-amber-500/5">
+        <div class="card-header flex items-center justify-between border-amber-500/20">
+          <h3 class="card-title flex items-center gap-2 text-amber-600 dark:text-amber-400">
+            <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-alert"></use></svg>
+            Warnings
+          </h3>
+          <span class="text-caption font-mono text-amber-500">{{ warnings|length }}</span>
+        </div>
         <div class="card-body">
           {% if warnings %}
-            <ul class="space-y-1.5 text-sm text-status-warning-fg dark:text-status-warning-dark">
+            <ul class="space-y-2 text-sm text-amber-700 dark:text-amber-300">
               {% for warning in warnings %}
-                <li class="flex gap-2"><svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#icon-alert"></use></svg><span>{{ warning }}</span></li>
+                <li class="flex items-start gap-2">
+                  <svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden="true"><use href="#icon-alert"></use></svg>
+                  <span>{{ warning }}</span>
+                </li>
               {% endfor %}
             </ul>
           {% else %}
@@ -241,13 +337,22 @@ reported a stage, it is shown as still "waiting".
           {% endif %}
         </div>
       </div>
-      <div class="card">
-        <div class="card-header"><h3 class="card-title">Missing information</h3></div>
+      <div class="card border-surface-light-border dark:border-surface-dark-border">
+        <div class="card-header flex items-center justify-between">
+          <h3 class="card-title flex items-center gap-2">
+            <svg class="h-4 w-4 text-slate-400" aria-hidden="true"><use href="#icon-minus"></use></svg>
+            Missing information
+          </h3>
+          <span class="text-caption font-mono text-slate-400">{{ missing_information|length }}</span>
+        </div>
         <div class="card-body">
           {% if missing_information %}
-            <ul class="space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
+            <ul class="space-y-2 text-sm text-slate-600 dark:text-slate-300">
               {% for item in missing_information %}
-                <li class="flex gap-2"><svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true"><use href="#icon-minus"></use></svg><span>{{ item }}</span></li>
+                <li class="flex items-start gap-2">
+                  <svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true"><use href="#icon-minus"></use></svg>
+                  <span>{{ item }}</span>
+                </li>
               {% endfor %}
             </ul>
           {% else %}
@@ -259,12 +364,15 @@ reported a stage, it is shown as still "waiting".
 
     {# ---- Raw structured result (progressive disclosure) -------------- #}
     <details class="disclosure">
-      <summary>
-        Raw structured result
-        <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
+      <summary class="flex items-center justify-between py-3 px-4 font-mono text-xs uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
+        <span class="flex items-center gap-2">
+          <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-code"></use></svg>
+          Raw structured result
+        </span>
+        <svg class="h-4 w-4 transition-transform duration-200" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
       </summary>
-      <div class="disclosure-body">
-        <pre class="max-h-96 overflow-auto rounded-md bg-slate-900 p-4 text-caption text-slate-100">{{ result }}</pre>
+      <div class="disclosure-body p-4 pt-0">
+        <pre class="max-h-96 overflow-auto rounded-lg border border-surface-dark-border bg-slate-950 p-4 text-caption font-mono text-emerald-400 selection:bg-brand-500/30">{{ result }}</pre>
       </div>
     </details>
 

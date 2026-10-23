@@ -6,14 +6,23 @@
 {% block page_content %}
 <div class="page-header">
   <div class="min-w-0">
-    <p class="page-eyebrow">Research · Market synchronization</p>
+    <div class="flex items-center gap-2 mb-1.5">
+      <span class="inline-flex items-center gap-1.5 text-eyebrow uppercase font-mono tracking-wider text-brand-600 dark:text-brand-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+        Market Synchronization
+      </span>
+      <span class="text-slate-400 dark:text-slate-600">/</span>
+      <span class="text-caption font-mono text-slate-500 dark:text-slate-400">Session #{{ session.pk }}</span>
+    </div>
     <h1 class="page-title">Synchronization #{{ session.pk }}</h1>
     <p class="page-description">{{ status_message }}</p>
   </div>
-  <a href="{% url 'dashboard:sync' %}" class="btn btn-secondary btn-sm">
-    <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
-    Back to sync
-  </a>
+  <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
+    <a href="{% url 'dashboard:sync' %}" class="btn btn-secondary btn-sm">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
+      Back to sync
+    </a>
+  </div>
 </div>
 
 {# Never present an unverified result as successful. #}
@@ -30,17 +39,25 @@
 {% endif %}
 
 {# ---- Source panels ---------------------------------------------------- #}
-<div class="mb-6 grid gap-4 lg:grid-cols-3">
+<div class="mb-6 grid gap-6 lg:grid-cols-3">
   <div class="card">
-    <div class="card-header"><h2 class="card-title">Screenshot</h2></div>
+    <div class="card-header flex items-center justify-between">
+      <h2 class="card-title flex items-center gap-2">
+        <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-scan"></use></svg>
+        Screenshot
+      </h2>
+      <span class="text-caption font-mono text-slate-400">visual</span>
+    </div>
     <div class="card-body">
       {% if screenshot %}
-        <img src="{% url 'chart_vision:screenshot-image' screenshot.pk %}" alt="Chart screenshot"
-             class="w-full rounded-md border border-slate-200 dark:border-slate-800" />
+        <div class="rounded-lg overflow-hidden border border-surface-light-border dark:border-surface-dark-border bg-slate-950">
+          <img src="{% url 'chart_vision:screenshot-image' screenshot.pk %}" alt="Chart screenshot"
+               class="w-full object-contain max-h-[220px]" />
+        </div>
         <dl class="kv-list mt-4">
-          <div class="kv-row"><dt class="kv-key">Instrument</dt><dd class="kv-value">{{ session.screenshot_instrument|default:"—" }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">Timeframe</dt><dd class="kv-value">{{ session.screenshot_timeframe|default:"—" }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">Chart timestamp</dt><dd class="kv-value">{{ chart_metadata.screenshot_timestamp|default:"—" }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Instrument</dt><dd class="kv-value font-mono font-semibold">{{ session.screenshot_instrument|default:"—" }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Timeframe</dt><dd class="kv-value font-mono">{{ session.screenshot_timeframe|default:"—" }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Chart timestamp</dt><dd class="kv-value font-mono text-xs">{{ chart_metadata.screenshot_timestamp|default:"—" }}</dd></div>
         </dl>
       {% else %}
         <p class="text-sm text-slate-500 dark:text-slate-400">Screenshot unavailable.</p>
@@ -49,33 +66,45 @@
   </div>
 
   <div class="card">
-    <div class="card-header"><h2 class="card-title">MT5 reference</h2></div>
+    <div class="card-header flex items-center justify-between">
+      <h2 class="card-title flex items-center gap-2">
+        <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-activity"></use></svg>
+        MT5 reference
+      </h2>
+      <span class="text-caption font-mono text-slate-400">broker feed</span>
+    </div>
     <div class="card-body">
       <dl class="kv-list">
-        <div class="kv-row"><dt class="kv-key">Broker symbol</dt><dd class="kv-value">{{ session.mt5_broker_symbol|default:"—" }}</dd></div>
-        <div class="kv-row"><dt class="kv-key">Canonical</dt><dd class="kv-value">{{ session.canonical_instrument|default:"—" }}</dd></div>
+        <div class="kv-row"><dt class="kv-key">Broker symbol</dt><dd class="kv-value font-mono font-semibold">{{ session.mt5_broker_symbol|default:"—" }}</dd></div>
+        <div class="kv-row"><dt class="kv-key">Canonical</dt><dd class="kv-value font-mono">{{ session.canonical_instrument|default:"—" }}</dd></div>
         <div class="kv-row"><dt class="kv-key">Broker</dt><dd class="kv-value">{{ session.broker|default:"—" }}</dd></div>
-        <div class="kv-row"><dt class="kv-key">Market type</dt><dd class="kv-value">{{ session.market_type|default:"—" }}</dd></div>
+        <div class="kv-row"><dt class="kv-key">Market type</dt><dd class="kv-value capitalize">{{ session.market_type|default:"—" }}</dd></div>
         <div class="kv-row"><dt class="kv-key">Mapping source</dt><dd class="kv-value">{{ session.mapping_source|default:"—" }}</dd></div>
-        <div class="kv-row"><dt class="kv-key">Mapping verified</dt><dd class="kv-value">{{ session.mapping_verified|yesno:"yes,no" }}</dd></div>
-        <div class="kv-row"><dt class="kv-key">MT5 timeframe</dt><dd class="kv-value">{{ session.mt5_timeframe|default:"—" }}</dd></div>
-        <div class="kv-row"><dt class="kv-key">Candles loaded</dt><dd class="kv-value">{{ mt5_snapshot.candle_count|default:"0" }}</dd></div>
-        <div class="kv-row"><dt class="kv-key">Latest candle open</dt><dd class="kv-value">{{ mt5_snapshot.latest_open_time|default:"—" }}</dd></div>
+        <div class="kv-row"><dt class="kv-key">Mapping verified</dt><dd class="kv-value font-medium">{{ session.mapping_verified|yesno:"yes,no" }}</dd></div>
+        <div class="kv-row"><dt class="kv-key">MT5 timeframe</dt><dd class="kv-value font-mono">{{ session.mt5_timeframe|default:"—" }}</dd></div>
+        <div class="kv-row"><dt class="kv-key">Candles loaded</dt><dd class="kv-value font-mono tabular-nums">{{ mt5_snapshot.candle_count|default:"0" }}</dd></div>
+        <div class="kv-row"><dt class="kv-key">Latest candle open</dt><dd class="kv-value font-mono text-xs">{{ mt5_snapshot.latest_open_time|default:"—" }}</dd></div>
       </dl>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-header"><h2 class="card-title">Assessment</h2></div>
+    <div class="card-header flex items-center justify-between">
+      <h2 class="card-title flex items-center gap-2">
+        <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-cpu"></use></svg>
+        Assessment
+      </h2>
+      <span class="text-caption font-mono text-slate-400">verification</span>
+    </div>
     <div class="card-body">
       <dl class="kv-list">
-        <div class="kv-row"><dt class="kv-key">Outcome</dt><dd class="kv-value">{{ session.get_outcome_display }}</dd></div>
+        <div class="kv-row"><dt class="kv-key">Outcome</dt><dd class="kv-value font-medium">{{ session.get_outcome_display }}</dd></div>
         <div class="kv-row"><dt class="kv-key">Feed compatibility</dt><dd class="kv-value">{{ session.get_feed_compatibility_display }}</dd></div>
         <div class="kv-row"><dt class="kv-key">Structure agreement</dt><dd class="kv-value">{{ session.get_structure_agreement_display }}</dd></div>
         <div class="kv-row"><dt class="kv-key">Freshness</dt><dd class="kv-value">{{ session.get_freshness_status_display }}</dd></div>
         <div class="kv-row"><dt class="kv-key">Alignment source</dt><dd class="kv-value">{{ session.get_alignment_source_display }}</dd></div>
-        <div class="kv-row"><dt class="kv-key">Alignment uncertain</dt><dd class="kv-value">{{ session.alignment_uncertain|yesno:"yes,no" }}</dd></div>
-        <div class="kv-row"><dt class="kv-key">Config version</dt><dd class="kv-value">{{ session.config_version|default:"—" }}</dd></div>
+        <div class="kv-row"><dt class="kv-key">Alignment uncertain</dt><dd class="kv-value font-medium">{{ session.alignment_uncertain|yesno:"yes,no" }}</dd></div>
+        <div class="kv-row"><dt class="kv-key">Config version</dt><dd class="kv-value font-mono text-xs">{{ session.config_version|default:"—" }}</dd></div>
       </dl>
     </div>
   </div>
@@ -83,17 +112,34 @@
 
 {# ---- Candle comparison ------------------------------------------------ #}
 <section class="card mb-6" aria-labelledby="candle-heading">
-  <div class="card-header"><h2 id="candle-heading" class="card-title">Candle comparison</h2></div>
+  <div class="card-header flex items-center justify-between">
+    <h2 id="candle-heading" class="card-title flex items-center gap-2">
+      <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-chart"></use></svg>
+      Candle comparison
+    </h2>
+  </div>
   <div class="card-body">
     <div class="grid gap-4 xs:grid-cols-2 sm:grid-cols-4">
-      <div><p class="metric-label">Aligned</p><p class="text-lg font-semibold tabular-nums">{{ session.aligned_candle_count }}</p></div>
-      <div><p class="metric-label">Matched</p><p class="text-lg font-semibold tabular-nums">{{ session.matched_candle_count }}</p></div>
-      <div><p class="metric-label">Mismatched</p><p class="text-lg font-semibold tabular-nums">{{ session.mismatched_candle_count }}</p></div>
-      <div><p class="metric-label">Direction agreement</p><p class="text-lg font-semibold tabular-nums">{{ session.direction_agreement|default:"—" }}</p></div>
+      <div class="p-3.5 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
+        <p class="metric-label">Aligned</p>
+        <p class="text-xl font-mono font-bold tabular-nums text-slate-900 dark:text-slate-100 mt-1">{{ session.aligned_candle_count }}</p>
+      </div>
+      <div class="p-3.5 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
+        <p class="metric-label">Matched</p>
+        <p class="text-xl font-mono font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-1">{{ session.matched_candle_count }}</p>
+      </div>
+      <div class="p-3.5 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
+        <p class="metric-label">Mismatched</p>
+        <p class="text-xl font-mono font-bold tabular-nums text-rose-600 dark:text-rose-400 mt-1">{{ session.mismatched_candle_count }}</p>
+      </div>
+      <div class="p-3.5 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
+        <p class="metric-label">Direction agreement</p>
+        <p class="text-xl font-mono font-bold tabular-nums text-brand-600 dark:text-brand-400 mt-1">{{ session.direction_agreement|default:"—" }}</p>
+      </div>
     </div>
 
     {% if alignments %}
-      <div class="table-wrapper mt-4">
+      <div class="table-wrapper mt-5 rounded-lg border border-surface-light-border dark:border-surface-dark-border">
         <table class="table table-responsive">
           <caption class="sr-only">Per-candle alignment</caption>
           <thead>
@@ -107,30 +153,43 @@
           </thead>
           <tbody>
             {% for row in alignments %}
-              <tr>
-                <td data-label="Idx">{{ row.screenshot_index }}</td>
-                <td data-label="Screenshot">{{ row.screenshot_classification|default:"—" }}</td>
-                <td data-label="MT5 time" class="whitespace-nowrap">{{ row.mt5_open_time|date:"Y-m-d H:i"|default:"—" }}</td>
-                <td data-label="MT5 dir">{{ row.mt5_direction|default:"—" }}</td>
-                <td data-label="Result">{{ row.get_match_result_display|default:row.match_result }}</td>
+              <tr class="transition-colors hover:bg-surface-light-muted/50 dark:hover:bg-surface-dark-muted/30">
+                <td data-label="Idx" class="font-mono text-xs font-semibold">{{ row.screenshot_index }}</td>
+                <td data-label="Screenshot" class="font-mono text-xs">{{ row.screenshot_classification|default:"—" }}</td>
+                <td data-label="MT5 time" class="whitespace-nowrap font-mono text-xs">{{ row.mt5_open_time|date:"Y-m-d H:i"|default:"—" }}</td>
+                <td data-label="MT5 dir" class="font-mono text-xs">{{ row.mt5_direction|default:"—" }}</td>
+                <td data-label="Result">
+                  {% if row.match_result == 'match' or 'match' in row.get_match_result_display|lower %}
+                    <span class="badge badge-success text-xs">{{ row.get_match_result_display|default:row.match_result }}</span>
+                  {% elif row.match_result == 'mismatch' or 'mismatch' in row.get_match_result_display|lower %}
+                    <span class="badge badge-danger text-xs">{{ row.get_match_result_display|default:row.match_result }}</span>
+                  {% else %}
+                    <span class="badge badge-neutral text-xs">{{ row.get_match_result_display|default:row.match_result }}</span>
+                  {% endif %}
+                </td>
               </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     {% else %}
-      <p class="mt-3 text-sm text-slate-500 dark:text-slate-400">No per-candle comparison was possible.</p>
+      <p class="mt-4 text-sm text-slate-500 dark:text-slate-400">No per-candle comparison was possible.</p>
     {% endif %}
   </div>
 </section>
 
 {# ---- Reasons and issues ----------------------------------------------- #}
-<div class="grid gap-4 lg:grid-cols-2">
+<div class="grid gap-6 lg:grid-cols-2">
   <section class="card" aria-labelledby="reasons-heading">
-    <div class="card-header"><h2 id="reasons-heading" class="card-title">Mismatch reasons</h2></div>
+    <div class="card-header flex items-center justify-between">
+      <h2 id="reasons-heading" class="card-title flex items-center gap-2">
+        <svg class="h-4 w-4 text-slate-400" aria-hidden="true"><use href="#icon-alert"></use></svg>
+        Mismatch reasons
+      </h2>
+    </div>
     <div class="card-body">
       {% if reasons %}
-        <ul class="list-disc space-y-1 pl-5 text-sm text-slate-600 dark:text-slate-400">
+        <ul class="list-disc space-y-2 pl-5 text-sm text-slate-700 dark:text-slate-300">
           {% for reason in reasons %}<li>{{ reason }}</li>{% endfor %}
         </ul>
       {% else %}
@@ -140,17 +199,22 @@
   </section>
 
   <section class="card" aria-labelledby="issues-heading">
-    <div class="card-header"><h2 id="issues-heading" class="card-title">Issues</h2></div>
+    <div class="card-header flex items-center justify-between">
+      <h2 id="issues-heading" class="card-title flex items-center gap-2">
+        <svg class="h-4 w-4 text-amber-500" aria-hidden="true"><use href="#icon-alert-circle"></use></svg>
+        Issues
+      </h2>
+    </div>
     <div class="card-body">
       {% if issues %}
-        <ul class="space-y-2 text-sm">
+        <ul class="space-y-2.5 text-sm">
           {% for issue in issues %}
-            <li class="flex items-start gap-2">
-              {% if issue.severity == 'critical' %}<span class="badge badge-danger">{{ issue.get_severity_display }}</span>
-              {% elif issue.severity == 'error' %}<span class="badge badge-warning">{{ issue.get_severity_display }}</span>
-              {% elif issue.severity == 'warning' %}<span class="badge badge-warning">{{ issue.get_severity_display }}</span>
-              {% else %}<span class="badge badge-neutral">{{ issue.get_severity_display }}</span>{% endif %}
-              <span class="text-slate-700 dark:text-slate-300">{{ issue.message }}</span>
+            <li class="flex items-start gap-2.5 p-2 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
+              {% if issue.severity == 'critical' %}<span class="badge badge-danger text-xs">{{ issue.get_severity_display }}</span>
+              {% elif issue.severity == 'error' %}<span class="badge badge-warning text-xs">{{ issue.get_severity_display }}</span>
+              {% elif issue.severity == 'warning' %}<span class="badge badge-warning text-xs">{{ issue.get_severity_display }}</span>
+              {% else %}<span class="badge badge-neutral text-xs">{{ issue.get_severity_display }}</span>{% endif %}
+              <span class="text-slate-800 dark:text-slate-200">{{ issue.message }}</span>
             </li>
           {% endfor %}
         </ul>

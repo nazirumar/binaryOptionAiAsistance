@@ -6,34 +6,48 @@
 {% block page_content %}
 <div class="page-header">
   <div class="min-w-0">
-    <p class="page-eyebrow">Workspace</p>
-    <h1 class="page-title">Analysis history</h1>
+    <div class="flex items-center gap-2 mb-1.5">
+      <span class="inline-flex items-center gap-1.5 text-eyebrow uppercase font-mono tracking-wider text-brand-600 dark:text-brand-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+        Audit Log
+      </span>
+      <span class="text-slate-400 dark:text-slate-600">/</span>
+      <span class="text-caption font-mono text-slate-500 dark:text-slate-400">Archive</span>
+    </div>
     <p class="page-description">Search and filter historical analyses. The original decision is preserved as generated.</p>
   </div>
-  <a href="{% url 'dashboard:export-analyses-csv' %}" class="btn btn-secondary btn-sm">
-    <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-download"></use></svg>
-    Export CSV
-  </a>
+  <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
+    <a href="{% url 'dashboard:export-analyses-csv' %}" class="btn btn-secondary btn-sm">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-download"></use></svg>
+      Export CSV
+    </a>
+  </div>
 </div>
 
 {# ---- Filters ---------------------------------------------------------- #}
 <form method="get" class="card mb-6">
+  <div class="card-header flex items-center justify-between border-b border-surface-light-border/80 dark:border-surface-dark-border/80 py-3">
+    <h2 class="card-title text-sm flex items-center gap-2 font-mono uppercase tracking-wider text-slate-600 dark:text-slate-300">
+      <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-filter"></use></svg>
+      Filter criteria
+    </h2>
+  </div>
   <div class="card-body">
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div>
         <label for="filter-search" class="form-label">Search</label>
-        <input id="filter-search" type="text" name="search" value="{{ filters.search|default:'' }}" class="form-control" />
+        <input id="filter-search" type="text" name="search" value="{{ filters.search|default:'' }}" class="form-control" placeholder="ID or keywords..." />
       </div>
       <div>
         <label for="filter-instrument" class="form-label">Instrument</label>
-        <select id="filter-instrument" name="instrument" class="form-select">
+        <select id="filter-instrument" name="instrument" class="form-select font-mono">
           <option value="">All</option>
           {% for i in choices.instruments %}<option value="{{ i }}" {% if filters.instrument == i %}selected{% endif %}>{{ i }}</option>{% endfor %}
         </select>
       </div>
       <div>
         <label for="filter-timeframe" class="form-label">Timeframe</label>
-        <select id="filter-timeframe" name="timeframe" class="form-select">
+        <select id="filter-timeframe" name="timeframe" class="form-select font-mono">
           <option value="">All</option>
           {% for t in choices.timeframes %}<option value="{{ t }}" {% if filters.timeframe == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
         </select>
@@ -46,12 +60,12 @@
         </select>
       </div>
     </div>
-    <div class="mt-4 flex items-center gap-3">
+    <div class="mt-5 flex items-center gap-3">
       <button type="submit" class="btn btn-primary btn-sm">
         <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-filter"></use></svg>
         Apply filters
       </button>
-      <a href="{% url 'dashboard:analyses' %}" class="btn-link text-sm">Reset</a>
+      <a href="{% url 'dashboard:analyses' %}" class="btn-link text-sm text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">Reset</a>
     </div>
   </div>
 </form>
@@ -76,14 +90,24 @@
         </thead>
         <tbody>
           {% for e in evaluations %}
-            <tr>
-              <td data-label="ID">#{{ e.pk }}</td>
-              <td data-label="Instrument">{{ e.instrument|default:"—" }}</td>
-              <td data-label="Timeframe">{{ e.timeframe|default:"—" }}</td>
-              <td data-label="Decision">{{ e.get_direction_display }}</td>
-              <td data-label="Strategy">{{ e.get_strategy_family_display }}</td>
-              <td data-label="Compatibility">{{ e.feed_compatibility|default:"—" }}</td>
-              <td data-label="Created" class="whitespace-nowrap">{{ e.created_at|date:"Y-m-d H:i" }}</td>
+            <tr class="transition-colors hover:bg-surface-light-muted/50 dark:hover:bg-surface-dark-muted/30">
+              <td data-label="ID" class="font-mono text-xs font-semibold text-slate-700 dark:text-slate-300">#{{ e.pk }}</td>
+              <td data-label="Instrument" class="font-mono text-xs font-semibold text-brand-600 dark:text-brand-400">{{ e.instrument|default:"—" }}</td>
+              <td data-label="Timeframe" class="font-mono text-xs text-slate-600 dark:text-slate-400">{{ e.timeframe|default:"—" }}</td>
+              <td data-label="Decision">
+                {% if e.direction == 'UP' or 'up' in e.get_direction_display|lower %}
+                  <span class="badge badge-success"><span class="status-dot status-dot-success" aria-hidden="true"></span>{{ e.get_direction_display }}</span>
+                {% elif e.direction == 'DOWN' or 'down' in e.get_direction_display|lower %}
+                  <span class="badge badge-danger"><span class="status-dot status-dot-danger" aria-hidden="true"></span>{{ e.get_direction_display }}</span>
+                {% elif 'no trade' in e.get_direction_display|lower %}
+                  <span class="badge badge-warning"><span class="status-dot status-dot-warning" aria-hidden="true"></span>{{ e.get_direction_display }}</span>
+                {% else %}
+                  <span class="badge badge-neutral">{{ e.get_direction_display }}</span>
+                {% endif %}
+              </td>
+              <td data-label="Strategy" class="text-xs text-slate-700 dark:text-slate-300 font-medium">{{ e.get_strategy_family_display }}</td>
+              <td data-label="Compatibility" class="text-xs font-mono text-slate-600 dark:text-slate-400">{{ e.feed_compatibility|default:"—" }}</td>
+              <td data-label="Created" class="whitespace-nowrap font-mono text-xs text-slate-500 dark:text-slate-400">{{ e.created_at|date:"Y-m-d H:i" }}</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -92,7 +116,7 @@
     {% include "dashboard/partials/pagination.html" %}
   {% else %}
     <div class="card-body">
-      <div class="empty-state">
+      <div class="empty-state py-12">
         <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-search"></use></svg></div>
         <p class="empty-state-title">No analyses match the current filters</p>
         <p class="empty-state-text">Adjust or reset the filters to see more results.</p>

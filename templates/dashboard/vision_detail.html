@@ -7,14 +7,26 @@
 {% block page_content %}
 <div class="page-header">
   <div class="min-w-0">
-    <p class="page-eyebrow">Workspace · Screenshot Analysis</p>
+    <div class="flex items-center gap-2 mb-1.5">
+      <span class="inline-flex items-center gap-1.5 text-eyebrow uppercase font-mono tracking-wider text-slate-500 dark:text-slate-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+        Vision Terminal
+      </span>
+      <span class="text-slate-400 dark:text-slate-600">/</span>
+      <span class="text-caption font-mono text-slate-500 dark:text-slate-400">#{{ screenshot.pk }}</span>
+    </div>
     <h1 class="page-title">Screenshot #{{ screenshot.pk }}</h1>
-    <p class="page-description">
-      {{ screenshot.width }}×{{ screenshot.height }} {{ screenshot.image_format|upper }} ·
-      {{ screenshot.size_bytes }} bytes · uploaded {{ screenshot.created_at|date:"Y-m-d H:i" }}
+    <p class="page-description flex flex-wrap items-center gap-x-2 gap-y-1">
+      <span class="font-mono text-slate-700 dark:text-slate-300">{{ screenshot.width }}×{{ screenshot.height }}</span>
+      <span class="text-slate-400">·</span>
+      <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-mono font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ screenshot.image_format|upper }}</span>
+      <span class="text-slate-400">·</span>
+      <span class="font-mono text-slate-700 dark:text-slate-300">{{ screenshot.size_bytes }} bytes</span>
+      <span class="text-slate-400">·</span>
+      <span>uploaded {{ screenshot.created_at|date:"Y-m-d H:i" }}</span>
     </p>
   </div>
-  <div class="flex flex-wrap items-center gap-2">
+  <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
     <a href="{% url 'dashboard:vision' %}" class="btn btn-secondary btn-sm">
       <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
       Back to uploads
@@ -31,18 +43,27 @@
   {# ---- Preview column ----------------------------------------------- #}
   <div class="lg:col-span-2">
     <div class="card lg:sticky lg:top-[calc(var(--topbar-height)+1.5rem)]">
-      <div class="card-header">
-        <h2 class="card-title">Screenshot preview</h2>
+      <div class="card-header flex items-center justify-between">
+        <h2 class="card-title flex items-center gap-2">
+          <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-chart"></use></svg>
+          Screenshot preview
+        </h2>
+        <a href="{% url 'chart_vision:screenshot-image' screenshot.pk %}" target="_blank" rel="noopener noreferrer" class="text-caption font-medium text-brand-600 hover:text-brand-500 dark:text-brand-400 inline-flex items-center gap-1">
+          Open raw
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+        </a>
       </div>
       <div class="card-body">
-        <img src="{% url 'chart_vision:screenshot-image' screenshot.pk %}"
-             alt="Uploaded chart screenshot #{{ screenshot.pk }}"
-             class="w-full rounded-md border border-surface-light-border dark:border-surface-dark-border" />
-        <dl class="kv-list mt-4">
-          <div class="kv-row"><dt class="kv-key">Dimensions</dt><dd class="kv-value">{{ screenshot.width }}×{{ screenshot.height }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">Format</dt><dd class="kv-value">{{ screenshot.image_format|upper }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">Size</dt><dd class="kv-value">{{ screenshot.size_bytes }} bytes</dd></div>
-          <div class="kv-row"><dt class="kv-key">Upload status</dt><dd class="kv-value">{{ screenshot.get_upload_status_display }}</dd></div>
+        <div class="relative group rounded-lg overflow-hidden border border-surface-light-border dark:border-surface-dark-border bg-slate-950">
+          <img src="{% url 'chart_vision:screenshot-image' screenshot.pk %}"
+               alt="Uploaded chart screenshot #{{ screenshot.pk }}"
+               class="w-full object-contain max-h-[380px] transition-transform duration-300 group-hover:scale-[1.01]" />
+        </div>
+        <dl class="kv-list mt-5">
+          <div class="kv-row"><dt class="kv-key">Dimensions</dt><dd class="kv-value font-mono">{{ screenshot.width }}×{{ screenshot.height }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Format</dt><dd class="kv-value font-mono">{{ screenshot.image_format|upper }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Size</dt><dd class="kv-value font-mono">{{ screenshot.size_bytes }} bytes</dd></div>
+          <div class="kv-row"><dt class="kv-key">Upload status</dt><dd class="kv-value font-medium">{{ screenshot.get_upload_status_display }}</dd></div>
         </dl>
       </div>
     </div>
@@ -58,11 +79,14 @@
          hx-swap="innerHTML">
       {# Server-rendered skeleton until the fragment arrives. #}
       <div class="card">
-        <div class="card-body space-y-3">
+        <div class="card-body space-y-4">
           <div class="skeleton-title"></div>
           <div class="skeleton-text"></div>
           <div class="skeleton-text w-2/3"></div>
-          <p class="pt-2 text-caption text-slate-500 dark:text-slate-400">Loading analysis…</p>
+          <div class="flex items-center gap-2 pt-2 text-caption text-slate-500 dark:text-slate-400">
+            <span class="spinner h-3.5 w-3.5" aria-hidden="true"></span>
+            <span>Loading analysis…</span>
+          </div>
         </div>
       </div>
     </div>

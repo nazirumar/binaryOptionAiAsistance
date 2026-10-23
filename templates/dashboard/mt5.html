@@ -6,11 +6,18 @@
 {% block page_content %}
 <div class="page-header">
   <div class="min-w-0">
-    <p class="page-eyebrow">Account</p>
+    <div class="flex items-center gap-2 mb-1.5">
+      <span class="inline-flex items-center gap-1.5 text-eyebrow uppercase font-mono tracking-wider text-brand-600 dark:text-brand-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-brand-500"></span>
+        Feed Telemetry
+      </span>
+      <span class="text-slate-400 dark:text-slate-600">/</span>
+      <span class="text-caption font-mono text-slate-500 dark:text-slate-400">Windows Worker</span>
+    </div>
     <h1 class="page-title">MT5 market data</h1>
     <p class="page-description">Live and historical MetaTrader 5 data collected by the Windows worker.</p>
   </div>
-  <div class="flex flex-wrap items-center gap-2">
+  <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
     <a href="{% url 'dashboard:index' %}" class="btn btn-secondary btn-sm">
       <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chevron-left"></use></svg>
       Dashboard
@@ -23,11 +30,14 @@
 </div>
 
 {# ---- Connection ------------------------------------------------------- #}
-<div class="card mb-6">
-  <div class="card-header">
-    <h2 class="card-title">Connection</h2>
+<div class="card mb-6 overflow-hidden">
+  <div class="card-header flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-activity"></use></svg>
+      <h2 class="card-title">Connection</h2>
+    </div>
     {% if connection_state == 'connected' %}
-      <span class="status-pill status-pill-success"><span class="status-dot"></span> Connected</span>
+      <span class="status-pill status-pill-success"><span class="status-dot status-dot-pulse"></span> Connected</span>
     {% elif connection_state == 'error' %}
       <span class="status-pill status-pill-danger"><span class="status-dot"></span> Error</span>
     {% elif connection_state == 'disconnected' %}
@@ -38,18 +48,18 @@
   </div>
   <div class="card-body">
     <dl class="grid gap-4 xs:grid-cols-2 sm:grid-cols-3">
-      <div class="rounded-md bg-surface-light-muted p-4 dark:bg-surface-dark">
+      <div class="rounded-lg border border-surface-light-border bg-surface-light-muted/40 p-4 dark:border-surface-dark-border dark:bg-surface-dark/40">
         <dt class="metric-label">Broker / server</dt>
-        <dd class="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">{{ broker }} · {{ server }}</dd>
+        <dd class="mt-1 font-mono text-sm font-semibold text-slate-900 dark:text-slate-100">{{ broker }} · {{ server }}</dd>
       </div>
-      <div class="rounded-md bg-surface-light-muted p-4 dark:bg-surface-dark">
+      <div class="rounded-lg border border-surface-light-border bg-surface-light-muted/40 p-4 dark:border-surface-dark-border dark:bg-surface-dark/40">
         <dt class="metric-label">Account (masked)</dt>
-        <dd class="mt-1 text-sm font-medium tabular-nums text-slate-900 dark:text-slate-100">{{ masked_login }}</dd>
+        <dd class="mt-1 font-mono text-sm font-semibold tabular-nums text-slate-900 dark:text-slate-100">{{ masked_login }}</dd>
       </div>
-      <div class="rounded-md bg-surface-light-muted p-4 dark:bg-surface-dark">
+      <div class="rounded-lg border border-surface-light-border bg-surface-light-muted/40 p-4 dark:border-surface-dark-border dark:bg-surface-dark/40">
         <dt class="metric-label">Selected symbol</dt>
-        <dd class="mt-1 text-sm font-medium text-slate-900 dark:text-slate-100">
-          {% if symbol %}{{ symbol.canonical }} <span class="text-slate-400">({{ symbol.broker_symbol }}{% if symbol.is_otc %}, OTC{% endif %})</span>{% else %}—{% endif %}
+        <dd class="mt-1 font-mono text-sm font-semibold text-slate-900 dark:text-slate-100">
+          {% if symbol %}<span class="text-brand-600 dark:text-brand-400">{{ symbol.canonical }}</span> <span class="text-slate-400 font-normal">({{ symbol.broker_symbol }}{% if symbol.is_otc %}, OTC{% endif %})</span>{% else %}—{% endif %}
         </dd>
       </div>
     </dl>
@@ -58,16 +68,26 @@
 </div>
 
 {# ---- Quote / candle --------------------------------------------------- #}
-<div class="mb-6 grid gap-4 lg:grid-cols-2">
+<div class="mb-6 grid gap-6 lg:grid-cols-2">
   <div class="card">
-    <div class="card-header"><h2 class="card-title">Latest quote</h2></div>
+    <div class="card-header flex items-center justify-between">
+      <h2 class="card-title flex items-center gap-2">
+        <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-chart"></use></svg>
+        Latest quote
+      </h2>
+      {% if latest_tick %}
+        <span class="text-caption font-mono {% if tick_stale %}text-amber-500 font-semibold{% else %}text-emerald-500{% endif %}">
+          {{ tick_age_seconds }}s ago{% if tick_stale %} · STALE{% endif %}
+        </span>
+      {% endif %}
+    </div>
     <div class="card-body">
       {% if latest_tick %}
         <dl class="kv-list">
-          <div class="kv-row"><dt class="kv-key">Time (UTC)</dt><dd class="kv-value">{{ latest_tick.time|date:"Y-m-d H:i:s" }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">Bid</dt><dd class="kv-value tabular-nums">{{ latest_tick.bid|default:"—" }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">Ask</dt><dd class="kv-value tabular-nums">{{ latest_tick.ask|default:"—" }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">Spread</dt><dd class="kv-value tabular-nums">{{ spread|default:"—" }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Time (UTC)</dt><dd class="kv-value font-mono">{{ latest_tick.time|date:"Y-m-d H:i:s" }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Bid</dt><dd class="kv-value font-mono font-semibold text-brand-600 dark:text-brand-400 tabular-nums">{{ latest_tick.bid|default:"—" }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Ask</dt><dd class="kv-value font-mono font-semibold text-slate-900 dark:text-slate-100 tabular-nums">{{ latest_tick.ask|default:"—" }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Spread</dt><dd class="kv-value font-mono tabular-nums">{{ spread|default:"—" }}</dd></div>
         </dl>
         <p class="mt-4 text-caption {% if tick_stale %}text-status-warning-fg dark:text-status-warning-dark{% else %}text-slate-500 dark:text-slate-400{% endif %}">
           Age: {{ tick_age_seconds }}s{% if tick_stale %} · STALE{% endif %}
@@ -79,14 +99,22 @@
   </div>
 
   <div class="card">
-    <div class="card-header"><h2 class="card-title">Last completed candle</h2></div>
+    <div class="card-header flex items-center justify-between">
+      <h2 class="card-title flex items-center gap-2">
+        <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-candles"></use></svg>
+        Last completed candle
+      </h2>
+      {% if last_candle %}
+        <span class="badge badge-brand font-mono">{{ last_candle.timeframe }}</span>
+      {% endif %}
+    </div>
     <div class="card-body">
       {% if last_candle %}
         <dl class="kv-list">
-          <div class="kv-row"><dt class="kv-key">Timeframe</dt><dd class="kv-value">{{ last_candle.timeframe }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">Open time (UTC)</dt><dd class="kv-value">{{ last_candle.open_time|date:"Y-m-d H:i:s" }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">O / H</dt><dd class="kv-value tabular-nums">{{ last_candle.open }} / {{ last_candle.high }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">L / C</dt><dd class="kv-value tabular-nums">{{ last_candle.low }} / {{ last_candle.close }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Timeframe</dt><dd class="kv-value font-mono">{{ last_candle.timeframe }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Open time (UTC)</dt><dd class="kv-value font-mono">{{ last_candle.open_time|date:"Y-m-d H:i:s" }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">O / H</dt><dd class="kv-value font-mono tabular-nums">{{ last_candle.open }} / {{ last_candle.high }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">L / C</dt><dd class="kv-value font-mono tabular-nums">{{ last_candle.low }} / {{ last_candle.close }}</dd></div>
         </dl>
       {% else %}
         <p class="text-sm text-slate-500 dark:text-slate-400">No completed candles stored yet.</p>
@@ -96,16 +124,27 @@
 </div>
 
 {# ---- Sync + workers --------------------------------------------------- #}
-<div class="mb-6 grid gap-4 lg:grid-cols-2">
+<div class="mb-6 grid gap-6 lg:grid-cols-2">
   <div class="card">
-    <div class="card-header"><h2 class="card-title">Last synchronization</h2></div>
+    <div class="card-header flex items-center justify-between">
+      <h2 class="card-title flex items-center gap-2">
+        <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-refresh"></use></svg>
+        Last synchronization
+      </h2>
+    </div>
     <div class="card-body">
       {% if last_sync %}
         <dl class="kv-list">
-          <div class="kv-row"><dt class="kv-key">Kind</dt><dd class="kv-value">{{ last_sync.get_kind_display }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">Status</dt><dd class="kv-value">{{ last_sync.get_status_display }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">Started</dt><dd class="kv-value">{{ last_sync.started_at|date:"Y-m-d H:i:s" }}</dd></div>
-          <div class="kv-row"><dt class="kv-key">Rows in/up/skip</dt><dd class="kv-value tabular-nums">{{ last_sync.rows_inserted }}/{{ last_sync.rows_updated }}/{{ last_sync.rows_skipped }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Kind</dt><dd class="kv-value font-medium">{{ last_sync.get_kind_display }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Status</dt><dd class="kv-value">
+            {% if last_sync.status == 'success' %}
+              <span class="badge badge-success text-xs">{{ last_sync.get_status_display }}</span>
+            {% else %}
+              <span class="badge badge-neutral text-xs">{{ last_sync.get_status_display }}</span>
+            {% endif %}
+          </dd></div>
+          <div class="kv-row"><dt class="kv-key">Started</dt><dd class="kv-value font-mono">{{ last_sync.started_at|date:"Y-m-d H:i:s" }}</dd></div>
+          <div class="kv-row"><dt class="kv-key">Rows in/up/skip</dt><dd class="kv-value font-mono tabular-nums">{{ last_sync.rows_inserted }}/{{ last_sync.rows_updated }}/{{ last_sync.rows_skipped }}</dd></div>
         </dl>
         {% if last_sync.error_message %}<p class="mt-3 text-caption text-status-danger-fg dark:text-status-danger-dark">{{ last_sync.error_message }}</p>{% endif %}
       {% else %}
@@ -115,14 +154,20 @@
   </div>
 
   <div class="card">
-    <div class="card-header"><h2 class="card-title">Workers</h2></div>
+    <div class="card-header flex items-center justify-between">
+      <h2 class="card-title flex items-center gap-2">
+        <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-cpu"></use></svg>
+        Workers
+      </h2>
+      <span class="text-caption font-mono text-slate-400">{{ heartbeats|length }} recorded</span>
+    </div>
     <div class="card-body">
       {% if heartbeats %}
         <ul class="space-y-2 text-sm">
           {% for hb in heartbeats %}
-            <li class="flex items-center justify-between gap-2 rounded-md bg-surface-light-muted px-3 py-2 dark:bg-surface-dark">
-              <span class="font-medium text-slate-900 dark:text-slate-100">{{ hb.worker_id }}</span>
-              <span class="text-caption {% if hb.stale %}text-status-warning-fg dark:text-status-warning-dark{% else %}text-slate-500 dark:text-slate-400{% endif %}">
+            <li class="flex items-center justify-between gap-2 rounded-lg border border-surface-light-border bg-surface-light-muted/40 px-3.5 py-2.5 dark:border-surface-dark-border dark:bg-surface-dark/40">
+              <span class="font-mono text-xs font-semibold text-slate-900 dark:text-slate-100">{{ hb.worker_id }}</span>
+              <span class="text-caption font-mono {% if hb.stale %}text-amber-500 font-semibold{% else %}text-slate-500 dark:text-slate-400{% endif %}">
                 {{ hb.status }} · {{ hb.age_seconds }}s ago{% if hb.stale %} (stale){% endif %}
               </span>
             </li>
@@ -136,8 +181,13 @@
 </div>
 
 {# ---- Recent events ---------------------------------------------------- #}
-<section class="card" aria-labelledby="events-heading">
-  <div class="card-header"><h2 id="events-heading" class="card-title">Recent events</h2></div>
+<section class="card overflow-hidden" aria-labelledby="events-heading">
+  <div class="card-header flex items-center justify-between">
+    <h2 id="events-heading" class="card-title flex items-center gap-2">
+      <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-layers"></use></svg>
+      Recent events
+    </h2>
+  </div>
   {% if recent_events %}
     <div class="table-wrapper">
       <table class="table table-responsive">
@@ -152,11 +202,19 @@
         </thead>
         <tbody>
           {% for event in recent_events %}
-            <tr>
-              <td data-label="When (UTC)" class="whitespace-nowrap">{{ event.occurred_at|date:"Y-m-d H:i:s" }}</td>
-              <td data-label="Kind">{{ event.get_kind_display }}</td>
-              <td data-label="Severity">{{ event.get_severity_display }}</td>
-              <td data-label="Message">{{ event.message }}</td>
+            <tr class="transition-colors hover:bg-surface-light-muted/50 dark:hover:bg-surface-dark-muted/30">
+              <td data-label="When (UTC)" class="whitespace-nowrap font-mono text-xs">{{ event.occurred_at|date:"Y-m-d H:i:s" }}</td>
+              <td data-label="Kind" class="text-xs font-medium">{{ event.get_kind_display }}</td>
+              <td data-label="Severity">
+                {% if event.severity == 'critical' or event.severity == 'error' %}
+                  <span class="badge badge-danger text-xs">{{ event.get_severity_display }}</span>
+                {% elif event.severity == 'warning' %}
+                  <span class="badge badge-warning text-xs">{{ event.get_severity_display }}</span>
+                {% else %}
+                  <span class="badge badge-neutral text-xs">{{ event.get_severity_display }}</span>
+                {% endif %}
+              </td>
+              <td data-label="Message" class="text-xs text-slate-700 dark:text-slate-300">{{ event.message }}</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -164,7 +222,7 @@
     </div>
   {% else %}
     <div class="card-body">
-      <div class="empty-state">
+      <div class="empty-state py-10">
         <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-candles"></use></svg></div>
         <p class="empty-state-title">No market-data events recorded yet</p>
         <p class="empty-state-text">Events appear here once the Windows worker starts collecting MT5 data.</p>

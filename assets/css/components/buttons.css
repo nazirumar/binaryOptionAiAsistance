@@ -6,38 +6,40 @@
  */
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg
       px-4 py-2 text-sm font-semibold leading-none
-      transition-colors duration-fast ease-standard
-      disabled:cursor-not-allowed disabled:opacity-50;
+      transition-all duration-fast ease-standard
+      disabled:cursor-not-allowed disabled:opacity-50 active:scale-[0.98];
   }
 
   .btn:focus-visible {
     @apply ring-2 ring-brand-500 ring-offset-2 ring-offset-surface-light-muted dark:ring-offset-surface-dark;
   }
 
-  /* Primary — the single most important action on a view. */
+  /* Primary — high-contrast modern gradient with subtle glow. */
   .btn-primary {
-    @apply bg-brand-600 text-white shadow-xs hover:bg-brand-500 active:bg-brand-700;
+    @apply bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-sm border border-brand-400/20
+      hover:from-brand-500 hover:to-brand-400 hover:shadow-brand-glow active:from-brand-700 active:to-brand-600;
   }
 
-  /* Secondary — quiet, borders only. */
+  /* Secondary — quiet, sleek border, refined hover. */
   .btn-secondary {
-    @apply border border-surface-light-border bg-white text-slate-700
-      hover:bg-slate-50 active:bg-slate-100
+    @apply border border-surface-light-border bg-white text-slate-700 shadow-xs
+      hover:bg-slate-50 hover:text-slate-900 active:bg-slate-100
       dark:border-surface-dark-border dark:bg-surface-dark-raised dark:text-slate-200
-      dark:hover:bg-surface-dark-overlay;
+      dark:hover:bg-surface-dark-overlay dark:hover:text-white dark:hover:border-slate-600;
   }
 
   /* Ghost — inline / toolbar actions. */
   .btn-ghost {
-    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900
+    @apply text-slate-600 hover:bg-slate-100/80 hover:text-slate-900
       dark:text-slate-400 dark:hover:bg-surface-dark-overlay dark:hover:text-slate-100;
   }
 
-  /* Danger — destructive actions. Always pair with a confirmation dialog. */
+  /* Danger — destructive actions. */
   .btn-danger {
-    @apply bg-status-danger text-white shadow-xs hover:brightness-110 active:brightness-95;
+    @apply bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-sm border border-rose-400/20
+      hover:from-rose-500 hover:to-rose-400 active:from-rose-700 active:to-rose-600;
   }
 
   /* Subtle danger — destructive but not the page's primary focus. */
@@ -49,13 +51,13 @@
 
   /* Sizes. */
   .btn-sm {
-    @apply px-3 py-1.5 text-xs;
+    @apply px-3 py-1.5 text-xs rounded-md;
   }
   .btn-lg {
-    @apply px-5 py-2.5 text-base;
+    @apply px-5 py-2.5 text-base rounded-xl;
   }
   .btn-icon {
-    @apply h-9 w-9 p-0;
+    @apply h-9 w-9 p-0 rounded-lg;
   }
 
   /* A button that renders as a link (keeps semantics + focus ring). */

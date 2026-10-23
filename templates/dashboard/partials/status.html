@@ -1,46 +1,71 @@
 {% comment %}HTMX fragment: system status card, polled every 30s.{% endcomment %}
-<div class="card">
-  <div class="card-header">
-    <div>
-      <h2 class="card-title">System status</h2>
-      <p class="card-subtitle">Last checked: {% now "H:i:s" %} UTC</p>
-    </div>
-    <span class="badge badge-success"><span class="status-dot status-dot-success status-dot-pulse" aria-hidden="true"></span> Foundation online</span>
-  </div>
-  <div class="card-body">
-    <dl class="grid gap-3 sm:grid-cols-3">
-      <div class="rounded-md bg-surface-light-muted p-3 dark:bg-surface-dark">
-        <dt class="metric-label">Web / API</dt>
-        <dd class="mt-1 font-semibold text-slate-900 dark:text-slate-100">Ready</dd>
+<div class="card shadow-xs border-surface-light-border dark:border-surface-dark-border">
+  <div class="card-header bg-surface-light-muted/40 dark:bg-surface-dark/40 py-3.5">
+    <div class="flex items-center gap-2.5">
+      <div class="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)] animate-pulse-soft"></div>
+      <div>
+        <h2 class="card-title text-sm sm:text-base">System status</h2>
+        <p class="card-subtitle text-xs">Last checked: {% now "H:i:s" %} UTC</p>
       </div>
-      <div class="rounded-md bg-surface-light-muted p-3 dark:bg-surface-dark">
-        <dt class="metric-label">MetaTrader 5 feed</dt>
+    </div>
+    <span class="badge badge-success">
+      <span class="status-dot status-dot-success status-dot-pulse" aria-hidden="true"></span>
+      Foundation online
+    </span>
+  </div>
+  <div class="card-body p-4 sm:p-5">
+    <dl class="grid gap-3 sm:grid-cols-3">
+      <div class="rounded-xl border border-surface-light-border bg-surface-light-muted/60 p-3.5 dark:border-surface-dark-border/80 dark:bg-surface-dark/60">
+        <dt class="metric-label flex items-center justify-between">
+          <span>Web / API</span>
+          <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+        </dt>
+        <dd class="mt-1.5 font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+          <svg class="h-4 w-4 text-emerald-500" aria-hidden="true"><use href="#icon-check-circle"></use></svg>
+          Ready
+        </dd>
+      </div>
+      <div class="rounded-xl border border-surface-light-border bg-surface-light-muted/60 p-3.5 dark:border-surface-dark-border/80 dark:bg-surface-dark/60">
+        <dt class="metric-label flex items-center justify-between">
+          <span>MetaTrader 5 feed</span>
+          {% if mt5_state == 'connected' %}<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>{% else %}<span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>{% endif %}
+        </dt>
         {% if mt5_state == 'connected' %}
-          <dd class="mt-1 flex items-center gap-2 font-semibold text-status-success-fg dark:text-status-success-dark">
+          <dd class="mt-1.5 flex items-center gap-2 font-semibold text-status-success-fg dark:text-status-success-dark">
             <span class="status-dot status-dot-success" aria-hidden="true"></span>Connected
           </dd>
         {% elif mt5_state == 'error' %}
-          <dd class="mt-1 flex items-center gap-2 font-semibold text-status-danger-fg dark:text-status-danger-dark">
+          <dd class="mt-1.5 flex items-center gap-2 font-semibold text-status-danger-fg dark:text-status-danger-dark">
             <span class="status-dot status-dot-danger" aria-hidden="true"></span>Error
           </dd>
         {% elif mt5_state == 'disconnected' %}
-          <dd class="mt-1 flex items-center gap-2 font-semibold text-status-warning-fg dark:text-status-warning-dark">
+          <dd class="mt-1.5 flex items-center gap-2 font-semibold text-status-warning-fg dark:text-status-warning-dark">
             <span class="status-dot status-dot-warning" aria-hidden="true"></span>Disconnected
           </dd>
         {% else %}
-          <dd class="mt-1 flex items-center gap-2 font-semibold text-slate-400">
+          <dd class="mt-1.5 flex items-center gap-2 font-semibold text-slate-400">
             <span class="status-dot status-dot-neutral" aria-hidden="true"></span>Not verified
           </dd>
         {% endif %}
       </div>
-      <div class="rounded-md bg-surface-light-muted p-3 dark:bg-surface-dark">
-        <dt class="metric-label">Vision model</dt>
+      <div class="rounded-xl border border-surface-light-border bg-surface-light-muted/60 p-3.5 dark:border-surface-dark-border/80 dark:bg-surface-dark/60">
+        <dt class="metric-label flex items-center justify-between">
+          <span>Vision model</span>
+          {% if vision.ready %}<span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>{% else %}<span class="h-1.5 w-1.5 rounded-full bg-slate-400"></span>{% endif %}
+        </dt>
         {% if vision.ready %}
-          <dd class="mt-1 font-semibold text-status-success-fg dark:text-status-success-dark">{{ vision.label }}</dd>
+          <dd class="mt-1.5 font-semibold text-status-success-fg dark:text-status-success-dark flex items-center gap-1.5">
+            <svg class="h-4 w-4 text-emerald-500 shrink-0" aria-hidden="true"><use href="#icon-sparkles"></use></svg>
+            <span class="truncate">{{ vision.label }}</span>
+          </dd>
         {% else %}
-          <dd class="mt-1 font-semibold text-slate-500 dark:text-slate-400">{{ vision.label }}</dd>
+          <dd class="mt-1.5 font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <svg class="h-4 w-4 text-slate-400 shrink-0" aria-hidden="true"><use href="#icon-info"></use></svg>
+            <span class="truncate">{{ vision.label }}</span>
+          </dd>
         {% endif %}
       </div>
     </dl>
   </div>
 </div>
+

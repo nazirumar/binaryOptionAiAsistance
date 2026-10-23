@@ -736,7 +736,10 @@ class TestDashboard:
         client.force_login(member)
         response = client.get("/dashboard/book-strategies/")
         assert response.status_code == 200
-        assert b"Book strategies" in response.content
+        # The page identity lives in the shell top bar; the body carries the
+        # catalog description.
+        assert b"Book Strategies" in response.content
+        assert b"Binary Options Trading Bible catalog" in response.content
 
     def test_detail_page_shows_book_fields(self, client, member):
         client.force_login(member)

@@ -188,6 +188,54 @@ def test_topbar_shows_page_identity_and_actions(client):
 
 
 @pytest.mark.django_db
+def test_dashboard_shell_does_not_render_the_public_site_header(client):
+    """The authenticated shell must not stack base.html's public site header on
+    top of its own top bar (a duplicated branding bar on every page)."""
+    client.force_login(UserFactory(display_name="Header Tester"))
+    response = client.get("/dashboard/live-signals/")
+    assert response.status_code == 200
+    content = response.content
+    assert b'class="topbar"' in content  # the app shell top bar is present
+    assert b'class="site-header"' not in content  # the public header is suppressed
+
+
+@pytest.mark.django_db
+def test_public_pages_still_render_the_site_header(client):
+    """Login/signup are public and keep the marketing header."""
+    response = client.get("/accounts/login/")
+    assert response.status_code == 200
+    assert b'class="site-header"' in response.content
+    assert b'class="topbar"' not in response.content
+
+
+@pytest.mark.django_db
+def test_dashboard_pages_do_not_repeat_the_topbar_title(client):
+    """The shell top bar already shows the page title and breadcrumbs, so pages
+    must not render a second, duplicate in-page title or an eyebrow label."""
+    import re
+
+    client.force_login(UserFactory(display_name="Header Tester"))
+    pages = (
+        "/dashboard/overview/",
+        "/dashboard/live-signals/",
+        "/dashboard/analyses/",
+        "/dashboard/knowledge/",
+        "/dashboard/settings/",
+        "/dashboard/strategies/",
+    )
+    for path in pages:
+        response = client.get(path)
+        assert response.status_code == 200, path
+        html = response.content.decode()
+        top = re.search(r'<h1 class="topbar-title">(.*?)</h1>', html, re.S)
+        page = re.search(r'<h1 class="page-title">(.*?)</h1>', html, re.S)
+        assert top is not None, path
+        if page is not None:
+            assert page.group(1).strip().lower() != top.group(1).strip().lower(), path
+        assert 'class="page-eyebrow"' not in html, path
+
+
+@pytest.mark.django_db
 def test_theme_cookie_controls_initial_theme(client):
     default = client.get("/")
     assert b'class="dark"' in default.content  # default theme is dark

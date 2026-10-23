@@ -6,25 +6,35 @@
 {% block page_content %}
 <div class="page-header">
   <div class="min-w-0">
-    <p class="page-eyebrow">Workspace</p>
-    <h1 class="page-title">AI Assistant</h1>
+    <div class="flex items-center gap-2 mb-1.5">
+      <span class="inline-flex items-center gap-1.5 text-eyebrow uppercase font-mono tracking-wider text-brand-600 dark:text-brand-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-brand-500 animate-pulse"></span>
+        Neural Assistant
+      </span>
+      <span class="text-slate-400 dark:text-slate-600">/</span>
+      <span class="text-caption font-mono text-slate-500 dark:text-slate-400">Conversations</span>
+    </div>
     <p class="page-description">Analysis-only conversations linked to your screenshot assessments. Decisions are shown exactly as generated — never a trade instruction.</p>
   </div>
-  <a href="{% url 'dashboard:vision' %}" class="btn btn-primary">
-    <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-upload"></use></svg>
-    New analysis
-  </a>
+  <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
+    <a href="{% url 'dashboard:vision' %}" class="btn btn-primary">
+      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-upload"></use></svg>
+      New analysis
+    </a>
+  </div>
 </div>
 
 <div class="notice notice-neutral mb-6" role="note">
-  <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-sparkles"></use></svg>
+  <svg class="h-5 w-5 shrink-0 text-brand-500" aria-hidden="true"><use href="#icon-sparkles"></use></svg>
   <span>Conversations explain <strong>observations</strong> and validated <strong>decisions</strong> separately. A decision is never a trade instruction.</span>
 </div>
 
 <section aria-labelledby="conversations-heading">
-  <div class="section-header">
-    <h2 id="conversations-heading" class="section-title">Conversations</h2>
-    {% if rows %}<span class="text-caption text-slate-500 dark:text-slate-400">{{ rows|length }} shown</span>{% endif %}
+  <div class="section-header flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <h2 id="conversations-heading" class="section-title">Conversations</h2>
+      {% if rows %}<span class="badge badge-brand font-mono">{{ rows|length }} shown</span>{% endif %}
+    </div>
   </div>
 
   {% if rows %}
@@ -40,40 +50,62 @@
               <th scope="col">Latest decision</th>
               <th scope="col">Calibration</th>
               <th scope="col">Updated</th>
-              <th scope="col"><span class="sr-only">Actions</span></th>
+              <th scope="col" class="text-right"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
             {% for row in rows %}
-              <tr>
+              <tr class="transition-colors hover:bg-surface-light-muted/50 dark:hover:bg-surface-dark-muted/30">
                 <td data-label="Conversation">
-                  <a href="{% url 'dashboard:conversation-detail' row.conversation.pk %}" class="font-medium text-slate-900 hover:text-brand-600 dark:text-slate-100 dark:hover:text-brand-300">
-                    {{ row.conversation.title|default:"Conversation"|truncatechars:40 }}
-                  </a>
-                  {% if row.conversation.is_educational %}
-                    <span class="badge badge-neutral ml-1">Educational</span>
+                  <div class="flex items-center gap-2">
+                    <div class="h-7 w-7 rounded-lg bg-brand-500/10 flex items-center justify-center text-brand-600 dark:text-brand-400 shrink-0">
+                      <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-chat"></use></svg>
+                    </div>
+                    <div class="min-w-0">
+                      <a href="{% url 'dashboard:conversation-detail' row.conversation.pk %}" class="font-medium text-slate-900 hover:text-brand-600 dark:text-slate-100 dark:hover:text-brand-300 transition-colors">
+                        {{ row.conversation.title|default:"Conversation"|truncatechars:40 }}
+                      </a>
+                      {% if row.conversation.is_educational %}
+                        <span class="badge badge-neutral ml-1 text-xs">Educational</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </td>
+                <td data-label="Screenshot" class="font-mono text-xs">
+                  {% if row.conversation.screenshot_analysis_id %}
+                    <span class="text-slate-700 dark:text-slate-300">#{{ row.conversation.screenshot_analysis_id }}</span>
+                  {% else %}
+                    <span class="text-slate-400">—</span>
                   {% endif %}
                 </td>
-                <td data-label="Screenshot">{% if row.conversation.screenshot_analysis_id %}#{{ row.conversation.screenshot_analysis_id }}{% else %}—{% endif %}</td>
-                <td data-label="Instrument">{{ row.summary.instrument|default:"—" }} {{ row.summary.timeframe|default:"" }}</td>
+                <td data-label="Instrument" class="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  {{ row.summary.instrument|default:"—" }} <span class="text-slate-400 font-normal">{{ row.summary.timeframe|default:"" }}</span>
+                </td>
                 <td data-label="Latest decision">
                   {% if row.summary.direction %}
                     {% if row.summary.direction == 'NO TRADE' %}
-                      <span class="badge badge-warning">NO TRADE</span>
+                      <span class="badge badge-warning"><span class="status-dot status-dot-warning" aria-hidden="true"></span>NO TRADE</span>
+                    {% elif row.summary.direction == 'UP' %}
+                      <span class="badge badge-success"><span class="status-dot status-dot-success" aria-hidden="true"></span>UP</span>
+                    {% elif row.summary.direction == 'DOWN' %}
+                      <span class="badge badge-danger"><span class="status-dot status-dot-danger" aria-hidden="true"></span>DOWN</span>
                     {% else %}
                       <span class="badge badge-info">{{ row.summary.direction }}</span>
                     {% endif %}
                     {% if row.summary.primary_reason_code %}
-                      <span class="ml-1 text-caption text-slate-500 dark:text-slate-400">{{ row.summary.primary_reason_code }}</span>
+                      <span class="ml-1 text-caption font-mono text-slate-500 dark:text-slate-400">{{ row.summary.primary_reason_code }}</span>
                     {% endif %}
                   {% else %}
-                    <span class="text-slate-500 dark:text-slate-400">No assessment yet</span>
+                    <span class="text-slate-500 dark:text-slate-400 text-xs">No assessment yet</span>
                   {% endif %}
                 </td>
-                <td data-label="Calibration">{{ row.summary.calibration_status|default:"—" }}</td>
-                <td data-label="Updated" class="whitespace-nowrap">{{ row.conversation.updated_at|date:"Y-m-d H:i" }}</td>
+                <td data-label="Calibration" class="font-mono text-xs text-slate-600 dark:text-slate-400">{{ row.summary.calibration_status|default:"—" }}</td>
+                <td data-label="Updated" class="whitespace-nowrap font-mono text-xs text-slate-500 dark:text-slate-400">{{ row.conversation.updated_at|date:"Y-m-d H:i" }}</td>
                 <td class="text-right">
-                  <a href="{% url 'dashboard:conversation-detail' row.conversation.pk %}" class="btn btn-secondary btn-sm">Open</a>
+                  <a href="{% url 'dashboard:conversation-detail' row.conversation.pk %}" class="btn btn-secondary btn-sm">
+                    Open
+                    <svg class="h-3.5 w-3.5" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
+                  </a>
                 </td>
               </tr>
             {% endfor %}
@@ -82,11 +114,11 @@
       </div>
     </div>
   {% else %}
-    <div class="empty-state">
+    <div class="empty-state py-12">
       <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-chat"></use></svg></div>
       <p class="empty-state-title">No conversations yet</p>
       <p class="empty-state-text">Submit a chart screenshot for analysis and its conversation will appear here.</p>
-      <a href="{% url 'dashboard:vision' %}" class="btn btn-primary btn-sm mt-1">Analyse a screenshot</a>
+      <a href="{% url 'dashboard:vision' %}" class="btn btn-primary btn-sm mt-3">Analyse a screenshot</a>
     </div>
   {% endif %}
 </section>

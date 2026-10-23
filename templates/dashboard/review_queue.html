@@ -6,8 +6,6 @@
 {% block page_content %}
 <div class="page-header">
   <div class="min-w-0">
-    <p class="page-eyebrow">Research</p>
-    <h1 class="page-title">Review queue</h1>
     <p class="page-description">Error review. Correcting a label here stores the correction on the queue item only — the original recognition and prediction records are never rewritten.</p>
   </div>
   <form method="post" action="{% url 'dashboard:review-queue-scan' %}" data-pending>

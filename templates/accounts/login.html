@@ -3,42 +3,46 @@
 {% block title %}Sign in · {{ app_name }}{% endblock %}
 
 {% block content %}
-<div class="mx-auto max-w-md py-10">
-  <div class="page-header flex-col items-start">
-    <div class="min-w-0">
-      <p class="page-eyebrow">Account</p>
-      <h1 class="page-title">Sign in</h1>
-      <p class="page-description">Access your analysis dashboard.</p>
-    </div>
-  </div>
-
-  <form method="post" class="card" data-pending>
-    {% csrf_token %}
-    <div class="card-body space-y-4">
-      {% if form.non_field_errors %}
-        <div class="error-state" role="alert">
-          <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-alert-circle"></use></svg>
-          <span>{{ form.non_field_errors }}</span>
-        </div>
-      {% endif %}
-      <div class="form-prose">
-        {% for field in form %}
-          <div class="form-group">
-            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-            {{ field }}
-            {% if field.errors %}<p class="form-error">{{ field.errors|striptags }}</p>{% endif %}
-          </div>
-        {% endfor %}
+<div class="relative mx-auto max-w-md py-12 sm:py-16">
+  <div class="hero-glow -top-12" aria-hidden="true"></div>
+  <div class="relative">
+    <div class="text-center mb-8">
+      <div class="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-base font-black text-white shadow-brand-glow border border-brand-400/30">
+        NA
       </div>
-      <button type="submit" class="btn btn-primary w-full">
-        <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-lock"></use></svg>
-        Sign in
-      </button>
+      <p class="page-eyebrow">Account</p>
+      <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Sign in</h1>
+      <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Access your analysis dashboard.</p>
     </div>
-  </form>
 
-  <p class="mt-4 text-center text-sm text-slate-600 dark:text-slate-400">
-    No account? <a class="btn-link" href="{% url 'accounts:signup' %}">Create one</a>
-  </p>
+    <form method="post" class="card shadow-raised border-surface-light-border dark:border-surface-dark-border" data-pending>
+      {% csrf_token %}
+      <div class="card-body p-6 sm:p-8 space-y-4">
+        {% if form.non_field_errors %}
+          <div class="error-state" role="alert">
+            <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-alert-circle"></use></svg>
+            <span>{{ form.non_field_errors }}</span>
+          </div>
+        {% endif %}
+        <div class="form-prose space-y-4">
+          {% for field in form %}
+            <div class="form-group mb-0">
+              <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+              {{ field }}
+              {% if field.errors %}<p class="form-error">{{ field.errors|striptags }}</p>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        <button type="submit" class="btn btn-primary w-full mt-2">
+          <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-lock"></use></svg>
+          Sign in
+        </button>
+      </div>
+    </form>
+
+    <p class="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
+      No account? <a class="btn-link" href="{% url 'accounts:signup' %}">Create one</a>
+    </p>
+  </div>
 </div>
 {% endblock %}

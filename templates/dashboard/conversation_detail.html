@@ -6,14 +6,24 @@
 {% block page_content %}
 <div class="page-header">
   <div class="min-w-0">
-    <p class="page-eyebrow">Workspace · AI Assistant</p>
+    <div class="flex items-center gap-2 mb-1.5">
+      <span class="inline-flex items-center gap-1.5 text-eyebrow uppercase font-mono tracking-wider text-brand-600 dark:text-brand-400">
+        <span class="h-1.5 w-1.5 rounded-full bg-brand-500 animate-pulse"></span>
+        AI Research Session
+      </span>
+      <span class="text-slate-400 dark:text-slate-600">/</span>
+      <span class="text-caption font-mono text-slate-500 dark:text-slate-400">#{{ conversation.pk }}</span>
+    </div>
     <h1 class="page-title">{{ conversation.title|default:"Conversation" }}</h1>
-    <p class="page-description">
-      Created {{ conversation.created_at|date:"Y-m-d H:i" }}
-      {% if conversation.is_educational %} · Educational mode — analysis only, no prediction{% endif %}
+    <p class="page-description flex flex-wrap items-center gap-x-2">
+      <span>Created {{ conversation.created_at|date:"Y-m-d H:i" }}</span>
+      {% if conversation.is_educational %}
+        <span class="text-slate-400">·</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400">Educational mode — analysis only, no prediction</span>
+      {% endif %}
     </p>
   </div>
-  <div class="flex flex-wrap items-center gap-2">
+  <div class="flex flex-wrap items-center gap-2 mt-4 sm:mt-0">
     {% if conversation.screenshot_analysis_id %}
       <a href="{% url 'dashboard:vision-detail' conversation.screenshot_analysis_id %}" class="btn btn-secondary btn-sm">
         <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-scan"></use></svg>
@@ -38,26 +48,54 @@
     {% if summary.direction %}
       {# ---- Assessment ------------------------------------------------ #}
       <section class="card" aria-labelledby="assessment-heading">
-        <div class="card-header">
-          <h2 id="assessment-heading" class="card-title">Assessment</h2>
+        <div class="card-header flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-chart"></use></svg>
+            <h2 id="assessment-heading" class="card-title">Assessment</h2>
+          </div>
           {% if summary.direction == 'NO TRADE' %}
-            <span class="badge badge-warning">NO TRADE{% if summary.educational %} · educational{% endif %}</span>
+            <span class="badge badge-warning"><span class="status-dot status-dot-warning" aria-hidden="true"></span>NO TRADE{% if summary.educational %} · educational{% endif %}</span>
+          {% elif summary.direction == 'UP' %}
+            <span class="badge badge-success"><span class="status-dot status-dot-success" aria-hidden="true"></span>UP{% if summary.educational %} · educational{% endif %}</span>
+          {% elif summary.direction == 'DOWN' %}
+            <span class="badge badge-danger"><span class="status-dot status-dot-danger" aria-hidden="true"></span>DOWN{% if summary.educational %} · educational{% endif %}</span>
           {% else %}
             <span class="badge badge-info">{{ summary.direction }}{% if summary.educational %} · educational{% endif %}</span>
           {% endif %}
         </div>
         <div class="card-body">
-          <dl class="grid gap-4 sm:grid-cols-3">
-            <div><dt class="metric-label">Instrument</dt><dd class="mt-1 font-medium">{{ summary.instrument|default:"UNKNOWN" }} {{ summary.timeframe|default:"" }}</dd></div>
-            <div><dt class="metric-label">Market type</dt><dd class="mt-1 font-medium">{{ summary.market_type|default:"—" }}</dd></div>
-            <div><dt class="metric-label">Timing</dt><dd class="mt-1 font-medium">{{ summary.timing_validity|default:"—" }}</dd></div>
-            <div><dt class="metric-label">Strategy</dt><dd class="mt-1 font-medium">{{ summary.strategy_family|default:"—" }}</dd></div>
-            <div><dt class="metric-label">MT5 verification</dt><dd class="mt-1 font-medium">{{ summary.mt5_verification_status|default:"unavailable" }}</dd></div>
-            <div><dt class="metric-label">Calibration</dt><dd class="mt-1 font-medium">{{ summary.calibration_status|default:"—" }}</dd></div>
+          <dl class="grid gap-4 grid-cols-2 sm:grid-cols-3">
+            <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
+              <dt class="metric-label">Instrument</dt>
+              <dd class="mt-1 font-mono font-semibold text-slate-900 dark:text-slate-100">{{ summary.instrument|default:"UNKNOWN" }} {{ summary.timeframe|default:"" }}</dd>
+            </div>
+            <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
+              <dt class="metric-label">Market type</dt>
+              <dd class="mt-1 font-semibold capitalize text-slate-900 dark:text-slate-100">{{ summary.market_type|default:"—" }}</dd>
+            </div>
+            <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
+              <dt class="metric-label">Timing</dt>
+              <dd class="mt-1 font-semibold text-slate-900 dark:text-slate-100">{{ summary.timing_validity|default:"—" }}</dd>
+            </div>
+            <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
+              <dt class="metric-label">Strategy</dt>
+              <dd class="mt-1 font-semibold text-slate-900 dark:text-slate-100">{{ summary.strategy_family|default:"—" }}</dd>
+            </div>
+            <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
+              <dt class="metric-label">MT5 verification</dt>
+              <dd class="mt-1 font-mono font-semibold text-slate-900 dark:text-slate-100">{{ summary.mt5_verification_status|default:"unavailable" }}</dd>
+            </div>
+            <div class="p-3 rounded-lg border border-surface-light-border/60 bg-surface-light-muted/30 dark:border-surface-dark-border/60 dark:bg-surface-dark/40">
+              <dt class="metric-label">Calibration</dt>
+              <dd class="mt-1 font-mono font-semibold text-slate-900 dark:text-slate-100">{{ summary.calibration_status|default:"—" }}</dd>
+            </div>
           </dl>
 
           {% if summary.explanation %}
-            <p class="mt-4 rounded-md bg-surface-light-muted p-4 text-sm text-slate-700 dark:bg-surface-dark dark:text-slate-300">{{ summary.explanation }}</p>
+            <div class="mt-5 rounded-lg border border-surface-light-border bg-surface-light-muted/40 p-4 dark:border-surface-dark-border dark:bg-surface-dark/50">
+              <p class="text-caption font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Model assessment notes</p>
+              <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-300">{{ summary.explanation }}</p>
+            </div>
           {% endif %}
         </div>
       </section>
@@ -65,22 +103,36 @@
       {# ---- Decision reasons ----------------------------------------- #}
       {% if summary.primary_reason_code or summary.reason_codes or summary.warnings %}
         <section class="card" aria-labelledby="reasons-heading">
-          <div class="card-header"><h2 id="reasons-heading" class="card-title">Decision reasons</h2></div>
-          <div class="card-body space-y-3">
+          <div class="card-header flex items-center justify-between">
+            <h2 id="reasons-heading" class="card-title flex items-center gap-2">
+              <svg class="h-4 w-4 text-amber-500" aria-hidden="true"><use href="#icon-alert"></use></svg>
+              Decision reasons
+            </h2>
+          </div>
+          <div class="card-body space-y-3.5">
             {% if summary.primary_reason_code %}
-              <p class="text-sm"><span class="metric-label">Primary</span> <span class="font-semibold text-slate-900 dark:text-slate-100">{{ summary.primary_reason_code }}</span></p>
+              <div class="flex items-center gap-2 p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
+                <span class="text-xs font-mono uppercase tracking-wider text-amber-700 dark:text-amber-400 font-semibold">Primary:</span>
+                <span class="font-mono text-sm font-semibold text-slate-900 dark:text-slate-100">{{ summary.primary_reason_code }}</span>
+              </div>
             {% endif %}
             {% if summary.reason_codes %}
-              <ul class="space-y-1.5 text-sm text-slate-600 dark:text-slate-300">
+              <ul class="space-y-2 text-sm text-slate-700 dark:text-slate-300">
                 {% for code in summary.reason_codes %}
-                  <li class="flex gap-2"><svg class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true"><use href="#icon-dot"></use></svg><span>{{ code }}</span></li>
+                  <li class="flex items-center gap-2.5">
+                    <span class="h-1.5 w-1.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="font-mono text-xs">{{ code }}</span>
+                  </li>
                 {% endfor %}
               </ul>
             {% endif %}
             {% if summary.warnings %}
-              <ul class="space-y-1.5 text-sm text-status-warning-fg dark:text-status-warning-dark">
+              <ul class="space-y-2 text-sm text-status-warning-fg dark:text-status-warning-dark pt-1">
                 {% for warning in summary.warnings %}
-                  <li class="flex gap-2"><svg class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><use href="#icon-alert"></use></svg><span>{{ warning }}</span></li>
+                  <li class="flex items-start gap-2">
+                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden="true"><use href="#icon-alert"></use></svg>
+                    <span>{{ warning }}</span>
+                  </li>
                 {% endfor %}
               </ul>
             {% endif %}
@@ -89,29 +141,38 @@
       {% endif %}
 
       {# ---- Probability + Evidence ----------------------------------- #}
-      <div class="grid gap-4 sm:grid-cols-2">
+      <div class="grid gap-6 sm:grid-cols-2">
         <section class="card" aria-labelledby="probability-heading">
-          <div class="card-header"><h2 id="probability-heading" class="card-title">Probability</h2></div>
+          <div class="card-header flex items-center justify-between">
+            <h2 id="probability-heading" class="card-title">Probability</h2>
+            <svg class="h-4 w-4 text-slate-400" aria-hidden="true"><use href="#icon-sparkles"></use></svg>
+          </div>
           <div class="card-body">
             {% if summary.probability_value is not None %}
-              <p class="metric-value">{{ summary.probability_value }}</p>
-              <p class="metric-caption">target: {{ summary.probability_type|default:"—" }} · {{ summary.calibration_status|default:"" }}</p>
+              <p class="metric-value font-mono text-2xl font-bold text-brand-600 dark:text-brand-400">{{ summary.probability_value }}</p>
+              <p class="metric-caption mt-1 text-caption text-slate-500">target: {{ summary.probability_type|default:"—" }} · {{ summary.calibration_status|default:"" }}</p>
             {% else %}
-              <p class="text-sm text-slate-500 dark:text-slate-400">Probability unavailable — model not calibrated.</p>
+              <div class="rounded-lg border border-surface-light-border bg-surface-light-muted/30 p-3.5 dark:border-surface-dark-border dark:bg-surface-dark/30">
+                <p class="text-sm font-medium text-slate-700 dark:text-slate-300">Probability unavailable — model not calibrated.</p>
+                <p class="text-caption text-slate-500 mt-1">Calibrated models must pass validation before probabilities are displayed.</p>
+              </div>
             {% endif %}
           </div>
         </section>
 
         <section class="card" aria-labelledby="evidence-heading">
-          <div class="card-header"><h2 id="evidence-heading" class="card-title">Evidence</h2></div>
+          <div class="card-header flex items-center justify-between">
+            <h2 id="evidence-heading" class="card-title">Evidence</h2>
+            <svg class="h-4 w-4 text-slate-400" aria-hidden="true"><use href="#icon-layers"></use></svg>
+          </div>
           <div class="card-body">
             {% if summary.sync_evidence %}
               <dl class="kv-list">
-                <div class="kv-row"><dt class="kv-key">Sync status</dt><dd class="kv-value">{{ summary.sync_evidence.sync_status|default:"—" }}</dd></div>
-                <div class="kv-row"><dt class="kv-key">Verified alignment</dt><dd class="kv-value">{% if summary.sync_evidence.verified %}Yes{% else %}No{% endif %}</dd></div>
+                <div class="kv-row"><dt class="kv-key">Sync status</dt><dd class="kv-value font-mono">{{ summary.sync_evidence.sync_status|default:"—" }}</dd></div>
+                <div class="kv-row"><dt class="kv-key">Verified alignment</dt><dd class="kv-value font-semibold">{% if summary.sync_evidence.verified %}<span class="text-emerald-600 dark:text-emerald-400">Yes</span>{% else %}<span class="text-slate-500">No</span>{% endif %}</dd></div>
                 <div class="kv-row"><dt class="kv-key">Feed compatibility</dt><dd class="kv-value">{{ summary.sync_evidence.feed_compatibility|default:"—" }}</dd></div>
                 <div class="kv-row"><dt class="kv-key">Freshness</dt><dd class="kv-value">{{ summary.sync_evidence.freshness_status|default:"—" }}</dd></div>
-                <div class="kv-row"><dt class="kv-key">Candles</dt><dd class="kv-value">{{ summary.sync_evidence.candle_provenance|default:"—" }}</dd></div>
+                <div class="kv-row"><dt class="kv-key">Candles</dt><dd class="kv-value font-mono">{{ summary.sync_evidence.candle_provenance|default:"—" }}</dd></div>
               </dl>
             {% else %}
               <p class="text-sm text-slate-500 dark:text-slate-400">No server-verified evidence recorded.</p>
@@ -120,13 +181,13 @@
         </section>
       </div>
     {% elif session %}
-      <div class="empty-state">
+      <div class="empty-state py-10">
         <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-clock"></use></svg></div>
         <p class="empty-state-title">No assessment yet</p>
         <p class="empty-state-text">No persisted assessment summary is available for this conversation yet.</p>
       </div>
     {% else %}
-      <div class="empty-state">
+      <div class="empty-state py-10">
         <div class="empty-state-icon"><svg class="h-6 w-6" aria-hidden="true"><use href="#icon-chat"></use></svg></div>
         <p class="empty-state-title">No analysis attached</p>
         <p class="empty-state-text">This conversation has no analysis attached yet.</p>
@@ -134,18 +195,29 @@
     {% endif %}
 
     {# ---- Message thread ------------------------------------------- #}
-    <section class="card" aria-labelledby="thread-heading">
-      <div class="card-header"><h2 id="thread-heading" class="card-title">Conversation</h2></div>
+    <section class="card overflow-hidden" aria-labelledby="thread-heading">
+      <div class="card-header flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-chat"></use></svg>
+          <h2 id="thread-heading" class="card-title">Conversation</h2>
+        </div>
+        <span class="text-caption font-mono text-slate-400">{{ messages|length }} messages</span>
+      </div>
       <div class="card-body">
         {% if messages %}
-          <ol class="space-y-3">
+          <ol class="space-y-4">
             {% for message in messages %}
               <li class="flex {% if message.role == 'user' %}justify-end{% else %}justify-start{% endif %}">
-                <div class="max-w-[85%] rounded-lg px-4 py-3 {% if message.role == 'user' %}bg-brand-50 dark:bg-brand-950/40{% else %}bg-surface-light-muted dark:bg-surface-dark{% endif %}">
-                  <p class="text-eyebrow uppercase {% if message.role == 'user' %}text-brand-700 dark:text-brand-300{% else %}text-slate-500 dark:text-slate-400{% endif %}">
-                    {{ message.get_role_display }} · {{ message.created_at|date:"Y-m-d H:i" }}
-                  </p>
-                  <p class="mt-1 whitespace-pre-line text-sm text-slate-700 dark:text-slate-300">{{ message.content }}</p>
+                <div class="max-w-[85%] rounded-xl px-4 py-3.5 {% if message.role == 'user' %}bg-brand-600 text-white shadow-sm{% else %}border border-surface-light-border bg-surface-light-muted/60 dark:border-surface-dark-border dark:bg-surface-dark/70 text-slate-800 dark:text-slate-200{% endif %}">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-eyebrow font-mono text-xs uppercase tracking-wider {% if message.role == 'user' %}text-brand-100{% else %}text-brand-600 dark:text-brand-400 font-semibold{% endif %}">
+                      {{ message.get_role_display }}
+                    </span>
+                    <span class="text-caption {% if message.role == 'user' %}text-brand-200{% else %}text-slate-400{% endif %}">
+                      · {{ message.created_at|date:"Y-m-d H:i" }}
+                    </span>
+                  </div>
+                  <p class="whitespace-pre-line text-sm leading-relaxed {% if message.role == 'user' %}text-white{% else %}text-slate-800 dark:text-slate-200{% endif %}">{{ message.content }}</p>
                 </div>
               </li>
             {% endfor %}
@@ -158,18 +230,23 @@
   </div>
 
   {# ---- Follow-up column ------------------------------------------- #}
-  <aside class="lg:col-span-2">
+  <aside class="lg:col-span-2 space-y-5">
     <section class="card lg:sticky lg:top-[calc(var(--topbar-height)+1.5rem)]" aria-labelledby="followup-heading">
-      <div class="card-header"><h2 id="followup-heading" class="card-title">Ask a follow-up</h2></div>
+      <div class="card-header flex items-center justify-between">
+        <h2 id="followup-heading" class="card-title flex items-center gap-2">
+          <svg class="h-4 w-4 text-brand-500" aria-hidden="true"><use href="#icon-sparkles"></use></svg>
+          Ask a follow-up
+        </h2>
+      </div>
       <form method="post" action="{% url 'dashboard:conversation-follow-up' conversation.pk %}" data-pending>
         {% csrf_token %}
-        <div class="card-body">
+        <div class="card-body space-y-3">
           <label for="follow-up-message" class="form-label">Follow-up question</label>
           <textarea id="follow-up-message" name="message" rows="4" required class="form-textarea"
                     placeholder="e.g. Why did you return that decision?"></textarea>
           <p class="form-help">Answered from stored evidence for this analysis — never from conversational memory.</p>
         </div>
-        <div class="card-header border-t border-b-0 justify-end">
+        <div class="card-header border-t border-b-0 justify-end pt-3">
           <button type="submit" class="btn btn-primary">
             <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-send"></use></svg>
             Send follow-up
@@ -178,7 +255,7 @@
       </form>
     </section>
 
-    <div class="notice notice-neutral mt-4" role="note">
+    <div class="notice notice-neutral" role="note">
       <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#icon-info"></use></svg>
       <span>Observations describe what is visible in the screenshot. Decisions are only shown when the strategy engine has evaluated them against verified data.</span>
     </div>

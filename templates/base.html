@@ -24,15 +24,18 @@
   <div class="flex min-h-screen flex-col">
     {% block shell_header %}
       <header class="site-header">
-        <nav class="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4" aria-label="Primary">
-          <a href="{% url 'home' %}" class="flex items-center gap-2.5 font-semibold text-slate-900 dark:text-white">
-            <span class="grid h-8 w-8 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white shadow-xs">NA</span>
-            <span class="hidden sm:inline">Nazbeen Academy <span class="text-brand-500">AI</span></span>
+        <nav class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6" aria-label="Primary">
+          <a href="{% url 'home' %}" class="flex items-center gap-3 font-bold text-slate-900 transition-opacity hover:opacity-90 dark:text-white">
+            <span class="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-sm font-black text-white shadow-sm border border-brand-400/30">NA</span>
+            <span class="hidden sm:inline tracking-tight font-bold">Nazbeen Academy <span class="bg-gradient-to-r from-brand-500 to-accent-500 bg-clip-text text-transparent">AI</span></span>
           </a>
 
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-2">
             {% if user.is_authenticated %}
-              <a href="{% url 'dashboard:index' %}" class="site-nav-link">Open dashboard</a>
+              <a href="{% url 'dashboard:index' %}" class="btn btn-primary btn-sm">
+                <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-dashboard"></use></svg>
+                <span>Open dashboard</span>
+              </a>
             {% else %}
               <a href="{% url 'accounts:login' %}" class="site-nav-link">Sign in</a>
               <a href="{% url 'accounts:signup' %}" class="btn btn-primary btn-sm">Create account</a>
@@ -48,24 +51,26 @@
       feed the toast region so transient confirmations surface consistently.
     {% endcomment %}
     {% if messages %}
-      <div class="mx-auto mt-4 w-full max-w-6xl px-4" role="status" aria-live="polite">
+      <div class="mx-auto mt-4 w-full max-w-7xl px-4 sm:px-6" role="status" aria-live="polite">
         {% for message in messages %}
-          <div class="notice {% if message.tags == 'error' %}notice-danger{% elif message.tags == 'warning' %}notice-warning{% elif message.tags == 'success' %}notice-info{% else %}notice-neutral{% endif %} mb-2 animate-slide-up">
+          <div class="notice {% if message.tags == 'error' %}notice-danger{% elif message.tags == 'warning' %}notice-warning{% elif message.tags == 'success' %}notice-info{% else %}notice-neutral{% endif %} mb-2.5 animate-slide-up">
             <svg class="h-5 w-5 shrink-0" aria-hidden="true"><use href="#{% if message.tags == 'error' %}icon-alert-circle{% elif message.tags == 'success' %}icon-check-circle{% else %}icon-info{% endif %}"></use></svg>
-            <span>{{ message }}</span>
+            <span class="font-medium">{{ message }}</span>
           </div>
         {% endfor %}
       </div>
     {% endif %}
 
     {% block body %}
-      <main id="main-content" class="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      <main id="main-content" class="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6">
         {% block content %}{% endblock %}
       </main>
 
-      <footer class="border-t border-surface-light-border py-6 text-center text-caption text-slate-500 dark:border-surface-dark-border dark:text-slate-500">
-        <p>{{ app_name }} · v{{ app_version }}</p>
-        <p class="mt-1">Analysis and research tool only. It does not place trades and does not guarantee outcomes.</p>
+      <footer class="border-t border-surface-light-border/80 py-8 text-center text-caption text-slate-500 dark:border-surface-dark-border/80 dark:text-slate-400">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6">
+          <p class="font-semibold text-slate-700 dark:text-slate-300">{{ app_name }} · v{{ app_version }}</p>
+          <p class="mt-1 text-slate-500 dark:text-slate-500">Analysis and research tool only. It does not place trades and does not guarantee outcomes.</p>
+        </div>
       </footer>
     {% endblock %}
   </div>

@@ -7,8 +7,9 @@
 @layer components {
   /* --- Card / panel ---------------------------------------------------- */
   .card {
-    @apply rounded-lg border border-surface-light-border bg-white shadow-card
-      dark:border-surface-dark-border dark:bg-surface-dark-raised dark:shadow-dark-card;
+    @apply rounded-xl border border-surface-light-border bg-white shadow-card
+      dark:border-surface-dark-border dark:bg-surface-dark-raised/95 dark:backdrop-blur-sm dark:shadow-dark-card
+      transition-colors duration-fast;
   }
 
   .card-body {
@@ -17,11 +18,11 @@
 
   .card-header {
     @apply flex flex-wrap items-center justify-between gap-3 border-b border-surface-light-border px-5 py-4
-      dark:border-surface-dark-border;
+      dark:border-surface-dark-border/80;
   }
 
   .card-title {
-    @apply text-heading font-semibold text-slate-900 dark:text-slate-50;
+    @apply text-heading font-semibold text-slate-900 tracking-tight dark:text-slate-50;
   }
 
   .card-subtitle {
@@ -31,18 +32,18 @@
   /* Interactive card — used when the whole card is a link/target. */
   .card-interactive {
     @apply transition-all duration-fast ease-standard hover:-translate-y-0.5
-      hover:border-brand-300 hover:shadow-raised dark:hover:border-brand-700;
+      hover:border-brand-400/60 hover:shadow-raised dark:hover:border-brand-500/50 dark:hover:shadow-brand-glow;
   }
 
   /* Hover lift only (card contains a link but is not itself clickable). */
   .card-hover {
-    @apply transition-all duration-fast ease-standard hover:-translate-y-0.5 hover:shadow-raised;
+    @apply transition-all duration-fast ease-standard hover:-translate-y-0.5 hover:shadow-raised dark:hover:border-slate-700;
   }
 
   /* Small leading glyph inside a card header or list row. */
   .icon-badge {
-    @apply grid h-9 w-9 shrink-0 place-items-center rounded-md bg-brand-50 text-brand-600
-      dark:bg-brand-950 dark:text-brand-300;
+    @apply grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600 border border-brand-200/40
+      dark:bg-brand-950/70 dark:text-brand-300 dark:border-brand-800/40 shadow-xs;
   }
 
   /* --- Page header ------------------------------------------------------ */
@@ -51,15 +52,15 @@
   }
 
   .page-eyebrow {
-    @apply text-eyebrow uppercase text-brand-600 dark:text-brand-300;
+    @apply text-eyebrow uppercase font-semibold tracking-wider text-brand-600 dark:text-brand-300;
   }
 
   .page-title {
-    @apply mt-1 text-title font-bold text-slate-900 dark:text-slate-50;
+    @apply mt-1 text-title font-bold tracking-tight text-slate-900 dark:text-slate-50;
   }
 
   .page-description {
-    @apply mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-400;
+    @apply mt-1 max-w-2xl text-sm leading-relaxed text-slate-500 dark:text-slate-400;
   }
 
   /* --- Section header --------------------------------------------------- */
@@ -68,21 +69,22 @@
   }
 
   .section-title {
-    @apply text-heading font-semibold text-slate-900 dark:text-slate-100;
+    @apply text-heading font-semibold tracking-tight text-slate-900 dark:text-slate-100;
   }
 
   /* --- Metric card ------------------------------------------------------ */
   .metric {
-    @apply flex flex-col gap-1 rounded-lg border border-surface-light-border bg-white p-4 shadow-card
-      dark:border-surface-dark-border dark:bg-surface-dark-raised dark:shadow-dark-card;
+    @apply relative overflow-hidden flex flex-col gap-1.5 rounded-xl border border-surface-light-border bg-white p-5 shadow-card
+      dark:border-surface-dark-border dark:bg-surface-dark-raised/95 dark:shadow-dark-card
+      transition-all duration-fast hover:border-brand-500/25;
   }
 
   .metric-label {
-    @apply text-caption font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400;
+    @apply text-caption font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400;
   }
 
   .metric-value {
-    @apply text-2xl font-bold tabular-nums text-slate-900 dark:text-slate-50;
+    @apply text-2xl font-bold tracking-tight tabular-nums text-slate-900 dark:text-slate-50;
   }
 
   /* Smaller metric value — for text-shaped values (states, servers). */
@@ -96,25 +98,25 @@
 
   /* --- Status badges ---------------------------------------------------- */
   .badge {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-caption font-semibold;
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-caption font-semibold border border-transparent tracking-wide;
   }
   .badge-success {
-    @apply bg-status-success-soft text-status-success-fg dark:bg-status-success-dark-soft dark:text-status-success-dark;
+    @apply bg-status-success-soft text-status-success-fg border-status-success/20 dark:bg-status-success-dark-soft dark:text-status-success-dark dark:border-status-success/30;
   }
   .badge-warning {
-    @apply bg-status-warning-soft text-status-warning-fg dark:bg-status-warning-dark-soft dark:text-status-warning-dark;
+    @apply bg-status-warning-soft text-status-warning-fg border-status-warning/20 dark:bg-status-warning-dark-soft dark:text-status-warning-dark dark:border-status-warning/30;
   }
   .badge-danger {
-    @apply bg-status-danger-soft text-status-danger-fg dark:bg-status-danger-dark-soft dark:text-status-danger-dark;
+    @apply bg-status-danger-soft text-status-danger-fg border-status-danger/20 dark:bg-status-danger-dark-soft dark:text-status-danger-dark dark:border-status-danger/30;
   }
   .badge-info {
-    @apply bg-status-info-soft text-status-info-fg dark:bg-status-info-dark-soft dark:text-status-info-dark;
+    @apply bg-status-info-soft text-status-info-fg border-status-info/20 dark:bg-status-info-dark-soft dark:text-status-info-dark dark:border-status-info/30;
   }
   .badge-neutral {
-    @apply bg-status-neutral-soft text-status-neutral-fg dark:bg-status-neutral-dark-soft dark:text-status-neutral-dark;
+    @apply bg-status-neutral-soft text-status-neutral-fg border-status-neutral/20 dark:bg-status-neutral-dark-soft dark:text-status-neutral-dark dark:border-status-neutral/30;
   }
   .badge-brand {
-    @apply bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300;
+    @apply bg-brand-50 text-brand-700 border-brand-200/60 dark:bg-brand-950/80 dark:text-brand-300 dark:border-brand-800/50;
   }
 
   /* A leading dot for status indicators. */
@@ -122,16 +124,16 @@
     @apply inline-block h-2 w-2 shrink-0 rounded-full;
   }
   .status-dot-success {
-    @apply bg-status-success;
+    @apply bg-status-success shadow-[0_0_8px_rgba(16,185,129,0.5)];
   }
   .status-dot-warning {
-    @apply bg-status-warning;
+    @apply bg-status-warning shadow-[0_0_8px_rgba(245,158,11,0.5)];
   }
   .status-dot-danger {
-    @apply bg-status-danger;
+    @apply bg-status-danger shadow-[0_0_8px_rgba(244,63,94,0.5)];
   }
   .status-dot-info {
-    @apply bg-status-info;
+    @apply bg-status-info shadow-[0_0_8px_rgba(14,165,233,0.5)];
   }
   .status-dot-neutral {
     @apply bg-status-neutral;
@@ -143,37 +145,37 @@
 
   /* Larger, labelled status chip with a leading dot. */
   .status-pill {
-    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-caption font-medium;
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-caption font-medium border border-transparent;
   }
   .status-pill .status-dot {
     @apply h-2 w-2;
   }
   .status-pill-success {
-    @apply bg-status-success-soft text-status-success-fg dark:bg-status-success-dark-soft dark:text-status-success-dark;
+    @apply bg-status-success-soft text-status-success-fg border-status-success/20 dark:bg-status-success-dark-soft dark:text-status-success-dark dark:border-status-success/30;
   }
   .status-pill-success .status-dot {
     @apply bg-status-success;
   }
   .status-pill-warning {
-    @apply bg-status-warning-soft text-status-warning-fg dark:bg-status-warning-dark-soft dark:text-status-warning-dark;
+    @apply bg-status-warning-soft text-status-warning-fg border-status-warning/20 dark:bg-status-warning-dark-soft dark:text-status-warning-dark dark:border-status-warning/30;
   }
   .status-pill-warning .status-dot {
     @apply bg-status-warning;
   }
   .status-pill-danger {
-    @apply bg-status-danger-soft text-status-danger-fg dark:bg-status-danger-dark-soft dark:text-status-danger-dark;
+    @apply bg-status-danger-soft text-status-danger-fg border-status-danger/20 dark:bg-status-danger-dark-soft dark:text-status-danger-dark dark:border-status-danger/30;
   }
   .status-pill-danger .status-dot {
     @apply bg-status-danger;
   }
   .status-pill-info {
-    @apply bg-status-info-soft text-status-info-fg dark:bg-status-info-dark-soft dark:text-status-info-dark;
+    @apply bg-status-info-soft text-status-info-fg border-status-info/20 dark:bg-status-info-dark-soft dark:text-status-info-dark dark:border-status-info/30;
   }
   .status-pill-info .status-dot {
     @apply bg-status-info;
   }
   .status-pill-neutral {
-    @apply bg-status-neutral-soft text-status-neutral-fg dark:bg-status-neutral-dark-soft dark:text-status-neutral-dark;
+    @apply bg-status-neutral-soft text-status-neutral-fg border-status-neutral/20 dark:bg-status-neutral-dark-soft dark:text-status-neutral-dark dark:border-status-neutral/30;
   }
   .status-pill-neutral .status-dot {
     @apply bg-status-neutral;
@@ -181,31 +183,31 @@
 
   /* --- Meta strip — inline definition list for page-level context ------- */
   .meta-strip {
-    @apply flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-surface-light-border bg-surface-light-muted
-      px-4 py-3 text-sm dark:border-surface-dark-border dark:bg-surface-dark;
+    @apply flex flex-wrap gap-x-6 gap-y-2 rounded-xl border border-surface-light-border bg-surface-light-muted/60
+      px-4 py-3 text-sm dark:border-surface-dark-border dark:bg-surface-dark/60;
   }
   .meta-item {
     @apply flex flex-col gap-0.5;
   }
   .meta-key {
-    @apply text-caption font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400;
+    @apply text-caption font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400;
   }
   .meta-value {
-    @apply font-medium text-slate-800 dark:text-slate-200;
+    @apply font-semibold text-slate-800 dark:text-slate-200;
   }
 
   /* --- Breadcrumbs ------------------------------------------------------ */
   .breadcrumbs {
-    @apply flex flex-wrap items-center gap-1 text-caption font-medium text-slate-500
+    @apply flex flex-wrap items-center gap-1.5 text-caption font-medium text-slate-500
       dark:text-slate-400;
   }
   .breadcrumbs a {
-    @apply rounded px-1 py-0.5 font-medium text-slate-500 transition-colors duration-fast
-      ease-standard hover:text-brand-600
-      dark:text-slate-400 dark:hover:text-brand-300;
+    @apply rounded-md px-1.5 py-0.5 font-medium text-slate-500 transition-colors duration-fast
+      ease-standard hover:bg-slate-100 hover:text-brand-600
+      dark:text-slate-400 dark:hover:bg-surface-dark-overlay dark:hover:text-brand-300;
   }
   .breadcrumbs [aria-current="page"] {
-    @apply font-semibold text-slate-700 dark:text-slate-200;
+    @apply font-semibold text-slate-800 dark:text-slate-200;
   }
   .breadcrumbs .sep {
     @apply select-none text-slate-300 dark:text-slate-600;
@@ -217,30 +219,30 @@
 
   /* --- Empty & error states --------------------------------------------- */
   .empty-state {
-    @apply flex flex-col items-center gap-3 rounded-lg border border-dashed border-surface-light-border
-      bg-white/50 px-6 py-12 text-center
-      dark:border-surface-dark-border dark:bg-surface-dark-raised/50;
+    @apply flex flex-col items-center gap-3 rounded-xl border border-dashed border-surface-light-border
+      bg-surface-light-muted/40 px-6 py-12 text-center
+      dark:border-surface-dark-border dark:bg-surface-dark-raised/40;
   }
   .empty-state-icon {
-    @apply grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400
-      dark:bg-surface-dark-overlay dark:text-slate-500;
+    @apply grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-brand-500/10 to-accent-500/10 text-brand-500 border border-brand-500/20
+      dark:from-brand-500/20 dark:to-accent-500/20 dark:text-brand-300;
   }
   .empty-state-title {
-    @apply text-base font-semibold text-slate-900 dark:text-slate-100;
+    @apply text-base font-semibold tracking-tight text-slate-900 dark:text-slate-100;
   }
   .empty-state-text {
-    @apply max-w-md text-sm text-slate-500 dark:text-slate-400;
+    @apply max-w-md text-sm leading-relaxed text-slate-500 dark:text-slate-400;
   }
 
   .error-state {
-    @apply flex items-start gap-3 rounded-lg border border-status-danger/40
+    @apply flex items-start gap-3 rounded-xl border border-status-danger/40
       bg-status-danger-soft p-4 text-sm text-status-danger-fg
-      dark:border-status-danger/30 dark:bg-status-danger-dark-soft dark:text-status-danger-dark;
+      dark:border-status-danger/30 dark:bg-status-danger-dark-soft dark:text-status-danger-dark shadow-xs;
   }
 
   /* --- Info / notice banners -------------------------------------------- */
   .notice {
-    @apply flex items-start gap-3 rounded-lg border p-4 text-sm;
+    @apply flex items-start gap-3 rounded-xl border p-4 text-sm shadow-xs transition-colors;
   }
   .notice-info {
     @apply border-status-info/30 bg-status-info-soft text-status-info-fg
@@ -259,7 +261,7 @@
       dark:bg-status-danger-dark-soft dark:text-status-danger-dark;
   }
   .notice-brand {
-    @apply border-brand-200 bg-brand-50 text-brand-800 dark:border-brand-900 dark:bg-brand-950 dark:text-brand-200;
+    @apply border-brand-200/70 bg-brand-50 text-brand-800 dark:border-brand-900/60 dark:bg-brand-950/70 dark:text-brand-200;
   }
   .notice-neutral {
     @apply border-surface-light-border bg-white text-slate-600
@@ -267,9 +269,9 @@
   }
 
   /* --- Hero backdrop ---------------------------------------------------- */
-  /* A soft radial brand glow behind hero content. Purely decorative. */
+  /* A refined radial brand glow behind hero content. Purely decorative. */
   .hero-glow {
-    @apply pointer-events-none absolute inset-x-0 -top-24 mx-auto h-72 max-w-3xl opacity-60 blur-3xl;
-    background: radial-gradient(50% 60% at 50% 40%, rgba(109, 60, 235, 0.35), transparent 70%);
+    @apply pointer-events-none absolute inset-x-0 -top-24 mx-auto h-80 max-w-4xl opacity-70 blur-3xl;
+    background: radial-gradient(50% 60% at 50% 35%, rgba(124, 86, 246, 0.4), rgba(6, 182, 212, 0.2) 50%, transparent 75%);
   }
 }

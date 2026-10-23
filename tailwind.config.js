@@ -335,8 +335,9 @@ module.exports = {
         raised: "0 8px 24px -12px rgb(15 23 42 / 0.18)",
         overlay: "0 16px 48px -16px rgb(2 6 23 / 0.35)",
         "focus-brand": "0 0 0 3px rgba(124,86,246,0.35)",
-        "dark-card": "0 1px 3px 0 rgb(0 0 0 / 0.4)",
-        "dark-raised": "0 12px 32px -16px rgb(0 0 0 / 0.65)",
+        "brand-glow": "0 0 25px -4px rgba(124, 86, 246, 0.45)",
+        "dark-card": "0 1px 3px 0 rgb(0 0 0 / 0.4), inset 0 1px 0 0 rgb(255 255 255 / 0.04)",
+        "dark-raised": "0 12px 32px -16px rgb(0 0 0 / 0.65), inset 0 1px 0 0 rgb(255 255 255 / 0.06)",
       },
 
       // --- Animation timing -------------------------------------------------

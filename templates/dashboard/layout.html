@@ -12,15 +12,22 @@ the breadcrumbs can never disagree.
 
 {% block title %}{% block page_title %}{{ page_label|default:"Dashboard" }}{% endblock %} · {{ app_name }}{% endblock %}
 
+{% comment %}
+Suppress base.html's *public* site header for the whole authenticated shell. The
+app shell has its own top bar (below), so leaving the public header in place
+stacked two branding bars on top of each other on every dashboard page.
+{% endcomment %}
+{% block shell_header %}{% endblock %}
+
 {% block body %}
 <div class="app-shell" data-app-shell data-sidebar="expanded">
 
   {# ---- Sidebar (desktop rail + mobile drawer) ------------------------- #}
   <aside class="sidebar" id="app-sidebar" aria-label="Application navigation">
     <div class="sidebar-brand">
-      <a href="{% url 'dashboard:index' %}" class="flex items-center gap-2.5 font-semibold text-slate-900 dark:text-white">
-        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-600 text-sm font-bold text-white shadow-xs">NA</span>
-        <span class="sidebar-brand-text truncate">Nazbeen Academy <span class="text-brand-500">AI</span></span>
+      <a href="{% url 'dashboard:index' %}" class="flex items-center gap-2.5 font-bold text-slate-900 transition-opacity hover:opacity-90 dark:text-white">
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-xs font-black text-white shadow-sm border border-brand-400/30">NA</span>
+        <span class="sidebar-brand-text truncate tracking-tight">Nazbeen Academy <span class="bg-gradient-to-r from-brand-500 to-accent-500 bg-clip-text text-transparent font-black">AI</span></span>
       </a>
       <button type="button" class="btn btn-ghost btn-icon ml-auto lg:hidden" data-sidebar-toggle
               aria-controls="app-sidebar" aria-expanded="false" aria-label="Close navigation">
@@ -32,9 +39,9 @@ the breadcrumbs can never disagree.
       {% for group in nav_groups %}
         {% if group.collapsible %}
           <details class="group/disclosure" {% if page_group == group.label %}open{% endif %}>
-            <summary class="nav-group-label flex cursor-pointer list-none items-center gap-2 marker:hidden">
-              <svg class="h-3.5 w-3.5 transition-transform duration-fast group-open/disclosure:rotate-90" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
-              <span>{{ group.label }}</span>
+            <summary class="nav-group-label flex cursor-pointer list-none items-center justify-between marker:hidden hover:text-slate-600 dark:hover:text-slate-300">
+              <span class="flex items-center gap-1.5">{{ group.label }}</span>
+              <svg class="h-3.5 w-3.5 transition-transform duration-fast group-open/disclosure:rotate-90 text-slate-400" aria-hidden="true"><use href="#icon-chevron-right"></use></svg>
             </summary>
             <div class="mt-1 space-y-1">
               {% for item in group.entries %}
@@ -76,7 +83,7 @@ the breadcrumbs can never disagree.
         {% endfor %}
         <form method="post" action="{% url 'accounts:logout' %}">
           {% csrf_token %}
-          <button type="submit" class="nav-item w-full text-left" title="Sign out">
+          <button type="submit" class="nav-item w-full text-left text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 transition-colors" title="Sign out">
             <svg aria-hidden="true"><use href="#icon-logout"></use></svg>
             <span class="nav-item-label truncate">Sign Out</span>
           </button>
@@ -84,8 +91,12 @@ the breadcrumbs can never disagree.
       </div>
     </nav>
 
-    <div class="sidebar-brand-text border-t border-surface-light-border p-3 text-caption text-slate-500 dark:border-surface-dark-border dark:text-slate-400">
-      Analysis and research only. This application never places trades.
+    <div class="sidebar-brand-text border-t border-surface-light-border/80 p-3.5 text-caption text-slate-500 dark:border-surface-dark-border/80 dark:text-slate-400 bg-surface-light-muted/50 dark:bg-surface-dark/50">
+      <div class="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+        <span>Research Mode Active</span>
+      </div>
+      <p class="mt-1 text-[11px] leading-tight text-slate-400 dark:text-slate-500">Analysis only. This application never places trades.</p>
     </div>
   </aside>
 
@@ -128,7 +139,7 @@ the breadcrumbs can never disagree.
           <span>New analysis</span>
         </a>
 
-        <a href="{% url 'dashboard:live-signals' %}" class="btn btn-ghost btn-icon tooltip"
+        <a href="{% url 'dashboard:live-signals' %}" class="btn btn-ghost btn-icon tooltip relative"
            data-tooltip="Signal alerts" aria-label="Signal alerts">
           <svg class="h-5 w-5" aria-hidden="true"><use href="#icon-bell"></use></svg>
         </a>
@@ -143,7 +154,7 @@ the breadcrumbs can never disagree.
             <span class="profile-avatar">
               {{ user.name|default:user.username|slice:":1"|upper }}
             </span>
-            <span class="hidden max-w-[9rem] truncate sm:inline">{{ user.name|default:user.username }}</span>
+            <span class="hidden max-w-[9rem] truncate sm:inline font-semibold text-slate-800 dark:text-slate-100">{{ user.name|default:user.username }}</span>
             <svg class="hidden h-4 w-4 shrink-0 text-slate-400 sm:block" aria-hidden="true"><use href="#icon-chevron-down"></use></svg>
           </button>
           <div class="menu" id="profile-menu" data-menu hidden>
@@ -166,7 +177,7 @@ the breadcrumbs can never disagree.
             <div class="menu-divider"></div>
             <form method="post" action="{% url 'accounts:logout' %}">
               {% csrf_token %}
-              <button type="submit" class="menu-item w-full text-left">
+              <button type="submit" class="menu-item w-full text-left text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40">
                 <svg class="h-4 w-4" aria-hidden="true"><use href="#icon-logout"></use></svg>
                 Sign Out
               </button>
@@ -180,8 +191,11 @@ the breadcrumbs can never disagree.
       {% block page_content %}{% endblock %}
     </main>
 
-    <footer class="border-t border-surface-light-border px-6 py-5 text-caption text-slate-500 dark:border-surface-dark-border dark:text-slate-500">
-      <p>{{ app_name }} · v{{ app_version }} · Analysis and research tool only — it never places trades.</p>
+    <footer class="border-t border-surface-light-border/80 px-6 py-5 text-caption text-slate-500 dark:border-surface-dark-border/80 dark:text-slate-400">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p>{{ app_name }} · v{{ app_version }} · Analysis and research tool only — it never places trades.</p>
+        <p class="text-[11px] text-slate-400 dark:text-slate-500">Evidence-based price-action intelligence</p>
+      </div>
     </footer>
   </div>
 </div>

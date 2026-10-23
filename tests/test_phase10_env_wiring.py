@@ -286,7 +286,9 @@ def test_env_coverage_report_is_clean() -> None:
         capture_output=True,
         text=True,
         cwd=ROOT,
-        timeout=120,
+        # CPU-bound AST scan over the whole repo. Generous timeout so a busy
+        # machine running the full suite cannot turn this into a false failure.
+        timeout=300,
     )
     output = result.stdout + result.stderr
     assert result.returncode == 0, output

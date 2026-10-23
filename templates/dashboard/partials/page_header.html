@@ -2,17 +2,20 @@
 Reusable page header.
 
 Usage:
-  {% include "dashboard/partials/page_header.html" with eyebrow="Workspace" title="…" description="…" %}
+  {% include "dashboard/partials/page_header.html" with description="…" %}
 
-An optional `actions` block is provided by the caller through `{% block %}` when
-the header is inlined; for includes, pass an `actions_template` name instead and
-it will be included under the title. Breadcrumbs are rendered by the shell, so
-they are deliberately not repeated here.
+The application shell's top bar already renders the page's single <h1> and a full
+breadcrumb trail (Dashboard / <group> / <page>), so this header deliberately does
+NOT repeat the title or an eyebrow label. It carries only the page description,
+optional actions, and an optional `actions_template`.
+
+Pass `title` only when the header genuinely needs its own visible heading (e.g. a
+detail page whose subject differs from the shell's page label); set
+`show_title=1` to render it as a visible <h2> (never a second <h1>).
 {% endcomment %}
 <header class="page-header">
   <div class="min-w-0">
-    {% if eyebrow %}<p class="page-eyebrow">{{ eyebrow }}</p>{% endif %}
-    <h1 class="page-title">{{ title }}</h1>
+    {% if title and show_title %}<h2 class="page-title">{{ title }}</h2>{% endif %}
     {% if description %}<p class="page-description">{{ description }}</p>{% endif %}
     {% if actions_template %}{% include actions_template %}{% endif %}
   </div>
