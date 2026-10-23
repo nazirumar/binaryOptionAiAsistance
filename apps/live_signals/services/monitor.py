@@ -36,6 +36,7 @@ from apps.live_signals.constants import (
 from apps.live_signals.models import (
     InstrumentMonitor,
     LiveSignal,
+    UserMonitor,
     UserMonitorSettings,
 )
 from apps.live_signals.services.matching import match_strategy
@@ -154,14 +155,43 @@ def ensure_monitors() -> list[InstrumentMonitor]:
 
 
 def watched_monitors_for_user(user) -> list[InstrumentMonitor]:
-    """Monitors a user asked to watch, intersected with the system set.
+    """Monitors a user asked to watch.
 
-    User settings can only *narrow* the monitored set; they can never add an
-    instrument the system feed does not serve, and can never widen the
-    approval gate.
+    Two sources, in order of precedence:
+
+    1. The user's own dynamic :class:`UserMonitor` rows (added from the settings
+       UI). For each enabled row a matching shared :class:`InstrumentMonitor` is
+       *ensured* — so the user's choice really drives detection — and those
+       monitors are returned.
+    2. Otherwise, the legacy narrowing behaviour: the system monitor set filtered
+       by the user's saved instrument/timeframe preferences.
+
+    Neither path can add an instrument the feed cannot serve, and neither can
+    widen the approval gate.
     """
     if user is None or not getattr(user, "is_authenticated", False):
         return []
+
+    # 1. Dynamic, user-added monitors.
+    user_rows = list(
+        UserMonitor.objects.filter(user=user, enabled=True)
+    )
+    if user_rows:
+        monitors: list[InstrumentMonitor] = []
+        for row in user_rows:
+            monitor, _ = InstrumentMonitor.objects.get_or_create(
+                canonical_instrument=row.canonical_instrument,
+                timeframe=row.timeframe,
+                market_type=row.market_type,
+                defaults={
+                    "provider": "db",
+                    "is_otc": row.market_type == "otc",
+                },
+            )
+            monitors.append(monitor)
+        return monitors
+
+    # 2. Legacy filtering of the system set.
     settings_obj = UserMonitorSettings.objects.filter(user=user).first()
     if settings_obj is None:
         return []

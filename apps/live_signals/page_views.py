@@ -23,6 +23,7 @@ from apps.live_signals.constants import (
     SignalStatus,
 )
 from apps.live_signals.models import (
+    UserMonitor,
     UserMonitorSettings,
 )
 from apps.live_signals.services.alerts import (
@@ -122,6 +123,21 @@ def live_signals_settings(request: HttpRequest) -> HttpResponse:
     settings_obj, _ = UserMonitorSettings.objects.get_or_create(user=request.user)
 
     if request.method == "POST":
+        action = request.POST.get("action", "save")
+
+        if action == "add_monitor":
+            _add_user_monitor(request)
+            return redirect("dashboard:live-signals-settings")
+
+        if action == "remove_monitor":
+            monitor_id = request.POST.get("monitor_id") or ""
+            if monitor_id.isdigit():
+                UserMonitor.objects.filter(
+                    user=request.user, pk=int(monitor_id)
+                ).delete()
+                messages.success(request, "Monitored instrument removed.")
+            return redirect("dashboard:live-signals-settings")
+
         instruments: list[str] = []
         for raw in request.POST.getlist("instruments"):
             instruments.extend(v.strip() for v in raw.split(",") if v.strip())
@@ -149,13 +165,50 @@ def live_signals_settings(request: HttpRequest) -> HttpResponse:
     strategies = list(
         BookStrategy.objects.filter(recognition_enabled=True).order_by("key")
     )
+    user_monitors = list(
+        UserMonitor.objects.filter(user=request.user).order_by(
+            "canonical_instrument", "timeframe"
+        )
+    )
     context = {
         "settings_obj": settings_obj,
         "timeframes": MONITORABLE_TIMEFRAMES,
+        "user_monitors": user_monitors,
         "strategies": strategies,
         "disclaimer": MONITOR_DISCLAIMER,
     }
     return render(request, "dashboard/live_signals_settings.html", context)
+
+
+def _add_user_monitor(request: HttpRequest) -> None:
+    """Validate and persist one user-added instrument/timeframe watch."""
+    instrument = (request.POST.get("monitor_instrument") or "").strip().upper()
+    timeframe = (request.POST.get("monitor_timeframe") or "").strip().upper()
+    market_type = (request.POST.get("monitor_market_type") or "regular").strip().lower()
+
+    if not instrument:
+        messages.error(request, "Enter an instrument code (e.g. EURUSD).")
+        return
+    if timeframe not in MONITORABLE_TIMEFRAMES:
+        messages.error(
+            request,
+            "Choose a supported timeframe: " + ", ".join(MONITORABLE_TIMEFRAMES) + ".",
+        )
+        return
+    if market_type not in ("regular", "otc"):
+        messages.error(request, "Market type must be regular or otc.")
+        return
+
+    _, created = UserMonitor.objects.get_or_create(
+        user=request.user,
+        canonical_instrument=instrument,
+        timeframe=timeframe,
+        market_type=market_type,
+    )
+    if created:
+        messages.success(request, f"Now monitoring {instrument} {timeframe} ({market_type}).")
+    else:
+        messages.info(request, f"{instrument} {timeframe} ({market_type}) is already monitored.")
 
 
 @login_required

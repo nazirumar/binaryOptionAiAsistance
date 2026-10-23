@@ -93,6 +93,44 @@ class InstrumentMonitor(TimeStampedModel):
         return f"{self.canonical_instrument}/{self.timeframe} ({self.market_type})"
 
 
+class UserMonitor(TimeStampedModel):
+    """A per-user instrument/timeframe watch the user adds from the UI.
+
+    This is the *dynamic* half of monitoring: the system's :class:`InstrumentMonitor`
+    set comes from ``LIVE_SIGNAL_MONITORS`` (operator-configured), and a
+    :class:`UserMonitor` lets a signed-in user add their own instrument+timeframe
+    without touching settings. When the monitor engine runs for that user it
+    ensures a matching shared :class:`InstrumentMonitor` exists, so the user's
+    choice actually drives detection.
+
+    It never widens the approval gate: a user-added monitor still produces only
+    the same pattern observations any system monitor would, and directional
+    signals remain gated on ``BookStrategy.decision_use_approved``.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="live_signal_user_monitors",
+    )
+    canonical_instrument = models.CharField(max_length=32, db_index=True)
+    timeframe = models.CharField(max_length=4, db_index=True)
+    market_type = models.CharField(max_length=16, default="regular")
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("canonical_instrument", "timeframe", "market_type")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user", "canonical_instrument", "timeframe", "market_type"),
+                name="uniq_user_monitor_instrument_timeframe_market",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user} · {self.canonical_instrument}/{self.timeframe}"
+
+
 class LiveSignal(TimeStampedModel):
     """One detected setup, frozen at detection time.
 

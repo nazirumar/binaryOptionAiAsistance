@@ -81,11 +81,55 @@ class Command(BaseCommand):
             )
             if t.strip()
         ]
+
+        # Union in whatever the live-signal monitors require (system monitors and
+        # any user-added ones), so a monitor created from the UI is fed without
+        # the operator editing settings. This only ADDS collection; it never
+        # changes strategy logic or widens the approval gate.
+        extra_symbols, extra_timeframes = self._monitored_pairs()
+        for code in extra_symbols:
+            if code not in symbols:
+                symbols.append(code)
+        for timeframe in extra_timeframes:
+            if timeframe not in timeframes:
+                timeframes.append(timeframe)
+
         unsupported = [t for t in timeframes if not is_supported(t)]
         if unsupported:
             raise CommandError(f"Unsupported timeframe(s): {', '.join(unsupported)}")
         collector = options["collector"] or f"worker-{os.getpid()}"
         return interval, symbols, timeframes, collector
+
+    @staticmethod
+    def _monitored_pairs() -> tuple[list[str], list[str]]:
+        """Canonical instruments and timeframes required by enabled monitors.
+
+        Returns ``([], [])`` if the live-signals app is unavailable or has not
+        been migrated, so the worker still starts with its configured set.
+        """
+        from django.db import DatabaseError
+
+        from apps.live_signals.constants import MONITORABLE_TIMEFRAMES
+        from apps.live_signals.models import InstrumentMonitor
+
+        try:
+            rows = InstrumentMonitor.objects.filter(enabled=True).values_list(
+                "canonical_instrument", "timeframe"
+            )
+        except DatabaseError:
+            logger.warning("mt5_worker.monitors_unavailable", exc_info=True)
+            return [], []
+
+        symbols: list[str] = []
+        timeframes: list[str] = []
+        for instrument, timeframe in rows:
+            instrument = (instrument or "").strip().upper()
+            timeframe = (timeframe or "").strip().upper()
+            if instrument and instrument not in symbols:
+                symbols.append(instrument)
+            if timeframe in MONITORABLE_TIMEFRAMES and timeframe not in timeframes:
+                timeframes.append(timeframe)
+        return symbols, timeframes
 
     def _resolve_profile(self, profile_id):
         if not profile_id:

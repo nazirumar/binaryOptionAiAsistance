@@ -35,6 +35,7 @@ from apps.live_signals.models import (
     LiveSignal,
     SignalAlert,
     SignalImmutableError,
+    UserMonitor,
     UserMonitorSettings,
     payload_digest,
 )
@@ -670,6 +671,143 @@ class TestUserSettings:
         assert {m.canonical_instrument for m in mine} == {"EURUSD"}
         theirs = watched_monitors_for_user(other)
         assert {m.canonical_instrument for m in theirs} == {"GBPUSD"}
+
+
+# ---------------------------------------------------------------------------
+# 10b. Dynamic user-added monitors (from the settings UI)
+# ---------------------------------------------------------------------------
+class TestDynamicUserMonitors:
+    def test_user_monitor_drives_watched_set(self):
+        """A user-added monitor is returned and gets a shared system monitor."""
+        user = UserFactory()
+        UserMonitor.objects.create(
+            user=user, canonical_instrument="GBPUSD", timeframe="M15"
+        )
+        watched = watched_monitors_for_user(user)
+        assert [(m.canonical_instrument, m.timeframe) for m in watched] == [
+            ("GBPUSD", "M15")
+        ]
+        # The shared monitor was created so the engine can actually run it.
+        assert InstrumentMonitor.objects.filter(
+            canonical_instrument="GBPUSD", timeframe="M15"
+        ).exists()
+
+    def test_user_monitors_are_owner_scoped(self):
+        user = UserFactory()
+        other = UserFactory()
+        UserMonitor.objects.create(
+            user=user, canonical_instrument="EURUSD", timeframe="M5"
+        )
+        assert {
+            m.canonical_instrument for m in watched_monitors_for_user(other)
+        } == set()
+
+    def test_disabled_user_monitor_is_ignored(self):
+        user = UserFactory()
+        UserMonitor.objects.create(
+            user=user, canonical_instrument="EURUSD", timeframe="M5", enabled=False
+        )
+        assert watched_monitors_for_user(user) == []
+
+    def test_user_monitor_never_widens_the_gate(self):
+        """A user-added monitor still only yields unapproved pattern detections."""
+        user = UserFactory()
+        UserMonitor.objects.create(
+            user=user, canonical_instrument="EURUSD", timeframe="M5"
+        )
+        watched = watched_monitors_for_user(user)
+        assert len(watched) == 1
+        # Directional signals remain gated on strategy approval, not on monitors.
+        assert watched[0].timeframe == "M5"
+
+    def test_settings_page_adds_and_removes_monitor(self, client):
+        user = UserFactory()
+        client.force_login(user)
+        url = reverse("dashboard:live-signals-settings")
+
+        response = client.get(url)
+        assert response.status_code == 200
+        assert b"Your monitors" in response.content
+
+        response = client.post(
+            url,
+            {
+                "action": "add_monitor",
+                "monitor_instrument": "eurusd",
+                "monitor_timeframe": "M15",
+            },
+        )
+        assert response.status_code == 302
+        monitor = UserMonitor.objects.get(user=user)
+        # Instrument is normalised to canonical casing.
+        assert monitor.canonical_instrument == "EURUSD"
+        assert monitor.timeframe == "M15"
+        assert monitor.market_type == "regular"
+
+        response = client.post(
+            url, {"action": "remove_monitor", "monitor_id": monitor.pk}
+        )
+        assert response.status_code == 302
+        assert not UserMonitor.objects.filter(user=user).exists()
+
+    def test_settings_page_rejects_unsupported_timeframe(self, client):
+        user = UserFactory()
+        client.force_login(user)
+        url = reverse("dashboard:live-signals-settings")
+
+        response = client.post(
+            url,
+            {
+                "action": "add_monitor",
+                "monitor_instrument": "EURUSD",
+                "monitor_timeframe": "H1",
+            },
+        )
+        assert response.status_code == 302
+        assert not UserMonitor.objects.filter(user=user).exists()
+
+    def test_settings_page_rejects_blank_instrument(self, client):
+        user = UserFactory()
+        client.force_login(user)
+        url = reverse("dashboard:live-signals-settings")
+
+        response = client.post(
+            url,
+            {
+                "action": "add_monitor",
+                "monitor_instrument": "   ",
+                "monitor_timeframe": "M5",
+            },
+        )
+        assert response.status_code == 302
+        assert not UserMonitor.objects.filter(user=user).exists()
+
+    def test_add_monitor_is_idempotent(self, client):
+        user = UserFactory()
+        client.force_login(user)
+        url = reverse("dashboard:live-signals-settings")
+        payload = {
+            "action": "add_monitor",
+            "monitor_instrument": "EURUSD",
+            "monitor_timeframe": "M5",
+        }
+        client.post(url, payload)
+        client.post(url, payload)
+        assert UserMonitor.objects.filter(user=user).count() == 1
+
+    def test_remove_only_affects_own_monitor(self, client):
+        user = UserFactory()
+        other = UserFactory()
+        client.force_login(user)
+        theirs = UserMonitor.objects.create(
+            user=other, canonical_instrument="GBPUSD", timeframe="M5"
+        )
+        response = client.post(
+            reverse("dashboard:live-signals-settings"),
+            {"action": "remove_monitor", "monitor_id": theirs.pk},
+        )
+        assert response.status_code == 302
+        assert UserMonitor.objects.filter(pk=theirs.pk).exists()
 
 
 # ---------------------------------------------------------------------------

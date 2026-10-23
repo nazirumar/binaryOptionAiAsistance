@@ -229,3 +229,37 @@ def test_worker_push_mode_posts_to_remote(monkeypatch):
     assert captured["candles"]
     assert captured["ticks"]
     assert captured["beats"]
+
+
+def test_worker_unions_monitored_instruments_and_timeframes(monkeypatch):
+    """The worker adds whatever enabled monitors require, so a monitor created
+    from the UI is fed without editing settings."""
+    from apps.live_signals.models import InstrumentMonitor
+
+    InstrumentMonitor.objects.create(
+        canonical_instrument="GBPUSD", timeframe="M15", market_type="regular"
+    )
+
+    command = worker_module.Command()
+    _interval, symbols, timeframes, _collector = command._resolve_options(
+        {
+            "interval": None,
+            "symbols": "EURUSD",
+            "timeframes": "M1",
+            "collector": "",
+        }
+    )
+
+    assert "EURUSD" in symbols and "GBPUSD" in symbols
+    assert "M1" in timeframes and "M15" in timeframes
+
+
+def test_worker_monitored_pairs_ignores_disabled_monitors():
+    from apps.live_signals.models import InstrumentMonitor
+
+    InstrumentMonitor.objects.create(
+        canonical_instrument="GBPUSD", timeframe="M5", market_type="regular", enabled=False
+    )
+    symbols, timeframes = worker_module.Command._monitored_pairs()
+    assert "GBPUSD" not in symbols
+    assert "M5" not in timeframes
