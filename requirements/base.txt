@@ -23,7 +23,7 @@ structlog>=24.4
 drf-spectacular>=0.27
 
 # Imaging (screenshot handling, phases 3+)
-Pillow>=10.4
+Pillow>=13.0.0
 
 # MetaTrader 5 market data (Phase 2). The MetaTrader5 package ships
 # Windows-only wheels; it is installed only on the Windows worker host, never
