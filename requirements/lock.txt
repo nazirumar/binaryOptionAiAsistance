@@ -1,4 +1,4 @@
-﻿amqp==5.4.1
+amqp==5.4.1
 asgiref==3.12.1
 attrs==26.1.0
 billiard==4.3.1
@@ -28,7 +28,7 @@ metatrader5==5.0.6231
 msgpack==1.2.3
 numpy==2.5.4
 packaging==26.3
-pillow==12.3.0
+pillow==13.0.0
 pluggy==1.7.0
 prompt_toolkit==3.0.53
 psycopg==3.3.6
